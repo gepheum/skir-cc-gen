@@ -1,14 +1,14 @@
-import { Field, ResolvedType, convertCase } from "soiac";
+import { Doc, Field, ResolvedType, convertCase } from "skir-internal";
 import { TypeSpeller } from "./type_speller.js";
 
 interface MutableEnumField {
-  /** As specified in the .soia file. */
+  /** As specified in the .skir file. */
   readonly fieldName: string;
   /** Examples: "bool", "Foo". Empty if the field is a constant field. */
   readonly valueType: string;
   /** Examples: "bool", "foo::Foo". Empty if the field is a constant field. */
   readonly valueTypeWithNamespace: string;
-  /** As specified in the .soia file. */
+  /** As specified in the .skir file. */
   fieldNumber: number;
   /** Whether the field is the special UNKNOWN field. */
   isUnknownField: boolean;
@@ -26,6 +26,7 @@ interface MutableEnumField {
    heap.
    */
   readonly usePointer: boolean;
+  readonly doc: Doc;
 }
 
 export type EnumField = Readonly<MutableEnumField>;
@@ -39,9 +40,9 @@ export function getEnumFields(
   for (const inField of fields) {
     let outField: MutableEnumField;
     if (inField.type) {
-      outField = makeWrapperField(inField, typeSpeller);
+      outField = makeWrapperField(inField, inField.doc, typeSpeller);
     } else {
-      outField = makeConstantField(inField.name.text);
+      outField = makeConstantField(inField.name.text, inField.doc);
     }
     outField.fieldNumber = inField.number;
     result.push(outField);
@@ -61,16 +62,16 @@ function makeUnknownField(): MutableEnumField {
     identifier: `kUnknown`,
     kindEnumerator: `kUnknown`,
     usePointer: false,
+    doc: { text: "", pieces: [] },
   };
 }
 
-function makeConstantField(fieldName: string): MutableEnumField {
+function makeConstantField(fieldName: string, doc: Doc): MutableEnumField {
   const lowerUnderscore = convertCase(
     fieldName,
-    "UPPER_UNDERSCORE",
     "lower_underscore",
   );
-  const upperCamel = convertCase(fieldName, "UPPER_UNDERSCORE", "UpperCamel");
+  const upperCamel = convertCase(fieldName, "UpperCamel");
   return {
     fieldName: fieldName,
     valueType: "",
@@ -82,15 +83,17 @@ function makeConstantField(fieldName: string): MutableEnumField {
     identifier: `k${upperCamel}`,
     kindEnumerator: `k${upperCamel}Const`,
     usePointer: false,
+    doc: doc,
   };
 }
 
 function makeWrapperField(
   field: Field,
+  doc: Doc,
   typeSpeller: TypeSpeller,
 ): MutableEnumField {
   const fieldName = field.name.text;
-  const upperCamel = convertCase(fieldName, "lower_underscore", "UpperCamel");
+  const upperCamel = convertCase(fieldName, "UpperCamel");
   const type = field.type!;
   return {
     fieldName: fieldName,
@@ -105,6 +108,7 @@ function makeWrapperField(
     identifier: `wrap_${fieldName}`,
     kindEnumerator: `k${upperCamel}Wrapper`,
     usePointer: usePointer(field.type!),
+    doc: doc,
   };
 }
 

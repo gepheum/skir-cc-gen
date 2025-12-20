@@ -10,43 +10,43 @@
 #include "absl/types/optional.h"
 #include "gmock/gmock.h"
 #include "reserializer.testing.h"
-#include "soia.h"
-#include "soia.testing.h"
-#include "soiagen/constants.h"
-#include "soiagen/enums.h"
-#include "soiagen/enums.testing.h"
-#include "soiagen/full_name.h"
-#include "soiagen/methods.h"
-#include "soiagen/simple_enum.h"
-#include "soiagen/simple_enum.testing.h"
-#include "soiagen/structs.h"
-#include "soiagen/structs.testing.h"
+#include "skir.h"
+#include "skir.testing.h"
+#include "skirout/constants.h"
+#include "skirout/enums.h"
+#include "skirout/enums.testing.h"
+#include "skirout/full_name.h"
+#include "skirout/methods.h"
+#include "skirout/simple_enum.h"
+#include "skirout/simple_enum.testing.h"
+#include "skirout/structs.h"
+#include "skirout/structs.testing.h"
 
 namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
-using ::soia_testing_internal::MakeReserializer;
-using ::soiagen_enums::EmptyEnum;
-using ::soiagen_enums::JsonValue;
-using ::soiagen_enums::Weekday;
-using ::soiagen_full_name::FullName;
-using ::soiagen_structs::Bundle;
-using ::soiagen_structs::CarOwner;
-using ::soiagen_structs::Empty;
-using ::soiagen_structs::EmptyWithRm1;
-using ::soiagen_structs::Item;
-using ::soiagen_structs::KeyedItems;
-using ::soiagen_structs::Rec;
-using ::soiagen_user::User;
-using ::soiagen_vehicles_car::Car;
+using ::skir_testing_internal::MakeReserializer;
+using ::skirout_enums::EmptyEnum;
+using ::skirout_enums::JsonValue;
+using ::skirout_enums::Weekday;
+using ::skirout_full_name::FullName;
+using ::skirout_structs::Bundle;
+using ::skirout_structs::CarOwner;
+using ::skirout_structs::Empty;
+using ::skirout_structs::EmptyWithRm1;
+using ::skirout_structs::Item;
+using ::skirout_structs::KeyedItems;
+using ::skirout_structs::Rec;
+using ::skirout_user::User;
+using ::skirout_vehicles_car::Car;
 using ::testing::ElementsAre;
 using ::testing::Not;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
-using StatusEnum = ::soiagen_simple_enum::Status;
+using StatusEnum = ::skirout_simple_enum::Status;
 
-TEST(SoiagenTest, StructEqAndHash) {
+TEST(skiroutTest, StructEqAndHash) {
   absl::flat_hash_set<FullName> full_names;
   EXPECT_TRUE(
       full_names.insert(FullName{.first_name = "Osi", .last_name = "Daro"})
@@ -62,7 +62,7 @@ TEST(SoiagenTest, StructEqAndHash) {
   EXPECT_FALSE(full_names.insert(FullName{}).second);
 }
 
-TEST(SoiagenTest, CreateWhole) {
+TEST(skiroutTest, CreateWhole) {
   const CarOwner car_owner = CarOwner::whole{
       .car =
           Car::whole{
@@ -89,7 +89,7 @@ TEST(SoiagenTest, CreateWhole) {
                       }}));
 }
 
-TEST(SoiagenTest, ReserializeStruct) {
+TEST(skiroutTest, ReserializeStruct) {
   EXPECT_THAT(
       MakeReserializer(FullName{})
           .IsDefault()
@@ -99,9 +99,9 @@ TEST(SoiagenTest, ReserializeStruct) {
           .ExpectDebugString("{}")
           .ExpectTypeDescriptorJson(
               "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": "
-              "\"full_name.soia:FullName\"\n  },\n  \"records\": [\n    {\n    "
+              "\"full_name.skir:FullName\"\n  },\n  \"records\": [\n    {\n    "
               "  \"kind\": \"struct\",\n      \"id\": "
-              "\"full_name.soia:FullName\",\n      \"fields\": [\n        {\n  "
+              "\"full_name.skir:FullName\",\n      \"fields\": [\n        {\n  "
               "        \"name\": \"first_name\",\n          \"number\": 1,\n   "
               "       \"type\": {\n            \"kind\": \"primitive\",\n      "
               "      \"value\": \"string\"\n          }\n        },\n        "
@@ -203,32 +203,32 @@ TEST(SoiagenTest, ReserializeStruct) {
       IsOk());
 }
 
-TEST(SoiagenTest, ParseStructFromInvalidJson) {
-  EXPECT_THAT(soia::Parse<FullName>("{ \"first_name\": 1 }"), Not(IsOk()));
-  EXPECT_THAT(soia::Parse<FullName>("{ \"first_name\": [ }"), Not(IsOk()));
-  EXPECT_THAT(soia::Parse<FullName>("{ first_name: 0 "), Not(IsOk()));
+TEST(skiroutTest, ParseStructFromInvalidJson) {
+  EXPECT_THAT(skir::Parse<FullName>("{ \"first_name\": 1 }"), Not(IsOk()));
+  EXPECT_THAT(skir::Parse<FullName>("{ \"first_name\": [ }"), Not(IsOk()));
+  EXPECT_THAT(skir::Parse<FullName>("{ first_name: 0 "), Not(IsOk()));
 }
 
-TEST(SoiagenTest, StatusEnumSimpleOps) {
+TEST(skiroutTest, StatusEnumSimpleOps) {
   StatusEnum _ = StatusEnum();
-  EXPECT_EQ(StatusEnum(), StatusEnum(soiagen::kUnknown));
-  EXPECT_EQ(StatusEnum(soiagen::kUnknown), StatusEnum(soiagen::kUnknown));
-  EXPECT_EQ(StatusEnum(soiagen::kUnknown), soiagen::kUnknown);
-  EXPECT_EQ(soiagen::kUnknown, StatusEnum(soiagen::kUnknown));
-  EXPECT_NE(StatusEnum(soiagen::kOk), StatusEnum(soiagen::kUnknown));
-  EXPECT_NE(StatusEnum(soiagen::kOk), soiagen::kUnknown);
-  EXPECT_EQ(soiagen::kOk, StatusEnum(soiagen::kOk));
-  EXPECT_EQ(soiagen::kOk, StatusEnum(StatusEnum::kOk));
-  EXPECT_EQ(StatusEnum(soiagen::kOk), soiagen::kOk);
-  EXPECT_NE(soiagen::kOk, StatusEnum(soiagen::kUnknown));
-  EXPECT_EQ(soiagen::kOk, StatusEnum(soiagen::kOk));
-  EXPECT_NE(StatusEnum(soiagen::kOk), soiagen::kUnknown);
-  EXPECT_NE(StatusEnum(soiagen::kOk), soiagen::kUnknown);
+  EXPECT_EQ(StatusEnum(), StatusEnum(skirout::kUnknown));
+  EXPECT_EQ(StatusEnum(skirout::kUnknown), StatusEnum(skirout::kUnknown));
+  EXPECT_EQ(StatusEnum(skirout::kUnknown), skirout::kUnknown);
+  EXPECT_EQ(skirout::kUnknown, StatusEnum(skirout::kUnknown));
+  EXPECT_NE(StatusEnum(skirout::kOk), StatusEnum(skirout::kUnknown));
+  EXPECT_NE(StatusEnum(skirout::kOk), skirout::kUnknown);
+  EXPECT_EQ(skirout::kOk, StatusEnum(skirout::kOk));
+  EXPECT_EQ(skirout::kOk, StatusEnum(StatusEnum::kOk));
+  EXPECT_EQ(StatusEnum(skirout::kOk), skirout::kOk);
+  EXPECT_NE(skirout::kOk, StatusEnum(skirout::kUnknown));
+  EXPECT_EQ(skirout::kOk, StatusEnum(skirout::kOk));
+  EXPECT_NE(StatusEnum(skirout::kOk), skirout::kUnknown);
+  EXPECT_NE(StatusEnum(skirout::kOk), skirout::kUnknown);
   StatusEnum e;
-  EXPECT_EQ(e, soiagen::kUnknown);
+  EXPECT_EQ(e, skirout::kUnknown);
   EXPECT_EQ(e.kind(), StatusEnum::kind_type::kUnknown);
-  e = soiagen::kOk;
-  EXPECT_EQ(e, soiagen::kOk);
+  e = skirout::kOk;
+  EXPECT_EQ(e, skirout::kOk);
   EXPECT_EQ(e.kind(), StatusEnum::kind_type::kOkConst);
   e = StatusEnum::wrap_error("E");
   EXPECT_EQ(e.kind(), StatusEnum::kind_type::kErrorWrapper);
@@ -239,43 +239,43 @@ TEST(SoiagenTest, StatusEnumSimpleOps) {
   ASSERT_FALSE(StatusEnum().is_error());
 }
 
-TEST(SoiagenTest, StatusEnumEqAndHash) {
+TEST(skiroutTest, StatusEnumEqAndHash) {
   absl::flat_hash_set<StatusEnum> statuses;
-  EXPECT_TRUE(statuses.insert(soiagen::kUnknown).second);
-  EXPECT_TRUE(statuses.insert(soiagen::kOk).second);
-  EXPECT_FALSE(statuses.insert(soiagen::kOk).second);
+  EXPECT_TRUE(statuses.insert(skirout::kUnknown).second);
+  EXPECT_TRUE(statuses.insert(skirout::kOk).second);
+  EXPECT_FALSE(statuses.insert(skirout::kOk).second);
   EXPECT_TRUE(statuses.insert(StatusEnum::wrap_error("E0")).second);
   EXPECT_TRUE(statuses.insert(StatusEnum::wrap_error("E1")).second);
   EXPECT_FALSE(statuses.insert(StatusEnum::wrap_error("E1")).second);
 }
 
-TEST(SoiagenTest, StatusEnumVisitReturnsRef) {
+TEST(skiroutTest, StatusEnumVisitReturnsRef) {
   struct Visitor {
     std::string a;
     std::string b;
     std::string c;
 
-    std::string& operator()(soiagen::k_unknown) { return a; }
-    std::string& operator()(soiagen::k_ok) { return b; }
+    std::string& operator()(skirout::k_unknown) { return a; }
+    std::string& operator()(skirout::k_ok) { return b; }
     std::string& operator()(StatusEnum::wrap_error_type) { return c; }
   };
   static_assert(
       std::is_same_v<decltype(StatusEnum().visit(Visitor())), std::string&>);
   Visitor visitor;
   static_assert(
-      std::is_same_v<decltype(StatusEnum(soiagen::kOk).visit(Visitor())),
+      std::is_same_v<decltype(StatusEnum(skirout::kOk).visit(Visitor())),
                      std::string&>);
   visitor.b = "b";
-  std::string& visit_result = StatusEnum(soiagen::kOk).visit(visitor);
+  std::string& visit_result = StatusEnum(skirout::kOk).visit(visitor);
   EXPECT_EQ(&visit_result, &visitor.b);
 }
 
-TEST(SoiagenTest, StatusEnumVisitExpectsConst) {
+TEST(skiroutTest, StatusEnumVisitExpectsConst) {
   struct Visitor {
     std::string e;
 
-    void operator()(soiagen::k_unknown) {}
-    void operator()(soiagen::k_ok) {}
+    void operator()(skirout::k_unknown) {}
+    void operator()(skirout::k_ok) {}
     void operator()(const StatusEnum::wrap_error_type& error_wrapper) {
       e = error_wrapper.value;
     }
@@ -286,12 +286,12 @@ TEST(SoiagenTest, StatusEnumVisitExpectsConst) {
   EXPECT_EQ(visitor.e, "err");
 }
 
-TEST(SoiagenTest, StatusEnumVisitExpectsMutable) {
+TEST(skiroutTest, StatusEnumVisitExpectsMutable) {
   struct Visitor {
     std::string e;
 
-    void operator()(soiagen::k_unknown) {}
-    void operator()(soiagen::k_ok) {}
+    void operator()(skirout::k_unknown) {}
+    void operator()(skirout::k_ok) {}
     void operator()(StatusEnum::wrap_error_type& error_wrapper) {
       e.swap(error_wrapper.value);
     }
@@ -304,19 +304,19 @@ TEST(SoiagenTest, StatusEnumVisitExpectsMutable) {
   EXPECT_EQ(status.as_error(), "");
 }
 
-TEST(SoiagenTest, ReserializeEnum) {
+TEST(skiroutTest, ReserializeEnum) {
   EXPECT_THAT(
       MakeReserializer(StatusEnum())
           .IsDefault()
           .ExpectDenseJson("0")
           .ExpectReadableJson("\"?\"")
-          .ExpectDebugString("soiagen::kUnknown")
+          .ExpectDebugString("skirout::kUnknown")
           .ExpectBytes("00")
           .ExpectTypeDescriptorJson(
               "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": "
-              "\"simple_enum.soia:Status\"\n  },\n  \"records\": [\n    {\n    "
+              "\"simple_enum.skir:Status\"\n  },\n  \"records\": [\n    {\n    "
               "  \"kind\": \"enum\",\n      \"id\": "
-              "\"simple_enum.soia:Status\",\n      \"fields\": [\n        {\n  "
+              "\"simple_enum.skir:Status\",\n      \"variants\": [\n        {\n  "
               "        \"name\": \"OK\",\n          \"number\": 1\n        "
               "},\n        {\n          \"name\": \"error\",\n          "
               "\"number\": 2,\n          \"type\": {\n            \"kind\": "
@@ -328,7 +328,7 @@ TEST(SoiagenTest, ReserializeEnum) {
   EXPECT_THAT(MakeReserializer(StatusEnum(StatusEnum::kOk))
                   .ExpectDenseJson("1")
                   .ExpectReadableJson("\"OK\"")
-                  .ExpectDebugString("soiagen::kOk")
+                  .ExpectDebugString("skirout::kOk")
                   .ExpectBytes("01")
                   .AddCompatibleSchema<EmptyEnum>("EmptyEnum")
                   .Check(),
@@ -338,7 +338,7 @@ TEST(SoiagenTest, ReserializeEnum) {
           .ExpectDenseJson("[2,\"E\"]")
           .ExpectReadableJson(
               "{\n  \"kind\": \"error\",\n  \"value\": \"E\"\n}")
-          .ExpectDebugString("::soiagen::wrap_error(\"E\")")
+          .ExpectDebugString("::skirout::wrap_error(\"E\")")
           .ExpectBytes("fcf30145")
           .AddAlternativeJson("{\"foo\":1,\"value\":\"E\",\"kind\":\"error\"}")
           .AddCompatibleSchema<EmptyEnum>("EmptyEnum")
@@ -353,7 +353,7 @@ TEST(SoiagenTest, ReserializeEnum) {
       IsOk());
 }
 
-TEST(SoiagenTest, KeyedItems) {
+TEST(skiroutTest, KeyedItems) {
   KeyedItems s;
   s.array_with_int32_key.push_back({
       .int32 = 10,
@@ -385,66 +385,66 @@ TEST(SoiagenTest, KeyedItems) {
       MakeReserializer(s)
           .ExpectTypeDescriptorJson(
               "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": "
-              "\"structs.soia:KeyedItems\"\n  },\n  \"records\": [\n    {\n    "
+              "\"structs.skir:KeyedItems\"\n  },\n  \"records\": [\n    {\n    "
               "  \"kind\": \"struct\",\n      \"id\": "
-              "\"structs.soia:KeyedItems\",\n      \"fields\": [\n        {\n  "
+              "\"structs.skir:KeyedItems\",\n      \"fields\": [\n        {\n  "
               "        \"name\": \"array_with_bool_key\",\n          "
               "\"number\": 0,\n          \"type\": {\n            \"kind\": "
               "\"array\",\n            \"value\": {\n              \"item\": "
               "{\n                \"kind\": \"record\",\n                "
-              "\"value\": \"structs.soia:Item\"\n              },\n            "
+              "\"value\": \"structs.skir:Item\"\n              },\n            "
               "  \"key_extractor\": \"bool\"\n            }\n          }\n     "
               "   },\n        {\n          \"name\": "
               "\"array_with_string_key\",\n          \"number\": 1,\n          "
               "\"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"string\"\n            }\n          }\n     "
               "   },\n        {\n          \"name\": "
               "\"array_with_int32_key\",\n          \"number\": 2,\n          "
               "\"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"int32\"\n            }\n          }\n      "
               "  },\n        {\n          \"name\": "
               "\"array_with_int64_key\",\n          \"number\": 3,\n          "
               "\"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"int64\"\n            }\n          }\n      "
               "  },\n        {\n          \"name\": "
               "\"array_with_wrapper_key\",\n          \"number\": 4,\n         "
               " \"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"user.id\"\n            }\n          }\n    "
               "    },\n        {\n          \"name\": "
               "\"array_with_enum_key\",\n          \"number\": 5,\n          "
               "\"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"weekday.kind\"\n            }\n          "
               "}\n        },\n        {\n          \"name\": "
               "\"array_with_bytes_key\",\n          \"number\": 6,\n          "
               "\"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"bytes\"\n            }\n          }\n      "
               "  },\n        {\n          \"name\": "
               "\"array_with_timestamp_key\",\n          \"number\": 7,\n       "
               "   \"type\": {\n            \"kind\": \"array\",\n            "
               "\"value\": {\n              \"item\": {\n                "
               "\"kind\": \"record\",\n                \"value\": "
-              "\"structs.soia:Item\"\n              },\n              "
+              "\"structs.skir:Item\"\n              },\n              "
               "\"key_extractor\": \"timestamp\"\n            }\n          }\n  "
               "      }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n  "
-              "    \"id\": \"structs.soia:Item\",\n      \"fields\": [\n       "
+              "    \"id\": \"structs.skir:Item\",\n      \"fields\": [\n       "
               " {\n          \"name\": \"bool\",\n          \"number\": 0,\n   "
               "       \"type\": {\n            \"kind\": \"primitive\",\n      "
               "      \"value\": \"bool\"\n          }\n        },\n        {\n "
@@ -459,10 +459,10 @@ TEST(SoiagenTest, KeyedItems) {
               "\"value\": \"int64\"\n          }\n        },\n        {\n      "
               "    \"name\": \"user\",\n          \"number\": 4,\n          "
               "\"type\": {\n            \"kind\": \"record\",\n            "
-              "\"value\": \"structs.soia:Item.User\"\n          }\n        "
+              "\"value\": \"structs.skir:Item.User\"\n          }\n        "
               "},\n        {\n          \"name\": \"weekday\",\n          "
               "\"number\": 5,\n          \"type\": {\n            \"kind\": "
-              "\"record\",\n            \"value\": \"enums.soia:Weekday\"\n    "
+              "\"record\",\n            \"value\": \"enums.skir:Weekday\"\n    "
               "      }\n        },\n        {\n          \"name\": "
               "\"bytes\",\n          \"number\": 6,\n          \"type\": {\n   "
               "         \"kind\": \"primitive\",\n            \"value\": "
@@ -471,12 +471,12 @@ TEST(SoiagenTest, KeyedItems) {
               "\"type\": {\n            \"kind\": \"primitive\",\n            "
               "\"value\": \"timestamp\"\n          }\n        }\n      ]\n    "
               "},\n    {\n      \"kind\": \"struct\",\n      \"id\": "
-              "\"structs.soia:Item.User\",\n      \"fields\": [\n        {\n   "
+              "\"structs.skir:Item.User\",\n      \"fields\": [\n        {\n   "
               "       \"name\": \"id\",\n          \"number\": 0,\n          "
               "\"type\": {\n            \"kind\": \"primitive\",\n            "
               "\"value\": \"string\"\n          }\n        }\n      ]\n    "
               "},\n    {\n      \"kind\": \"enum\",\n      \"id\": "
-              "\"enums.soia:Weekday\",\n      \"fields\": [\n        {\n       "
+              "\"enums.skir:Weekday\",\n      \"variants\": [\n        {\n       "
               "   \"name\": \"MONDAY\",\n          \"number\": 1\n        },\n "
               "       {\n          \"name\": \"TUESDAY\",\n          "
               "\"number\": 2\n        },\n        {\n          \"name\": "
@@ -491,41 +491,41 @@ TEST(SoiagenTest, KeyedItems) {
       IsOk());
 }
 
-TEST(SoiagenTest, Constants) {
-  soiagen_constants::k_one_constant();
-  EXPECT_EQ(soiagen_constants::k_one_single_quoted_string(),
+TEST(skiroutTest, Constants) {
+  skirout_constants::k_one_constant();
+  EXPECT_EQ(skirout_constants::k_one_single_quoted_string(),
             std::string("\"\0Pokémon\n\"", 12));
 }
 
-TEST(SoiagenTest, Methods) {
-  using ::soiagen_methods::MyProcedure;
+TEST(skiroutTest, Methods) {
+  using ::skirout_methods::MyProcedure;
   static_assert(std::is_same_v<typename MyProcedure::request_type,
-                               soiagen_structs::Point>);
+                               skirout_structs::Point>);
   static_assert(std::is_same_v<typename MyProcedure::response_type,
-                               soiagen_enums::JsonValue>);
+                               skirout_enums::JsonValue>);
   constexpr int kNumber = MyProcedure::kNumber;
-  EXPECT_EQ(kNumber, 1974132327);
+  EXPECT_EQ(kNumber, 674706602);
   constexpr absl::string_view kMethodName = MyProcedure::kMethodName;
   EXPECT_EQ(kMethodName, "MyProcedure");
 }
 
-TEST(SoiagenTest, NestedRecordAlias) {
+TEST(skiroutTest, NestedRecordAlias) {
   static_assert(
-      std::is_same_v<soiagen_structs::Item::User, soiagen_structs::Item_User>);
+      std::is_same_v<skirout_structs::Item::User, skirout_structs::Item_User>);
   static_assert(
-      std::is_same_v<soiagen_structs::Name::Name_, soiagen_structs::Name_Name>);
-  static_assert(std::is_same_v<soiagen_structs::Name::Name_::Name,
-                               soiagen_structs::Name_Name_Name>);
-  static_assert(std::is_same_v<soiagen_enums::JsonValue::Pair,
-                               soiagen_enums::JsonValue_Pair>);
+      std::is_same_v<skirout_structs::Name::Name_, skirout_structs::Name_Name>);
+  static_assert(std::is_same_v<skirout_structs::Name::Name_::Name,
+                               skirout_structs::Name_Name_Name>);
+  static_assert(std::is_same_v<skirout_enums::JsonValue::Pair,
+                               skirout_enums::JsonValue_Pair>);
 }
 
-TEST(SoiagenTest, StructMatcher) {
+TEST(skiroutTest, StructMatcher) {
   const FullName full_name = {
       .first_name = "John",
       .last_name = "Doe",
   };
-  EXPECT_THAT(full_name, (::testing::soiagen::StructIs<FullName>{
+  EXPECT_THAT(full_name, (::testing::skirout::StructIs<FullName>{
                              .first_name = testing::StartsWith("J"),
                          }));
 
@@ -543,7 +543,7 @@ TEST(SoiagenTest, StructMatcher) {
               .last_name = "Daro",
           },
   };
-  EXPECT_THAT(car_owner, (::testing::soiagen::StructIs<CarOwner>{
+  EXPECT_THAT(car_owner, (::testing::skirout::StructIs<CarOwner>{
                              .car =
                                  {
                                      .model = testing::StartsWith("To"),
@@ -554,18 +554,18 @@ TEST(SoiagenTest, StructMatcher) {
                                  .first_name = "Osi",
                              }}));
 
-  EXPECT_THAT((soiagen_enums::WeekdayHolder{
-                  .weekday = soiagen_enums::Weekday::kFriday,
+  EXPECT_THAT((skirout_enums::WeekdayHolder{
+                  .weekday = skirout_enums::Weekday::kFriday,
               }),
-              (::testing::soiagen::StructIs<soiagen_enums::WeekdayHolder>{
-                  .weekday = testing::Eq(soiagen_enums::Weekday::kFriday),
+              (::testing::skirout::StructIs<skirout_enums::WeekdayHolder>{
+                  .weekday = testing::Eq(skirout_enums::Weekday::kFriday),
               }));
 }
 
-TEST(SoiagenTest, EnumValueMatcher) {
-  EXPECT_THAT(StatusEnum::wrap_error("E"), ::testing::soiagen::IsError());
+TEST(skiroutTest, EnumValueMatcher) {
+  EXPECT_THAT(StatusEnum::wrap_error("E"), ::testing::skirout::IsError());
   EXPECT_THAT(StatusEnum::wrap_error("E"),
-              ::testing::soiagen::IsError(::testing::StartsWith("E")));
+              ::testing::skirout::IsError(::testing::StartsWith("E")));
 }
 
 struct FieldNameCollector {
@@ -579,48 +579,48 @@ struct FieldNameCollector {
   absl::flat_hash_set<absl::string_view> field_names;
 
   template <typename Getter, typename Value>
-  void operator()(soia::reflection::struct_field<Getter, Value>) {
+  void operator()(skir::reflection::struct_field<Getter, Value>) {
     field_names.insert(Getter::kFieldName);
   }
 
   template <typename Const>
-  void operator()(soia::reflection::enum_const_field<Const>) {
+  void operator()(skir::reflection::enum_const_field<Const>) {
     field_names.insert(Const::kFieldName);
   }
 
   template <typename Option, typename Value>
-  void operator()(soia::reflection::enum_wrapper_field<Option, Value>) {
+  void operator()(skir::reflection::enum_wrapper_field<Option, Value>) {
     field_names.insert(Option::kFieldName);
   }
 };
 
-TEST(SoiagenTest, IsRecord) {
-  static_assert(soia::reflection::IsStruct<User>());
-  static_assert(!soia::reflection::IsStruct<Weekday>());
-  static_assert(!soia::reflection::IsEnum<User>());
-  static_assert(soia::reflection::IsEnum<Weekday>());
-  static_assert(soia::reflection::IsRecord<User>());
-  static_assert(soia::reflection::IsRecord<Weekday>());
-  static_assert(!soia::reflection::IsRecord<std::string>());
+TEST(skiroutTest, IsRecord) {
+  static_assert(skir::reflection::IsStruct<User>());
+  static_assert(!skir::reflection::IsStruct<Weekday>());
+  static_assert(!skir::reflection::IsEnum<User>());
+  static_assert(skir::reflection::IsEnum<Weekday>());
+  static_assert(skir::reflection::IsRecord<User>());
+  static_assert(skir::reflection::IsRecord<Weekday>());
+  static_assert(!skir::reflection::IsRecord<std::string>());
 }
 
-TEST(SoiagenTest, ForEachFieldOfEnum) {
+TEST(skiroutTest, ForEachFieldOfEnum) {
   FieldNameCollector collector;
-  soia::reflection::ForEachField<StatusEnum>(collector);
+  skir::reflection::ForEachField<StatusEnum>(collector);
   EXPECT_THAT(collector.field_names, UnorderedElementsAre("?", "OK", "error"));
 
   // Just to make sure we can pass an rvalue.
-  soia::reflection::ForEachField<StatusEnum>(FieldNameCollector());
+  skir::reflection::ForEachField<StatusEnum>(FieldNameCollector());
 }
 
-TEST(SoiagenTest, ForEachFieldOfStruct) {
+TEST(skiroutTest, ForEachFieldOfStruct) {
   FieldNameCollector collector;
-  soia::reflection::ForEachField<FullName>(collector);
+  skir::reflection::ForEachField<FullName>(collector);
   EXPECT_THAT(collector.field_names,
               UnorderedElementsAre("first_name", "last_name"));
 }
 
-TEST(SoiagenTest, RecursiveStruct) {
+TEST(skiroutTest, RecursiveStruct) {
   absl::flat_hash_set<Rec> recs;
   recs.insert(Rec{});
   recs.insert(Rec{});
@@ -652,7 +652,7 @@ TEST(SoiagenTest, RecursiveStruct) {
     Rec rec;
     rec.rec->rec->b = true;
     rec.rec->rec->rec->rec->b = false;
-    EXPECT_THAT(soia_internal::ToDebugString(rec),
+    EXPECT_THAT(skir_internal::ToDebugString(rec),
                 "{\n  .rec: {\n    .rec: {\n      .b: true,\n    },\n  },\n}");
   }
 }
@@ -660,40 +660,40 @@ TEST(SoiagenTest, RecursiveStruct) {
 class FakeServiceImplWithMeta {
  public:
   using methods =
-      std::tuple<soiagen_methods::MyProcedure, soiagen_methods::ListUsers>;
+      std::tuple<skirout_methods::MyProcedure, skirout_methods::ListUsers>;
 
-  ::soiagen_enums::JsonValue operator()(
-      soiagen_methods::MyProcedure, ::soiagen_structs::Point request,
-      const ::soia::service::HttpHeaders& request_headers,
-      soia::service::HttpHeaders& response_headers) {
+  ::skirout_enums::JsonValue operator()(
+      skirout_methods::MyProcedure, ::skirout_structs::Point request,
+      const ::skir::service::HttpHeaders& request_headers,
+      skir::service::HttpHeaders& response_headers) {
     response_headers = request_headers;
-    return ::soiagen_enums::JsonValue::wrap_number(request.x);
+    return ::skirout_enums::JsonValue::wrap_number(request.x);
   }
 
-  absl::StatusOr<soiagen_methods::ListUsersResponse> operator()(
-      soiagen_methods::ListUsers,
-      const ::soiagen_methods::ListUsersRequest& request,
-      const ::soia::service::HttpHeaders& request_headers,
-      soia::service::HttpHeaders& response_headers) {
+  absl::StatusOr<skirout_methods::ListUsersResponse> operator()(
+      skirout_methods::ListUsers,
+      const ::skirout_methods::ListUsersRequest& request,
+      const ::skir::service::HttpHeaders& request_headers,
+      skir::service::HttpHeaders& response_headers) {
     return absl::UnknownError("unsupported");
   }
 };
 
-TEST(SoialibTest, SoiaService) {
+TEST(SkirlibTest, SkirService) {
   FakeServiceImplWithMeta service_impl;
-  std::unique_ptr<soia::service::Client> client =
-      soia::service::MakeClientForTesting(&service_impl);
+  std::unique_ptr<skir::service::Client> client =
+      skir::service::MakeClientForTesting(&service_impl);
 
   {
-    soia::service::HttpHeaders request_headers;
+    skir::service::HttpHeaders request_headers;
     request_headers.Insert("origin", "foo");
-    soia::service::HttpHeaders response_headers;
-    const absl::StatusOr<::soiagen_enums::JsonValue> result =
-        ::soia::service::InvokeRemote(*client, soiagen_methods::MyProcedure(),
-                                      soiagen_structs::Point{.x = 1, .y = 2},
+    skir::service::HttpHeaders response_headers;
+    const absl::StatusOr<::skirout_enums::JsonValue> result =
+        ::skir::service::InvokeRemote(*client, skirout_methods::MyProcedure(),
+                                      skirout_structs::Point{.x = 1, .y = 2},
                                       request_headers, &response_headers);
     EXPECT_THAT(result,
-                IsOkAndHolds(::soiagen_enums::JsonValue::wrap_number(1.0)));
+                IsOkAndHolds(::skirout_enums::JsonValue::wrap_number(1.0)));
     EXPECT_THAT(response_headers.map(),
                 UnorderedElementsAre(Pair("origin", ElementsAre("foo"))));
   }

@@ -1,11 +1,11 @@
 {
-  "name": "soia-cc-gen",
-  "version": "1.1.15",
+  "name": "skir-cc-gen",
+  "version": "0.0.1",
   "description": "",
   "keywords": [],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gepheum/soia-cc-gen.git"
+    "url": "git+https://github.com/gepheum/skir-cc-gen.git"
   },
   "license": "ISC",
   "author": "Tyler Fibonacci <gepheum@gmail.com>",
@@ -22,21 +22,24 @@
     "client"
   ],
   "scripts": {
-    "build": "tsc",
-    "copy-to-client": "cp e2e-test/soia.h client && cp e2e-test/soia.cc client && cp e2e-test/soia.testing.h client",
-    "copy-to-client:check": "diff -s e2e-test/soia.h client/soia.h && diff -s e2e-test/soia.cc client/soia.cc && diff -s e2e-test/soia.testing.h client/soia.testing.h",
-    "format-soia": "cd e2e-test && soiac --fmt fix && cd ..",
-    "format-soia:check": "cd e2e-test && soiac --fmt check && cd ..",
-    "format-cc": "find e2e-test -not -path 'e2e-test/soiagen/*' \\( -iname '*.cc' -o -iname '*.h' \\) | xargs clang-format --Werror -i",
-    "format-cc:check": "find e2e-test -not -path 'e2e-test/soiagen/*' \\( -iname '*.cc' -o -iname '*.h' \\) | xargs clang-format --dry-run --Werror -i",
-    "format": "prettier --write \"**/*.ts\" && npm run format-soia && npm run format-cc",
-    "format:check": "prettier --check \"**/*.ts\" && npm run format-soia:check && npm run format-cc:check",
+    "build": "tsc && cd e2e-test && skir gen && cd ..",
+    "copy-to-client": "cp e2e-test/skir.h client && cp e2e-test/skir.cc client && cp e2e-test/skir.testing.h client",
+    "copy-to-client:check": "diff -s e2e-test/skir.h client/skir.h && diff -s e2e-test/skir.cc client/skir.cc && diff -s e2e-test/skir.testing.h client/skir.testing.h",
+    "format-skir": "cd e2e-test && skir format && cd ..",
+    "format-skir:check": "cd e2e-test && skir format check && cd ..",
+    "format-cc": "find e2e-test -not -path 'e2e-test/skirout/*' \\( -iname '*.cc' -o -iname '*.h' \\) | xargs clang-format --Werror -i",
+    "format-cc:check": "find e2e-test -not -path 'e2e-test/skirout/*' \\( -iname '*.cc' -o -iname '*.h' \\) | xargs clang-format --dry-run --Werror -i",
+    "format": "prettier --write \"**/*.ts\" && npm run format-skir && npm run format-cc",
+    "format:check": "prettier --check \"**/*.ts\" && npm run format-skir:check && npm run format-cc:check",
     "gen-clang-json": "cd e2e-test && bazel run @hedron_compile_commands//:refresh_all && cd ..",
     "test-cc": "cd e2e-test && CC=clang BAZEL_COMPILER=llvm bazel test --copt=-DADDRESS_SANITIZER --copt=-fsanitize=address --linkopt=-fsanitize=address --test_output=errors :all && cd ..",
-    "build-client": "cd client && bazel build :soia && bazel build :soia.testing && cd ..",
-    "test": "npm run build && soiac --root=e2e-test && npm run test-cc && npm run build-client",
+    "build-client": "cd client && bazel build :skir && bazel build :skir.testing && cd ..",
+    "test": "npm run build && npm run test-cc && npm run build-client",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
+  },
+  "dependencies": {
+    "skir-internal": "^0.0.6"
   },
   "devDependencies": {
     "@types/node": "^20.11.5",
@@ -45,7 +48,7 @@
     "eslint": "^8.54.0",
     "prettier": "^3.2.4",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "soiac": "^1.0.51",
+    "skir": "^0.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }

@@ -100,8 +100,10 @@ enum TypedValue {
   my_enum_from_bytes_drop_unrecognized: BytesExpression;
 }
 
+/// A point
 struct Point {
   removed;
+  /// x coordinate
   x: int32;
   removed;
   removed;
@@ -117,7 +119,9 @@ struct Color {
   removed 3;
 }
 
+/// my enum
 enum MyEnum {
+  /// all good
   OK = 1;
   color: Color = 4;
   bool: bool = 5;
@@ -178,7 +182,7 @@ const UNIT_TESTS: [UnitTest] = [
           },
         ],
         expected_bytes: [
-          "hex:736f696101",
+          "hex:736b697201",
         ],
         alternative_bytes: [
           {
@@ -209,7 +213,7 @@ const UNIT_TESTS: [UnitTest] = [
           "false",
         ],
         expected_bytes: [
-          "hex:736f696100",
+          "hex:736b697200",
         ],
         alternative_jsons: [
           {
@@ -245,7 +249,7 @@ const UNIT_TESTS: [UnitTest] = [
           '{\n  "unix_millis": 0,\n  "formatted": "1970-01-01T00:00:00Z"\n}',
         ],
         expected_bytes: [
-          "hex:736f696100",
+          "hex:736b697200",
         ],
         alternative_jsons: [
           {
@@ -273,7 +277,7 @@ const UNIT_TESTS: [UnitTest] = [
           '{\n  "unix_millis": 1692999034586,\n  "formatted": "2023-08-25T21:30:34.586Z"\n}',
         ],
         expected_bytes: [
-          "hex:736f6961efda269b2e8a010000",
+          "hex:736b6972efda269b2e8a010000",
         ],
         alternative_jsons: [
           {
@@ -309,7 +313,7 @@ const UNIT_TESTS: [UnitTest] = [
           "2",
         ],
         expected_bytes: [
-          "hex:736f696102",
+          "hex:736b697202",
         ],
         alternative_jsons: [
           {
@@ -350,7 +354,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-1",
         ],
         expected_bytes: [
-          "hex:736f6961ebff",
+          "hex:736b6972ebff",
         ],
         alternative_jsons: [
           {
@@ -377,7 +381,7 @@ const UNIT_TESTS: [UnitTest] = [
           "231",
         ],
         expected_bytes: [
-          "hex:736f6961e7",
+          "hex:736b6972e7",
         ],
       |},
     },
@@ -398,7 +402,7 @@ const UNIT_TESTS: [UnitTest] = [
           "232",
         ],
         expected_bytes: [
-          "hex:736f6961e8e800",
+          "hex:736b6972e8e800",
         ],
       |},
     },
@@ -419,7 +423,7 @@ const UNIT_TESTS: [UnitTest] = [
           "65535",
         ],
         expected_bytes: [
-          "hex:736f6961e8ffff",
+          "hex:736b6972e8ffff",
         ],
       |},
     },
@@ -440,7 +444,7 @@ const UNIT_TESTS: [UnitTest] = [
           "65536",
         ],
         expected_bytes: [
-          "hex:736f6961e900000100",
+          "hex:736b6972e900000100",
         ],
       |},
     },
@@ -461,7 +465,7 @@ const UNIT_TESTS: [UnitTest] = [
           "2147483647",
         ],
         expected_bytes: [
-          "hex:736f6961e9ffffff7f",
+          "hex:736b6972e9ffffff7f",
         ],
       |},
     },
@@ -482,7 +486,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-255",
         ],
         expected_bytes: [
-          "hex:736f6961eb01",
+          "hex:736b6972eb01",
         ],
       |},
     },
@@ -503,7 +507,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-256",
         ],
         expected_bytes: [
-          "hex:736f6961eb00",
+          "hex:736b6972eb00",
         ],
       |},
     },
@@ -524,7 +528,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-257",
         ],
         expected_bytes: [
-          "hex:736f6961ecfffe",
+          "hex:736b6972ecfffe",
         ],
       |},
     },
@@ -545,7 +549,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-65536",
         ],
         expected_bytes: [
-          "hex:736f6961ec0000",
+          "hex:736b6972ec0000",
         ],
       |},
     },
@@ -566,7 +570,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-65537",
         ],
         expected_bytes: [
-          "hex:736f6961edfffffeff",
+          "hex:736b6972edfffffeff",
         ],
       |},
     },
@@ -587,7 +591,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-2147483648",
         ],
         expected_bytes: [
-          "hex:736f6961ed00000080",
+          "hex:736b6972ed00000080",
         ],
       |},
     },
@@ -614,7 +618,7 @@ const UNIT_TESTS: [UnitTest] = [
           },
         ],
         expected_bytes: [
-          "hex:736f6961ee380ee8f5ce000000",
+          "hex:736b6972ee380ee8f5ce000000",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"int64\"\n  },\n  \"records\": []\n}",
       |},
@@ -636,7 +640,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"9223372036854775807\"",
         ],
         expected_bytes: [
-          "hex:736f6961eeffffffffffffff7f",
+          "hex:736b6972eeffffffffffffff7f",
         ],
       |},
     },
@@ -657,7 +661,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"-9223372036854775808\"",
         ],
         expected_bytes: [
-          "hex:736f6961ee0000000000000080",
+          "hex:736b6972ee0000000000000080",
         ],
       |},
     },
@@ -678,7 +682,7 @@ const UNIT_TESTS: [UnitTest] = [
           "9007199254740991",
         ],
         expected_bytes: [
-          "hex:736f6961eeffffffffffff1f00",
+          "hex:736b6972eeffffffffffff1f00",
         ],
       |},
     },
@@ -699,7 +703,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"9007199254740992\"",
         ],
         expected_bytes: [
-          "hex:736f6961ee0000000000002000",
+          "hex:736b6972ee0000000000002000",
         ],
       |},
     },
@@ -720,7 +724,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-9007199254740991",
         ],
         expected_bytes: [
-          "hex:736f6961ee010000000000e0ff",
+          "hex:736b6972ee010000000000e0ff",
         ],
       |},
     },
@@ -741,7 +745,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"-9007199254740992\"",
         ],
         expected_bytes: [
-          "hex:736f6961ee000000000000e0ff",
+          "hex:736b6972ee000000000000e0ff",
         ],
       |},
     },
@@ -768,7 +772,7 @@ const UNIT_TESTS: [UnitTest] = [
           },
         ],
         expected_bytes: [
-          "hex:736f6961e8ff00",
+          "hex:736b6972e8ff00",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"uint64\"\n  },\n  \"records\": []\n}",
       |},
@@ -790,7 +794,7 @@ const UNIT_TESTS: [UnitTest] = [
           "65535",
         ],
         expected_bytes: [
-          "hex:736f6961e8ffff",
+          "hex:736b6972e8ffff",
         ],
       |},
     },
@@ -811,7 +815,7 @@ const UNIT_TESTS: [UnitTest] = [
           "4294967295",
         ],
         expected_bytes: [
-          "hex:736f6961e9ffffffff",
+          "hex:736b6972e9ffffffff",
         ],
       |},
     },
@@ -832,7 +836,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"18446744073709551615\"",
         ],
         expected_bytes: [
-          "hex:736f6961eaffffffffffffffff",
+          "hex:736b6972eaffffffffffffffff",
         ],
       |},
     },
@@ -853,7 +857,7 @@ const UNIT_TESTS: [UnitTest] = [
           "2.5",
         ],
         expected_bytes: [
-          "hex:736f6961f000002040",
+          "hex:736b6972f000002040",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"float32\"\n  },\n  \"records\": []\n}",
       |},
@@ -875,7 +879,7 @@ const UNIT_TESTS: [UnitTest] = [
           "2.5",
         ],
         expected_bytes: [
-          "hex:736f6961f10000000000000440",
+          "hex:736b6972f10000000000000440",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"float64\"\n  },\n  \"records\": []\n}",
       |},
@@ -897,7 +901,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-2.5",
         ],
         expected_bytes: [
-          "hex:736f6961f100000000000004c0",
+          "hex:736b6972f100000000000004c0",
         ],
       |},
     },
@@ -920,7 +924,7 @@ const UNIT_TESTS: [UnitTest] = [
           "0.0",
         ],
         expected_bytes: [
-          "hex:736f696100",
+          "hex:736b697200",
         ],
       |},
     },
@@ -941,7 +945,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"\"",
         ],
         expected_bytes: [
-          "hex:736f6961f2",
+          "hex:736b6972f2",
         ],
         alternative_jsons: [
           {
@@ -980,7 +984,7 @@ const UNIT_TESTS: [UnitTest] = [
           "\"Fo\\u00f4bar\"",
         ],
         expected_bytes: [
-          "hex:736f6961f307466fc3b4626172",
+          "hex:736b6972f307466fc3b4626172",
         ],
       |},
     },
@@ -1001,7 +1005,7 @@ const UNIT_TESTS: [UnitTest] = [
           '"Foo\\n\\"bar\\""',
         ],
         expected_bytes: [
-          "hex:736f6961f309466f6f0a2262617222",
+          "hex:736b6972f309466f6f0a2262617222",
         ],
       |},
     },
@@ -1022,7 +1026,7 @@ const UNIT_TESTS: [UnitTest] = [
           '"hex:f50469b735"',
         ],
         expected_bytes: [
-          "hex:736f6961f505f50469b735",
+          "hex:736b6972f505f50469b735",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"bytes\"\n  },\n  \"records\": []\n}",
       |},
@@ -1044,7 +1048,7 @@ const UNIT_TESTS: [UnitTest] = [
           '"hex:"',
         ],
         expected_bytes: [
-          "hex:736f6961f4",
+          "hex:736b6972f4",
         ],
         alternative_jsons: [
           {
@@ -1080,7 +1084,7 @@ const UNIT_TESTS: [UnitTest] = [
           "null",
         ],
         expected_bytes: [
-          "hex:736f6961ff",
+          "hex:736b6972ff",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"optional\",\n    \"value\": {\n      \"kind\": \"primitive\",\n      \"value\": \"bool\"\n    }\n  },\n  \"records\": []\n}",
       |},
@@ -1102,7 +1106,7 @@ const UNIT_TESTS: [UnitTest] = [
           "null",
         ],
         expected_bytes: [
-          "hex:736f6961ff",
+          "hex:736b6972ff",
         ],
         expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"optional\",\n    \"value\": {\n      \"kind\": \"primitive\",\n      \"value\": \"bool\"\n    }\n  },\n  \"records\": []\n}",
       |},
@@ -1124,7 +1128,7 @@ const UNIT_TESTS: [UnitTest] = [
           "[]",
         ],
         expected_bytes: [
-          "hex:736f6961f6",
+          "hex:736b6972f6",
         ],
         alternative_jsons: [
           {
@@ -1165,7 +1169,7 @@ const UNIT_TESTS: [UnitTest] = [
           "[\n  1,\n  2,\n  3\n]",
         ],
         expected_bytes: [
-          "hex:736f6961f9010203",
+          "hex:736b6972f9010203",
         ],
       |},
     },
@@ -1176,7 +1180,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_large_string",
       value: {|
         num_chars: 231,
-        expected_byte_prefix: "hex:736f6961",
+        expected_byte_prefix: "hex:736b6972",
       |},
     },
   },
@@ -1186,7 +1190,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_large_string",
       value: {|
         num_chars: 65536,
-        expected_byte_prefix: "hex:736f6961",
+        expected_byte_prefix: "hex:736b6972",
       |},
     },
   },
@@ -1196,7 +1200,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_large_array",
       value: {|
         num_items: 231,
-        expected_byte_prefix: "hex:736f6961fae7",
+        expected_byte_prefix: "hex:736b6972fae7",
       |},
     },
   },
@@ -1206,7 +1210,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_large_array",
       value: {|
         num_items: 232,
-        expected_byte_prefix: "hex:736f6961fae8e800",
+        expected_byte_prefix: "hex:736b6972fae8e800",
       |},
     },
   },
@@ -1216,7 +1220,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_large_array",
       value: {|
         num_items: 65535,
-        expected_byte_prefix: "hex:736f6961fae8",
+        expected_byte_prefix: "hex:736b6972fae8",
       |},
     },
   },
@@ -1226,7 +1230,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_large_array",
       value: {|
         num_items: 65536,
-        expected_byte_prefix: "hex:736f6961fae9",
+        expected_byte_prefix: "hex:736b6972fae9",
       |},
     },
   },
@@ -1246,7 +1250,7 @@ const UNIT_TESTS: [UnitTest] = [
           "{}",
         ],
         expected_bytes: [
-          "hex:736f6961f6",
+          "hex:736b6972f6",
         ],
         alternative_jsons: [
           {
@@ -1263,7 +1267,7 @@ const UNIT_TESTS: [UnitTest] = [
             },
           },
         ],
-        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.soia:Point\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:Point\",\n      \"fields\": [\n        {\n          \"name\": \"x\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"y\",\n          \"number\": 4,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"color\",\n          \"number\": 6,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.soia:Color\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        0,\n        2,\n        3,\n        5\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:Color\",\n      \"fields\": [\n        {\n          \"name\": \"r\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"g\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        3\n      ]\n    }\n  ]\n}",
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.skir:Point\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:Point\",\n      \"doc\": \"A point\",\n      \"fields\": [\n        {\n          \"name\": \"x\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          },\n          \"doc\": \"x coordinate\"\n        },\n        {\n          \"name\": \"y\",\n          \"number\": 4,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"color\",\n          \"number\": 6,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.skir:Color\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        0,\n        2,\n        3,\n        5\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:Color\",\n      \"fields\": [\n        {\n          \"name\": \"r\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"g\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        3\n      ]\n    }\n  ]\n}",
       |},
     },
   },
@@ -1291,7 +1295,7 @@ const UNIT_TESTS: [UnitTest] = [
           '{\n  "x": 10,\n  "y": 20,\n  "color": {\n    "r": 255,\n    "g": 128\n  }\n}',
         ],
         expected_bytes: [
-          "hex:736f6961fa07000a00001400f8e8ff0080",
+          "hex:736b6972fa07000a00001400f8e8ff0080",
         ],
       |},
     },
@@ -1312,9 +1316,9 @@ const UNIT_TESTS: [UnitTest] = [
           '"?"',
         ],
         expected_bytes: [
-          "hex:736f696100",
+          "hex:736b697200",
         ],
-        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.soia:MyEnum\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"enum\",\n      \"id\": \"goldens.soia:MyEnum\",\n      \"fields\": [\n        {\n          \"name\": \"OK\",\n          \"number\": 1\n        },\n        {\n          \"name\": \"color\",\n          \"number\": 4,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.soia:Color\"\n          }\n        },\n        {\n          \"name\": \"bool\",\n          \"number\": 5,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"bool\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        2\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:Color\",\n      \"fields\": [\n        {\n          \"name\": \"r\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"g\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        3\n      ]\n    }\n  ]\n}",
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.skir:MyEnum\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"enum\",\n      \"id\": \"goldens.skir:MyEnum\",\n      \"doc\": \"my enum\",\n      \"variants\": [\n        {\n          \"name\": \"OK\",\n          \"number\": 1,\n          \"doc\": \"all good\"\n        },\n        {\n          \"name\": \"color\",\n          \"number\": 4,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.skir:Color\"\n          }\n        },\n        {\n          \"name\": \"bool\",\n          \"number\": 5,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"bool\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        2\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:Color\",\n      \"fields\": [\n        {\n          \"name\": \"r\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"g\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        3\n      ]\n    }\n  ]\n}",
       |},
     },
   },
@@ -1334,7 +1338,7 @@ const UNIT_TESTS: [UnitTest] = [
           '"OK"',
         ],
         expected_bytes: [
-          "hex:736f696101",
+          "hex:736b697201",
         ],
       |},
     },
@@ -1360,7 +1364,7 @@ const UNIT_TESTS: [UnitTest] = [
           '{\n  "kind": "color",\n  "value": {\n    "r": 10\n  }\n}',
         ],
         expected_bytes: [
-          "hex:736f6961fef70a",
+          "hex:736b6972fef70a",
         ],
       |},
     },
@@ -1384,7 +1388,7 @@ const UNIT_TESTS: [UnitTest] = [
           '{\n  "kind": "bool",\n  "value": true\n}',
         ],
         expected_bytes: [
-          "hex:736f6961f80501",
+          "hex:736b6972f80501",
         ],
       |},
     },
@@ -1486,7 +1490,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f6961fa08000100000100f602",
+          value: "hex:736b6972fa08000100000100f602",
         },
       },
     },
@@ -1519,8 +1523,8 @@ const UNIT_TESTS: [UnitTest] = [
           },
         },
         expected: [
-          "hex:736f6961fa050001000001",
-          "hex:736f6961fa07000100000100f6",
+          "hex:736b6972fa050001000001",
+          "hex:736b6972fa07000100000100f6",
         ],
       },
     },
@@ -1582,7 +1586,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f6961fa050101010002",
+          value: "hex:736b6972fa050101010002",
         },
       },
     },
@@ -1713,7 +1717,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f6961e8f401",
+          value: "hex:736b6972e8f401",
         },
       },
     },
@@ -1738,7 +1742,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f696100",
+          value: "hex:736b697200",
         },
       },
     },
@@ -1766,7 +1770,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f6961f8e8f4010a",
+          value: "hex:736b6972f8e8f4010a",
         },
       },
     },
@@ -1794,7 +1798,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f696100",
+          value: "hex:736b697200",
         },
       },
     },
@@ -1856,7 +1860,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f6961f9010101",
+          value: "hex:736b6972f9010101",
         },
       },
     },
@@ -1906,7 +1910,7 @@ const UNIT_TESTS: [UnitTest] = [
         },
         expected: {
           kind: "literal",
-          value: "hex:736f696100",
+          value: "hex:736b697200",
         },
       },
     },
@@ -1927,7 +1931,7 @@ const UNIT_TESTS: [UnitTest] = [
           "231",
         ],
         expected_bytes: [
-          "hex:736f6961e7",
+          "hex:736b6972e7",
         ],
       |},
     },
@@ -1948,7 +1952,7 @@ const UNIT_TESTS: [UnitTest] = [
           "232",
         ],
         expected_bytes: [
-          "hex:736f6961e8e800",
+          "hex:736b6972e8e800",
         ],
       |},
     },
@@ -1969,7 +1973,7 @@ const UNIT_TESTS: [UnitTest] = [
           "231",
         ],
         expected_bytes: [
-          "hex:736f6961e7",
+          "hex:736b6972e7",
         ],
       |},
     },
@@ -1990,7 +1994,7 @@ const UNIT_TESTS: [UnitTest] = [
           "232",
         ],
         expected_bytes: [
-          "hex:736f6961e8e800",
+          "hex:736b6972e8e800",
         ],
       |},
     },
@@ -2013,7 +2017,7 @@ const UNIT_TESTS: [UnitTest] = [
           "[\n  1\n]",
         ],
         expected_bytes: [
-          "hex:736f6961f701",
+          "hex:736b6972f701",
         ],
       |},
     },
@@ -2037,7 +2041,7 @@ const UNIT_TESTS: [UnitTest] = [
           "[\n  1,\n  2\n]",
         ],
         expected_bytes: [
-          "hex:736f6961f80102",
+          "hex:736b6972f80102",
         ],
       |},
     },
@@ -2063,7 +2067,7 @@ const UNIT_TESTS: [UnitTest] = [
           "[\n  1,\n  2,\n  3,\n  4\n]",
         ],
         expected_bytes: [
-          "hex:736f6961fa0401020304",
+          "hex:736b6972fa0401020304",
         ],
       |},
     },
@@ -2084,8 +2088,8 @@ const UNIT_TESTS: [UnitTest] = [
           "4294967295",
         ],
         expected_bytes: [
-          "hex:736f6961eeffffffff00000000",
-          "hex:736f6961e9ffffffff",
+          "hex:736b6972eeffffffff00000000",
+          "hex:736b6972e9ffffffff",
         ],
       |},
     },
@@ -2106,7 +2110,7 @@ const UNIT_TESTS: [UnitTest] = [
           "4294967296",
         ],
         expected_bytes: [
-          "hex:736f6961ee0000000001000000",
+          "hex:736b6972ee0000000001000000",
         ],
       |},
     },
@@ -2127,7 +2131,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-2147483648",
         ],
         expected_bytes: [
-          "hex:736f6961ed00000080",
+          "hex:736b6972ed00000080",
         ],
       |},
     },
@@ -2148,7 +2152,7 @@ const UNIT_TESTS: [UnitTest] = [
           "-2147483649",
         ],
         expected_bytes: [
-          "hex:736f6961eeffffff7fffffffff",
+          "hex:736b6972eeffffff7fffffffff",
         ],
       |},
     },
@@ -2169,7 +2173,7 @@ const UNIT_TESTS: [UnitTest] = [
           '"Infinity"',
         ],
         expected_bytes: [
-          "hex:736f6961f00000807f",
+          "hex:736b6972f00000807f",
         ],
       |},
     },
@@ -2190,7 +2194,7 @@ const UNIT_TESTS: [UnitTest] = [
           '"-Infinity"',
         ],
         expected_bytes: [
-          "hex:736f6961f1000000000000f0ff",
+          "hex:736b6972f1000000000000f0ff",
         ],
       |},
     },
@@ -2211,9 +2215,9 @@ const UNIT_TESTS: [UnitTest] = [
           "{}",
         ],
         expected_bytes: [
-          "hex:736f6961f6",
+          "hex:736b6972f6",
         ],
-        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.soia:KeyedArrays\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:KeyedArrays\",\n      \"fields\": [\n        {\n          \"name\": \"items\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"array\",\n            \"value\": {\n              \"item\": {\n                \"kind\": \"record\",\n                \"value\": \"goldens.soia:KeyedArrays.Item\"\n              },\n              \"key_extractor\": \"sub_item.weekday.kind\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:KeyedArrays.Item\",\n      \"fields\": [\n        {\n          \"name\": \"sub_item\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.soia:KeyedArrays.SubItem\"\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:KeyedArrays.SubItem\",\n      \"fields\": [\n        {\n          \"name\": \"weekday\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.soia:KeyedArrays.Weekday\"\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"enum\",\n      \"id\": \"goldens.soia:KeyedArrays.Weekday\",\n      \"fields\": [\n        {\n          \"name\": \"MONDAY\",\n          \"number\": 1\n        }\n      ]\n    }\n  ]\n}",
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.skir:KeyedArrays\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:KeyedArrays\",\n      \"fields\": [\n        {\n          \"name\": \"items\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"array\",\n            \"value\": {\n              \"item\": {\n                \"kind\": \"record\",\n                \"value\": \"goldens.skir:KeyedArrays.Item\"\n              },\n              \"key_extractor\": \"sub_item.weekday.kind\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:KeyedArrays.Item\",\n      \"fields\": [\n        {\n          \"name\": \"sub_item\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.skir:KeyedArrays.SubItem\"\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:KeyedArrays.SubItem\",\n      \"fields\": [\n        {\n          \"name\": \"weekday\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.skir:KeyedArrays.Weekday\"\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"enum\",\n      \"id\": \"goldens.skir:KeyedArrays.Weekday\",\n      \"variants\": [\n        {\n          \"name\": \"MONDAY\",\n          \"number\": 1\n        }\n      ]\n    }\n  ]\n}",
       |},
     },
   },
@@ -2238,9 +2242,9 @@ const UNIT_TESTS: [UnitTest] = [
           "{\n  \"a\": {\n    \"b\": true\n  },\n  \"b\": true\n}",
         ],
         expected_bytes: [
-          "hex:736f6961f8f8f60101",
+          "hex:736b6972f8f8f60101",
         ],
-        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.soia:RecStruct\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.soia:RecStruct\",\n      \"fields\": [\n        {\n          \"name\": \"a\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.soia:RecStruct\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"bool\"\n          }\n        }\n      ]\n    }\n  ]\n}",
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.skir:RecStruct\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"goldens.skir:RecStruct\",\n      \"fields\": [\n        {\n          \"name\": \"a\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.skir:RecStruct\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"bool\"\n          }\n        }\n      ]\n    }\n  ]\n}",
       |},
     },
   },
@@ -2256,7 +2260,7 @@ const UNIT_TESTS: [UnitTest] = [
             value: {
               kind: "e",
               value: "FOO",
-            },
+            }
           },
         },
         expected_dense_json: [
@@ -2266,9 +2270,9 @@ const UNIT_TESTS: [UnitTest] = [
           "{\n  \"kind\": \"e\",\n  \"value\": {\n    \"kind\": \"e\",\n    \"value\": \"FOO\"\n  }\n}",
         ],
         expected_bytes: [
-          "hex:736f6961fcfc01",
+          "hex:736b6972fcfc01",
         ],
-        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.soia:RecEnum\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"enum\",\n      \"id\": \"goldens.soia:RecEnum\",\n      \"fields\": [\n        {\n          \"name\": \"FOO\",\n          \"number\": 1\n        },\n        {\n          \"name\": \"e\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.soia:RecEnum\"\n          }\n        }\n      ]\n    }\n  ]\n}",
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"goldens.skir:RecEnum\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"enum\",\n      \"id\": \"goldens.skir:RecEnum\",\n      \"variants\": [\n        {\n          \"name\": \"FOO\",\n          \"number\": 1\n        },\n        {\n          \"name\": \"e\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"goldens.skir:RecEnum\"\n          }\n        }\n      ]\n    }\n  ]\n}",
       |},
     },
   },

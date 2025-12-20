@@ -11,15 +11,15 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "soia.h"
-#include "soiagen/goldens.h"
+#include "skir.h"
+#include "skirout/goldens.h"
 
 namespace {
 
-using ::soiagen_goldens::Assertion;
-using ::soiagen_goldens::BytesExpression;
-using ::soiagen_goldens::StringExpression;
-using ::soiagen_goldens::UnitTest;
+using ::skirout_goldens::Assertion;
+using ::skirout_goldens::BytesExpression;
+using ::skirout_goldens::StringExpression;
+using ::skirout_goldens::UnitTest;
 
 class TypedValue {
  public:
@@ -27,7 +27,7 @@ class TypedValue {
 
   virtual std::string ToDenseJson() const = 0;
   virtual std::string ToReadableJson() const = 0;
-  virtual soia::ByteString ToBytes() const = 0;
+  virtual skir::ByteString ToBytes() const = 0;
   virtual absl::StatusOr<std::unique_ptr<TypedValue>> RoundTripDenseJson()
       const = 0;
   virtual absl::StatusOr<std::unique_ptr<TypedValue>> RoundTripReadableJson()
@@ -37,7 +37,7 @@ class TypedValue {
 
   virtual void CheckParse(absl::string_view bytes_or_json) const = 0;
 
-  virtual const soia::reflection::TypeDescriptor& type_descriptor() const = 0;
+  virtual const skir::reflection::TypeDescriptor& type_descriptor() const = 0;
 };
 
 template <typename T>
@@ -45,17 +45,17 @@ class TypedValueImpl : public TypedValue {
  public:
   explicit TypedValueImpl(const T& value) : value_(value) {}
 
-  std::string ToDenseJson() const override { return soia::ToDenseJson(value_); }
+  std::string ToDenseJson() const override { return skir::ToDenseJson(value_); }
 
   std::string ToReadableJson() const override {
-    return soia::ToReadableJson(value_);
+    return skir::ToReadableJson(value_);
   }
 
-  soia::ByteString ToBytes() const override { return soia::ToBytes(value_); }
+  skir::ByteString ToBytes() const override { return skir::ToBytes(value_); }
 
   absl::StatusOr<std::unique_ptr<TypedValue>> RoundTripDenseJson()
       const override {
-    const absl::StatusOr<T> parse_result = soia::Parse<T>(ToDenseJson());
+    const absl::StatusOr<T> parse_result = skir::Parse<T>(ToDenseJson());
     if (!parse_result.ok()) {
       return parse_result.status();
     }
@@ -64,7 +64,7 @@ class TypedValueImpl : public TypedValue {
 
   absl::StatusOr<std::unique_ptr<TypedValue>> RoundTripReadableJson()
       const override {
-    const absl::StatusOr<T> parse_result = soia::Parse<T>(ToReadableJson());
+    const absl::StatusOr<T> parse_result = skir::Parse<T>(ToReadableJson());
     if (!parse_result.ok()) {
       return parse_result.status();
     }
@@ -73,7 +73,7 @@ class TypedValueImpl : public TypedValue {
 
   absl::StatusOr<std::unique_ptr<TypedValue>> RoundTripBytes() const override {
     const absl::StatusOr<T> parse_result =
-        soia::Parse<T>(ToBytes().as_string());
+        skir::Parse<T>(ToBytes().as_string());
     if (!parse_result.ok()) {
       return parse_result.status();
     }
@@ -81,7 +81,7 @@ class TypedValueImpl : public TypedValue {
   }
 
   void CheckParse(absl::string_view bytes_or_json) const override {
-    const absl::StatusOr<T> parse_result = soia::Parse<T>(bytes_or_json);
+    const absl::StatusOr<T> parse_result = skir::Parse<T>(bytes_or_json);
     EXPECT_EQ(parse_result.status(), absl::OkStatus());
     if (!parse_result.ok()) {
       return;
@@ -89,8 +89,8 @@ class TypedValueImpl : public TypedValue {
     EXPECT_EQ(*parse_result, value_);
   }
 
-  const soia::reflection::TypeDescriptor& type_descriptor() const override {
-    return soia::reflection::GetTypeDescriptor<T>();
+  const skir::reflection::TypeDescriptor& type_descriptor() const override {
+    return skir::reflection::GetTypeDescriptor<T>();
   }
 
  private:
@@ -99,59 +99,59 @@ class TypedValueImpl : public TypedValue {
 
 absl::StatusOr<std::string> EvalStringExpression(const StringExpression& expr);
 
-absl::StatusOr<soia::ByteString> EvalBytesExpression(
+absl::StatusOr<skir::ByteString> EvalBytesExpression(
     const BytesExpression& expr);
 
 absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
-    const soiagen_goldens::TypedValue& typed_value) {
+    const skirout_goldens::TypedValue& typed_value) {
   switch (typed_value.kind()) {
-    case soiagen_goldens::TypedValue::kind_type::kBoolWrapper:
+    case skirout_goldens::TypedValue::kind_type::kBoolWrapper:
       return std::make_unique<TypedValueImpl<bool>>(typed_value.as_bool());
-    case soiagen_goldens::TypedValue::kind_type::kInt32Wrapper:
+    case skirout_goldens::TypedValue::kind_type::kInt32Wrapper:
       return std::make_unique<TypedValueImpl<int32_t>>(typed_value.as_int32());
-    case soiagen_goldens::TypedValue::kind_type::kInt64Wrapper:
+    case skirout_goldens::TypedValue::kind_type::kInt64Wrapper:
       return std::make_unique<TypedValueImpl<int64_t>>(typed_value.as_int64());
-    case soiagen_goldens::TypedValue::kind_type::kUint64Wrapper:
+    case skirout_goldens::TypedValue::kind_type::kUint64Wrapper:
       return std::make_unique<TypedValueImpl<uint64_t>>(
           typed_value.as_uint64());
-    case soiagen_goldens::TypedValue::kind_type::kFloat32Wrapper:
+    case skirout_goldens::TypedValue::kind_type::kFloat32Wrapper:
       return std::make_unique<TypedValueImpl<float>>(typed_value.as_float32());
-    case soiagen_goldens::TypedValue::kind_type::kFloat64Wrapper:
+    case skirout_goldens::TypedValue::kind_type::kFloat64Wrapper:
       return std::make_unique<TypedValueImpl<double>>(typed_value.as_float64());
-    case soiagen_goldens::TypedValue::kind_type::kTimestampWrapper:
+    case skirout_goldens::TypedValue::kind_type::kTimestampWrapper:
       return std::make_unique<TypedValueImpl<absl::Time>>(
           typed_value.as_timestamp());
-    case soiagen_goldens::TypedValue::kind_type::kStringWrapper:
+    case skirout_goldens::TypedValue::kind_type::kStringWrapper:
       return std::make_unique<TypedValueImpl<std::string>>(
           typed_value.as_string());
-    case soiagen_goldens::TypedValue::kind_type::kBytesWrapper:
-      return std::make_unique<TypedValueImpl<soia::ByteString>>(
-          soia::ByteString(typed_value.as_bytes()));
-    case soiagen_goldens::TypedValue::kind_type::kBoolOptionalWrapper:
+    case skirout_goldens::TypedValue::kind_type::kBytesWrapper:
+      return std::make_unique<TypedValueImpl<skir::ByteString>>(
+          skir::ByteString(typed_value.as_bytes()));
+    case skirout_goldens::TypedValue::kind_type::kBoolOptionalWrapper:
       return std::make_unique<TypedValueImpl<absl::optional<bool>>>(
           typed_value.as_bool_optional());
-    case soiagen_goldens::TypedValue::kind_type::kIntsWrapper:
+    case skirout_goldens::TypedValue::kind_type::kIntsWrapper:
       return std::make_unique<TypedValueImpl<std::vector<int32_t>>>(
           typed_value.as_ints());
-    case soiagen_goldens::TypedValue::kind_type::kPointWrapper:
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Point>>(
+    case skirout_goldens::TypedValue::kind_type::kPointWrapper:
+      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(
           typed_value.as_point());
-    case soiagen_goldens::TypedValue::kind_type::kColorWrapper:
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Color>>(
+    case skirout_goldens::TypedValue::kind_type::kColorWrapper:
+      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(
           typed_value.as_color());
-    case soiagen_goldens::TypedValue::kind_type::kMyEnumWrapper:
-      return std::make_unique<TypedValueImpl<soiagen_goldens::MyEnum>>(
+    case skirout_goldens::TypedValue::kind_type::kMyEnumWrapper:
+      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
           typed_value.as_my_enum());
-    case soiagen_goldens::TypedValue::kind_type::kKeyedArraysWrapper:
-      return std::make_unique<TypedValueImpl<soiagen_goldens::KeyedArrays>>(
+    case skirout_goldens::TypedValue::kind_type::kKeyedArraysWrapper:
+      return std::make_unique<TypedValueImpl<skirout_goldens::KeyedArrays>>(
           typed_value.as_keyed_arrays());
-    case soiagen_goldens::TypedValue::kind_type::kRecStructWrapper:
-      return std::make_unique<TypedValueImpl<soiagen_goldens::RecStruct>>(
+    case skirout_goldens::TypedValue::kind_type::kRecStructWrapper:
+      return std::make_unique<TypedValueImpl<skirout_goldens::RecStruct>>(
           typed_value.as_rec_struct());
-    case soiagen_goldens::TypedValue::kind_type::kRecEnumWrapper:
-      return std::make_unique<TypedValueImpl<soiagen_goldens::RecEnum>>(
+    case skirout_goldens::TypedValue::kind_type::kRecEnumWrapper:
+      return std::make_unique<TypedValueImpl<skirout_goldens::RecEnum>>(
           typed_value.as_rec_enum());
-    case soiagen_goldens::TypedValue::kind_type::kRoundTripDenseJsonWrapper: {
+    case skirout_goldens::TypedValue::kind_type::kRoundTripDenseJsonWrapper: {
       const absl::StatusOr<std::unique_ptr<TypedValue>> other =
           EvalTypedValue(typed_value.as_round_trip_dense_json());
       if (!other.ok()) {
@@ -159,7 +159,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       return (*other)->RoundTripDenseJson();
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kRoundTripReadableJsonWrapper: {
       const absl::StatusOr<std::unique_ptr<TypedValue>> other =
           EvalTypedValue(typed_value.as_round_trip_readable_json());
@@ -168,7 +168,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       return (*other)->RoundTripReadableJson();
     }
-    case soiagen_goldens::TypedValue::kind_type::kRoundTripBytesWrapper: {
+    case skirout_goldens::TypedValue::kind_type::kRoundTripBytesWrapper: {
       const absl::StatusOr<std::unique_ptr<TypedValue>> other =
           EvalTypedValue(typed_value.as_round_trip_bytes());
       if (!other.ok()) {
@@ -176,7 +176,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       return (*other)->RoundTripBytes();
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kPointFromJsonKeepUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
@@ -184,15 +184,15 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Point> point =
-          soia::Parse<soiagen_goldens::Point>(
-              *string_expression, soia::UnrecognizedFieldsPolicy::kKeep);
+      const absl::StatusOr<skirout_goldens::Point> point =
+          skir::Parse<skirout_goldens::Point>(
+              *string_expression, skir::UnrecognizedFieldsPolicy::kKeep);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kPointFromJsonDropUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
@@ -200,49 +200,49 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Point> point =
-          soia::Parse<soiagen_goldens::Point>(
-              *string_expression, soia::UnrecognizedFieldsPolicy::kDrop);
+      const absl::StatusOr<skirout_goldens::Point> point =
+          skir::Parse<skirout_goldens::Point>(
+              *string_expression, skir::UnrecognizedFieldsPolicy::kDrop);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kPointFromBytesKeepUnrecognizedWrapper: {
-      const absl::StatusOr<soia::ByteString> bytes_expression =
+      const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_point_from_bytes_keep_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Point> point =
-          soia::Parse<soiagen_goldens::Point>(
+      const absl::StatusOr<skirout_goldens::Point> point =
+          skir::Parse<skirout_goldens::Point>(
               bytes_expression->as_string(),
-              soia::UnrecognizedFieldsPolicy::kKeep);
+              skir::UnrecognizedFieldsPolicy::kKeep);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kPointFromBytesDropUnrecognizedWrapper: {
-      const absl::StatusOr<soia::ByteString> bytes_expression =
+      const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_point_from_bytes_drop_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Point> point =
-          soia::Parse<soiagen_goldens::Point>(
+      const absl::StatusOr<skirout_goldens::Point> point =
+          skir::Parse<skirout_goldens::Point>(
               bytes_expression->as_string(),
-              soia::UnrecognizedFieldsPolicy::kDrop);
+              skir::UnrecognizedFieldsPolicy::kDrop);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kColorFromJsonKeepUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
@@ -250,15 +250,15 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Color> color =
-          soia::Parse<soiagen_goldens::Color>(
-              *string_expression, soia::UnrecognizedFieldsPolicy::kKeep);
+      const absl::StatusOr<skirout_goldens::Color> color =
+          skir::Parse<skirout_goldens::Color>(
+              *string_expression, skir::UnrecognizedFieldsPolicy::kKeep);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kColorFromJsonDropUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
@@ -266,49 +266,49 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Color> color =
-          soia::Parse<soiagen_goldens::Color>(
-              *string_expression, soia::UnrecognizedFieldsPolicy::kDrop);
+      const absl::StatusOr<skirout_goldens::Color> color =
+          skir::Parse<skirout_goldens::Color>(
+              *string_expression, skir::UnrecognizedFieldsPolicy::kDrop);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kColorFromBytesKeepUnrecognizedWrapper: {
-      const absl::StatusOr<soia::ByteString> bytes_expression =
+      const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_color_from_bytes_keep_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Color> color =
-          soia::Parse<soiagen_goldens::Color>(
+      const absl::StatusOr<skirout_goldens::Color> color =
+          skir::Parse<skirout_goldens::Color>(
               bytes_expression->as_string(),
-              soia::UnrecognizedFieldsPolicy::kKeep);
+              skir::UnrecognizedFieldsPolicy::kKeep);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kColorFromBytesDropUnrecognizedWrapper: {
-      const absl::StatusOr<soia::ByteString> bytes_expression =
+      const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_color_from_bytes_drop_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::Color> color =
-          soia::Parse<soiagen_goldens::Color>(
+      const absl::StatusOr<skirout_goldens::Color> color =
+          skir::Parse<skirout_goldens::Color>(
               bytes_expression->as_string(),
-              soia::UnrecognizedFieldsPolicy::kDrop);
+              skir::UnrecognizedFieldsPolicy::kDrop);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kMyEnumFromJsonKeepUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
@@ -316,16 +316,16 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::MyEnum> my_enum =
-          soia::Parse<soiagen_goldens::MyEnum>(
-              *string_expression, soia::UnrecognizedFieldsPolicy::kKeep);
+      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
+          skir::Parse<skirout_goldens::MyEnum>(
+              *string_expression, skir::UnrecognizedFieldsPolicy::kKeep);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
           *my_enum);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kMyEnumFromJsonDropUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
@@ -333,52 +333,52 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::MyEnum> my_enum =
-          soia::Parse<soiagen_goldens::MyEnum>(
-              *string_expression, soia::UnrecognizedFieldsPolicy::kDrop);
+      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
+          skir::Parse<skirout_goldens::MyEnum>(
+              *string_expression, skir::UnrecognizedFieldsPolicy::kDrop);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
           *my_enum);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kMyEnumFromBytesKeepUnrecognizedWrapper: {
-      const absl::StatusOr<soia::ByteString> bytes_expression =
+      const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_my_enum_from_bytes_keep_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::MyEnum> my_enum =
-          soia::Parse<soiagen_goldens::MyEnum>(
+      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
+          skir::Parse<skirout_goldens::MyEnum>(
               bytes_expression->as_string(),
-              soia::UnrecognizedFieldsPolicy::kKeep);
+              skir::UnrecognizedFieldsPolicy::kKeep);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
           *my_enum);
     }
-    case soiagen_goldens::TypedValue::kind_type::
+    case skirout_goldens::TypedValue::kind_type::
         kMyEnumFromBytesDropUnrecognizedWrapper: {
-      const absl::StatusOr<soia::ByteString> bytes_expression =
+      const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_my_enum_from_bytes_drop_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<soiagen_goldens::MyEnum> my_enum =
-          soia::Parse<soiagen_goldens::MyEnum>(
+      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
+          skir::Parse<skirout_goldens::MyEnum>(
               bytes_expression->as_string(),
-              soia::UnrecognizedFieldsPolicy::kDrop);
+              skir::UnrecognizedFieldsPolicy::kDrop);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<soiagen_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
           *my_enum);
     }
-    case soiagen_goldens::TypedValue::kind_type::kUnknown:
+    case skirout_goldens::TypedValue::kind_type::kUnknown:
       return absl::InvalidArgumentError("Unknown TypedValue kind");
   }
 }
@@ -410,7 +410,7 @@ absl::StatusOr<std::string> EvalStringExpression(const StringExpression& expr) {
 }
 
 // Helper function to evaluate a BytesExpression
-absl::StatusOr<soia::ByteString> EvalBytesExpression(
+absl::StatusOr<skir::ByteString> EvalBytesExpression(
     const BytesExpression& expr) {
   switch (expr.kind()) {
     case BytesExpression::kind_type::kLiteralWrapper:
@@ -490,7 +490,7 @@ void ExecuteReserializeValue(const Assertion::ReserializeValue& assertion) {
       }
     }
     for (const auto& alternative_bytes : assertion.alternative_bytes) {
-      const absl::StatusOr<soia::ByteString> bytes =
+      const absl::StatusOr<skir::ByteString> bytes =
           EvalBytesExpression(alternative_bytes);
       EXPECT_EQ(bytes.status(), absl::OkStatus());
       if (bytes.ok()) {
@@ -501,7 +501,7 @@ void ExecuteReserializeValue(const Assertion::ReserializeValue& assertion) {
 
   // Check bytes serialization
   {
-    const soia::ByteString actual_bytes = (*typed_value)->ToBytes();
+    const skir::ByteString actual_bytes = (*typed_value)->ToBytes();
     bool bytes_matched = false;
     for (const auto& expected_bytes : assertion.expected_bytes) {
       if (actual_bytes == expected_bytes) {
@@ -516,10 +516,10 @@ void ExecuteReserializeValue(const Assertion::ReserializeValue& assertion) {
 
   // Make sure the encoded value can be skipped.
   for (const auto& expected_bytes : assertion.expected_bytes) {
-    const soia::ByteString bytes = soia::ByteString(
-        absl::StrCat("soia\xF8", expected_bytes.as_string().substr(4), "\x01"));
-    const absl::StatusOr<soiagen_goldens::Point> point =
-        soia::Parse<soiagen_goldens::Point>(bytes.as_string());
+    const skir::ByteString bytes = skir::ByteString(
+        absl::StrCat("skir\xF8", expected_bytes.as_string().substr(4), "\x01"));
+    const absl::StatusOr<skirout_goldens::Point> point =
+        skir::Parse<skirout_goldens::Point>(bytes.as_string());
     EXPECT_EQ(point.status(), absl::OkStatus());
     if (point.ok()) {
       EXPECT_EQ(point->x, 1)
@@ -530,12 +530,12 @@ void ExecuteReserializeValue(const Assertion::ReserializeValue& assertion) {
 
   // Check the type descriptor
   if (assertion.expected_type_descriptor.has_value()) {
-    const soia::reflection::TypeDescriptor& actual_type_descriptor =
+    const skir::reflection::TypeDescriptor& actual_type_descriptor =
         (*typed_value)->type_descriptor();
     EXPECT_EQ(actual_type_descriptor.AsJson(),
               *assertion.expected_type_descriptor);
-    const absl::StatusOr<soia::reflection::TypeDescriptor>
-        parsed_type_descriptor = soia::reflection::TypeDescriptor::FromJson(
+    const absl::StatusOr<skir::reflection::TypeDescriptor>
+        parsed_type_descriptor = skir::reflection::TypeDescriptor::FromJson(
             *assertion.expected_type_descriptor);
     EXPECT_EQ(parsed_type_descriptor.status(), absl::OkStatus());
     if (parsed_type_descriptor.ok()) {
@@ -552,10 +552,10 @@ void ExecuteReserializeLargeString(
   const std::string large_string(assertion.num_chars, 'a');
 
   // Serialize to bytes
-  const soia::ByteString serialized = soia::ToBytes(large_string);
+  const skir::ByteString serialized = skir::ToBytes(large_string);
 
   // Check that it starts with the expected prefix
-  const soia::ByteString& expected_prefix = assertion.expected_byte_prefix;
+  const skir::ByteString& expected_prefix = assertion.expected_byte_prefix;
 
   EXPECT_GE(serialized.as_string().length(),
             expected_prefix.as_string().length())
@@ -574,10 +574,10 @@ void ExecuteReserializeLargeArray(
   std::vector<int32_t> large_array(assertion.num_items, 0);
 
   // Serialize to bytes
-  soia::ByteString serialized = soia::ToBytes(large_array);
+  skir::ByteString serialized = skir::ToBytes(large_array);
 
   // Check that it starts with the expected prefix
-  const soia::ByteString expected_prefix = assertion.expected_byte_prefix;
+  const skir::ByteString expected_prefix = assertion.expected_byte_prefix;
 
   EXPECT_GE(serialized.as_string().length(),
             expected_prefix.as_string().length())
@@ -590,9 +590,9 @@ void ExecuteReserializeLargeArray(
 }
 
 void ExecuteBytesEqual(const Assertion::BytesEqual& assertion) {
-  const absl::StatusOr<soia::ByteString> actual =
+  const absl::StatusOr<skir::ByteString> actual =
       EvalBytesExpression(assertion.actual);
-  const absl::StatusOr<soia::ByteString> expected =
+  const absl::StatusOr<skir::ByteString> expected =
       EvalBytesExpression(assertion.expected);
   EXPECT_EQ(actual.status(), absl::OkStatus());
   EXPECT_EQ(expected.status(), absl::OkStatus());
@@ -602,7 +602,7 @@ void ExecuteBytesEqual(const Assertion::BytesEqual& assertion) {
 }
 
 void ExecuteBytesIn(const Assertion::BytesIn& assertion) {
-  const absl::StatusOr<soia::ByteString> actual =
+  const absl::StatusOr<skir::ByteString> actual =
       EvalBytesExpression(assertion.actual);
   EXPECT_EQ(actual.status(), absl::OkStatus());
   if (!actual.ok()) {
@@ -648,8 +648,8 @@ void ExecuteStringIn(const Assertion::StringIn& assertion) {
 }
 
 // Main test that runs all unit tests
-TEST(SoiaGoldensTest, AllTests) {
-  const std::vector<UnitTest>& unit_tests = soiagen_goldens::k_unit_tests();
+TEST(SkirGoldensTest, AllTests) {
+  const std::vector<UnitTest>& unit_tests = skirout_goldens::k_unit_tests();
 
   for (const UnitTest& test : unit_tests) {
     SCOPED_TRACE(absl::StrCat("Test number: ", test.test_number));

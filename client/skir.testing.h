@@ -1,7 +1,7 @@
-// Soia client library for testing
+// Skir client library for testing
 
-#ifndef SOIA_SOIA_TESTING_H
-#define SOIA_SOIA_TESTING_H
+#ifndef SKIR_SKIR_TESTING_H
+#define SKIR_SKIR_TESTING_H
 
 #include <gtest/gtest.h>
 
@@ -13,18 +13,18 @@
 #include "absl/base/nullability.h"
 #include "absl/log/die_if_null.h"
 #include "gmock/gmock.h"
-#include "soia.h"
+#include "skir.h"
 
 namespace testing {
-namespace soiagen {
+namespace skirout {
 template <typename Struct>
 struct StructIs {
-  static_assert(soia::reflection::IsStruct<Struct>());
+  static_assert(skir::reflection::IsStruct<Struct>());
   static_assert(false, "did you forget to include the *.testing.h file?");
 };
-}  // namespace soiagen
+}  // namespace skirout
 
-namespace soia_internal {
+namespace skir_internal {
 template <typename Matcher>
 bool IsAnythingMatcher(const Matcher& matcher) {
   static const std::string* absl_nonnull const kIsAnything = []() {
@@ -243,7 +243,7 @@ EnumValueIsMatcher<Option, InnerMatcher> EnumValueIs(InnerMatcher matcher) {
 }
 
 template <typename FakeOrMockApiImpl>
-class ClientForTesting : public ::soia::service::Client {
+class ClientForTesting : public ::skir::service::Client {
  public:
   explicit ClientForTesting(FakeOrMockApiImpl* absl_nonnull api_impl)
       : api_impl_(*ABSL_DIE_IF_NULL(api_impl)) {}
@@ -252,9 +252,9 @@ class ClientForTesting : public ::soia::service::Client {
 
   absl::StatusOr<std::string> operator()(
       absl::string_view request_data,
-      const soia::service::HttpHeaders& request_headers,
-      soia::service::HttpHeaders& response_headers) const override {
-    return ::soia::service::HandleRequest(api_impl_, request_data,
+      const skir::service::HttpHeaders& request_headers,
+      skir::service::HttpHeaders& response_headers) const override {
+    return ::skir::service::HandleRequest(api_impl_, request_data,
                                           request_headers, response_headers)
         .AsStatus();
   }
@@ -263,20 +263,20 @@ class ClientForTesting : public ::soia::service::Client {
   FakeOrMockApiImpl& api_impl_;
 };
 
-}  // namespace soia_internal
+}  // namespace skir_internal
 }  // namespace testing
 
-namespace soia {
+namespace skir {
 namespace service {
 
 template <typename FakeOrMockApiImpl>
-std::unique_ptr<::soia::service::Client> MakeClientForTesting(
+std::unique_ptr<::skir::service::Client> MakeClientForTesting(
     FakeOrMockApiImpl* absl_nonnull api_impl) {
   return std::make_unique<
-      testing::soia_internal::ClientForTesting<FakeOrMockApiImpl>>(api_impl);
+      testing::skir_internal::ClientForTesting<FakeOrMockApiImpl>>(api_impl);
 }
 
 }  // namespace service
-}  // namespace soia
+}  // namespace skir
 
 #endif

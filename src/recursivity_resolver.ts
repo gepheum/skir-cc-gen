@@ -1,4 +1,4 @@
-import { Field, Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
+import { Field, Module, RecordKey, RecordLocation, ResolvedType } from "skir-internal";
 
 /**
  * In C++, a struct type can not refer to itself directly. The only way to create a
@@ -6,7 +6,7 @@ import { Field, Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
  * the heap, e.g. `std::vector`. Neither `absl::optional` nor `absl::variant` qualify
  * because they allocate the element on the stack.
  *
- * When generating C++ types from recursive Soia types, Soia uses `rec<T>` instead of
+ * When generating C++ types from recursive Skir types, Skir uses `rec<T>` instead of
  * `T` for the fields which cause the type to be recursive.
  *
  * Consider this example:
@@ -23,7 +23,7 @@ import { Field, Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
  * Both Foo and Bar are recursive since Foo refers to Bar and Bar refers to Foo, so Foo
  * indirectly refers to itself and so does Bar.
  *
- * This is the C++ code Soia generates:
+ * This is the C++ code Skir generates:
  *   struct Foo;
  *   struct Bar;
  *
@@ -42,7 +42,7 @@ import { Field, Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
  * The same outcome would have been reached by changing the type of Bar::foo instead of
  * Foo::bar.
  *
- * This class finds the fields of the soia types which should have a `rec<...>` type in
+ * This class finds the fields of the skir types which should have a `rec<...>` type in
  * their C++ representation.
  */
 export class RecursvityResolver {

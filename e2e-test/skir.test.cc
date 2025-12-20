@@ -1,4 +1,4 @@
-#include "soia.h"
+#include "skir.h"
 
 #include <gtest/gtest.h>
 
@@ -20,15 +20,15 @@
 namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
-using ::soia_testing_internal::HexToBytes;
-using ::soia_testing_internal::MakeReserializer;
+using ::skir_testing_internal::HexToBytes;
+using ::skir_testing_internal::MakeReserializer;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
-TEST(SoialibTest, RecZeroArgCtor) {
-  const soia::rec<std::string> rec;
+TEST(SkirlibTest, RecZeroArgCtor) {
+  const skir::rec<std::string> rec;
   EXPECT_EQ(*rec, "");
   const std::string& ref_a = *rec;
   EXPECT_EQ(ref_a, "");
@@ -37,64 +37,64 @@ TEST(SoialibTest, RecZeroArgCtor) {
   EXPECT_EQ(&ref_a, &ref_b);
 }
 
-TEST(SoialibTest, RecCopyCtor) {
-  soia::rec<int> a;
+TEST(SkirlibTest, RecCopyCtor) {
+  skir::rec<int> a;
   a = 3;
-  soia::rec<int> b(a);
+  skir::rec<int> b(a);
   EXPECT_EQ(*b, 3);
   const int value = *b;
   EXPECT_EQ(value, 3);
 }
 
-TEST(SoialibTest, RecMoveCtor) {
-  soia::rec<int> a = 3;
-  soia::rec<int> b(std::move(a));
+TEST(SkirlibTest, RecMoveCtor) {
+  skir::rec<int> a = 3;
+  skir::rec<int> b(std::move(a));
   EXPECT_EQ(*b, 3);
 }
 
-TEST(SoialibTest, RecCopyValueCtor) {
-  soia::rec<int> a(3);
+TEST(SkirlibTest, RecCopyValueCtor) {
+  skir::rec<int> a(3);
   EXPECT_EQ(*a, 3);
 }
 
-TEST(SoialibTest, RecMutableStarOperator) {
-  soia::rec<int> a(3);
+TEST(SkirlibTest, RecMutableStarOperator) {
+  skir::rec<int> a(3);
   *a = 4;
   *a = 5;
   EXPECT_EQ(*a, 5);
-  EXPECT_EQ(a, soia::rec<int>(5));
+  EXPECT_EQ(a, skir::rec<int>(5));
 
   int i = *std::move(a);
   EXPECT_EQ(i, 5);
 }
 
-TEST(SoialibTest, RecImplicitConversion) {
-  soia::rec<int> a(3);
+TEST(SkirlibTest, RecImplicitConversion) {
+  skir::rec<int> a(3);
   int& i = a;
   EXPECT_EQ(i, 3);
   i = 4;
   EXPECT_EQ(*a, 4);
 
-  const soia::rec<int> b(3);
+  const skir::rec<int> b(3);
   const int& j = b;
   EXPECT_EQ(j, 3);
 }
 
-TEST(SoialibTest, RecAssignment) {
-  soia::rec<int> a(3);
-  a = soia::rec<int>();
+TEST(SkirlibTest, RecAssignment) {
+  skir::rec<int> a(3);
+  a = skir::rec<int>();
   EXPECT_EQ(*a, 0);
   a = 4;
   EXPECT_EQ(*a, 4);
 }
 
-TEST(SoialibTest, RecValueAssignment) {
-  soia::rec<int> a(3);
+TEST(SkirlibTest, RecValueAssignment) {
+  skir::rec<int> a(3);
   a = 4;
   EXPECT_EQ(*a, 4);
 }
 
-TEST(SoialibTest, RecAbslHash) { absl::flat_hash_set<soia::rec<int>>(); }
+TEST(SkirlibTest, RecAbslHash) { absl::flat_hash_set<skir::rec<int>>(); }
 
 struct get_id {
   template <typename T>
@@ -112,12 +112,12 @@ struct User {
   }
 };
 
-TEST(SoialibTest, MustInit) {
-  soia::must_init<std::string> s = "foo";
-  soia::must_init<absl::optional<std::string>> o = absl::nullopt;
-  soia::must_init<std::vector<std::string>> empty = {};
-  soia::must_init<std::vector<std::string>> v = {"foo"};
-  soia::must_init<soia::keyed_items<User, get_id>> keyed_items = {};
+TEST(SkirlibTest, MustInit) {
+  skir::must_init<std::string> s = "foo";
+  skir::must_init<absl::optional<std::string>> o = absl::nullopt;
+  skir::must_init<std::vector<std::string>> empty = {};
+  skir::must_init<std::vector<std::string>> v = {"foo"};
+  skir::must_init<skir::keyed_items<User, get_id>> keyed_items = {};
 }
 
 template <typename H>
@@ -125,10 +125,10 @@ H AbslHashValue(H h, const User& user) {
   return H::combine(std::move(h), user.id, user.name);
 }
 
-TEST(SoiaLibTest, KeyedItemsFind) {
-  soia::keyed_items<User, get_id> users;
+TEST(SkirLibTest, KeyedItemsFind) {
+  skir::keyed_items<User, get_id> users;
   static_assert(
-      std::is_same_v<soia::key_type<User, get_id>, absl::string_view>);
+      std::is_same_v<skir::key_type<User, get_id>, absl::string_view>);
   EXPECT_EQ(users.size(), 0);
   EXPECT_EQ(users.empty(), true);
   EXPECT_EQ(users.find_or_null("id_0"), nullptr);
@@ -178,8 +178,8 @@ TEST(SoiaLibTest, KeyedItemsFind) {
   }
 }
 
-TEST(SoiaLibTest, KeyedItemsInitializerList) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsInitializerList) {
+  skir::keyed_items<User, get_id> users = {{
                                                .id = "a",
                                                .name = "Peter",
                                            },
@@ -199,8 +199,8 @@ TEST(SoiaLibTest, KeyedItemsInitializerList) {
   EXPECT_EQ(users.find_or_default("c").name, "Julia");
 }
 
-TEST(SoiaLibTest, KeyedItemsAssign) {
-  soia::keyed_items<User, get_id> users;
+TEST(SkirLibTest, KeyedItemsAssign) {
+  skir::keyed_items<User, get_id> users;
   std::vector<User> vector = {{
       .id = "c",
       .name = "Julia",
@@ -209,13 +209,13 @@ TEST(SoiaLibTest, KeyedItemsAssign) {
   EXPECT_EQ(users.find_or_default("c").name, "Julia");
 }
 
-TEST(SoiaLibTest, KeyedItemsAppendRange) {
-  soia::keyed_items<User, get_id> users = {{.id = "a"}};
+TEST(SkirLibTest, KeyedItemsAppendRange) {
+  skir::keyed_items<User, get_id> users = {{.id = "a"}};
 
   const std::vector<User> range_1 = {{.id = "b"}};
-  const soia::keyed_items<User, get_id> range_2 = {{.id = "c"}};
+  const skir::keyed_items<User, get_id> range_2 = {{.id = "c"}};
   std::vector<User> range_3 = {{.id = "d"}};
-  soia::keyed_items<User, get_id> range_4 = {{.id = "e"}};
+  skir::keyed_items<User, get_id> range_4 = {{.id = "e"}};
 
   users.append_range(range_1);
   users.append_range(range_2);
@@ -228,8 +228,8 @@ TEST(SoiaLibTest, KeyedItemsAppendRange) {
                           User{.id = "d"}, User{.id = "e"}));
 }
 
-TEST(SoiaLibTest, KeyedItemsAt) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsAt) {
+  skir::keyed_items<User, get_id> users = {{
                                                .id = "a",
                                                .name = "Peter",
                                            },
@@ -244,8 +244,8 @@ TEST(SoiaLibTest, KeyedItemsAt) {
   EXPECT_EQ(users.back().name, "John");
 }
 
-TEST(SoiaLibTest, KeyedItemsIterator) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsIterator) {
+  skir::keyed_items<User, get_id> users = {{
                                                .id = "a",
                                                .name = "Peter",
                                            },
@@ -274,8 +274,8 @@ TEST(SoiaLibTest, KeyedItemsIterator) {
   EXPECT_EQ(vector[1].name, "John");
 }
 
-TEST(SoiaLibTest, KeyedItemsCapacity) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsCapacity) {
+  skir::keyed_items<User, get_id> users = {{
                                                .id = "a",
                                                .name = "Peter",
                                            },
@@ -290,8 +290,8 @@ TEST(SoiaLibTest, KeyedItemsCapacity) {
   EXPECT_EQ(users.find_or_default("b").name, "John");
 }
 
-TEST(SoiaLibTest, KeyedItemsClear) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsClear) {
+  skir::keyed_items<User, get_id> users = {{
                                                .id = "a",
                                                .name = "Peter",
                                            },
@@ -304,12 +304,12 @@ TEST(SoiaLibTest, KeyedItemsClear) {
   EXPECT_EQ(users.find_or_default("b").name, "");
 }
 
-TEST(SoiaLibTest, KeyedItemsSwap) {
-  soia::keyed_items<User, get_id> users_1 = {{
+TEST(SkirLibTest, KeyedItemsSwap) {
+  skir::keyed_items<User, get_id> users_1 = {{
       .id = "a",
       .name = "Peter",
   }};
-  soia::keyed_items<User, get_id> users_2 = {{
+  skir::keyed_items<User, get_id> users_2 = {{
       .id = "b",
       .name = "John",
   }};
@@ -320,8 +320,8 @@ TEST(SoiaLibTest, KeyedItemsSwap) {
   EXPECT_EQ(users_2[0].id, "a");
 }
 
-TEST(SoiaLibTest, KeyedItemsSortByKey) {
-  soia::keyed_items<User, get_id> users = {
+TEST(SkirLibTest, KeyedItemsSortByKey) {
+  skir::keyed_items<User, get_id> users = {
       {
           .id = "a",
           .name = "Adam",
@@ -343,8 +343,8 @@ TEST(SoiaLibTest, KeyedItemsSortByKey) {
   EXPECT_EQ(users.find_or_default("c").name, "Chris");
 }
 
-TEST(SoiaLibTest, KeyedItemsVectorGetter) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsVectorGetter) {
+  skir::keyed_items<User, get_id> users = {{
                                                .id = "a",
                                                .name = "Adam",
                                            },
@@ -359,13 +359,13 @@ TEST(SoiaLibTest, KeyedItemsVectorGetter) {
   EXPECT_EQ(vector.size(), 2);
 }
 
-TEST(SoiaLibTest, KeyedItemsVectorMutator) {
-  soia::keyed_items<User, get_id> users = {{
+TEST(SkirLibTest, KeyedItemsVectorMutator) {
+  skir::keyed_items<User, get_id> users = {{
       .id = "a",
       .name = "Adam",
   }};
   {
-    soia::keyed_items<User, get_id>::vector_mutator vector_mutator =
+    skir::keyed_items<User, get_id>::vector_mutator vector_mutator =
         users.start_vector_mutation();
     vector_mutator->push_back({
         .id = "b",
@@ -377,20 +377,20 @@ TEST(SoiaLibTest, KeyedItemsVectorMutator) {
   EXPECT_EQ(users.find_or_default("c").name, "Adam");
 }
 
-TEST(SoiaLibTest, KeyedItemsHash) {
-  absl::flat_hash_set<soia::keyed_items<User, get_id>> keyed_items_set;
+TEST(SkirLibTest, KeyedItemsHash) {
+  absl::flat_hash_set<skir::keyed_items<User, get_id>> keyed_items_set;
   keyed_items_set.insert({{
       .id = "a",
       .name = "Adam",
   }});
-  keyed_items_set.insert(soia::keyed_items<User, get_id>{});
-  keyed_items_set.insert(soia::keyed_items<User, get_id>{});
+  keyed_items_set.insert(skir::keyed_items<User, get_id>{});
+  keyed_items_set.insert(skir::keyed_items<User, get_id>{});
   EXPECT_EQ(keyed_items_set.size(), 2);
 }
 
 struct JsonTokenizerResult {
   std::vector<char> json_code;
-  std::unique_ptr<soia_internal::JsonTokenizer> tokenizer;
+  std::unique_ptr<skir_internal::JsonTokenizer> tokenizer;
 };
 
 std::unique_ptr<JsonTokenizerResult> MakeJsonTokenizer(
@@ -398,95 +398,95 @@ std::unique_ptr<JsonTokenizerResult> MakeJsonTokenizer(
   auto result = std::make_unique<JsonTokenizerResult>();
   // Copy to a non-NULL-terminated vector.
   result->json_code = {json_code.begin(), json_code.end()};
-  result->tokenizer = std::make_unique<soia_internal::JsonTokenizer>(
+  result->tokenizer = std::make_unique<skir_internal::JsonTokenizer>(
       result->json_code.data(),
       result->json_code.data() + result->json_code.size(),
-      soia::UnrecognizedFieldsPolicy::kKeep);
+      skir::UnrecognizedFieldsPolicy::kKeep);
   return result;
 }
 
-TEST(SoialibTest, JsonTokenizer) {
+TEST(SkirlibTest, JsonTokenizer) {
   auto tokenizer =
       MakeJsonTokenizer(" [ ] \n { } , : true false null 0 1 -1 3.14");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kLeftSquareBracket);
+            skir_internal::JsonTokenType::kLeftSquareBracket);
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kRightSquareBracket);
+            skir_internal::JsonTokenType::kRightSquareBracket);
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kLeftCurlyBracket);
+            skir_internal::JsonTokenType::kLeftCurlyBracket);
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kRightCurlyBracket);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kComma);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kColon);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kTrue);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFalse);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kNull);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kZero);
+            skir_internal::JsonTokenType::kRightCurlyBracket);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kComma);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kColon);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kTrue);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFalse);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kNull);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kZero);
   EXPECT_EQ(tokenizer->tokenizer->state().uint_value, 0);
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kUnsignedInteger);
+            skir_internal::JsonTokenType::kUnsignedInteger);
   EXPECT_EQ(tokenizer->tokenizer->state().uint_value, 1);
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kSignedInteger);
+            skir_internal::JsonTokenType::kSignedInteger);
   EXPECT_EQ(tokenizer->tokenizer->state().int_value, -1);
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFloat);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFloat);
   EXPECT_EQ(tokenizer->tokenizer->state().float_value, 3.14);
 }
 
-TEST(SoialibTest, ParseJsonString) {
+TEST(SkirlibTest, ParseJsonString) {
   auto tokenizer = MakeJsonTokenizer("\"Foo\"");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kString);
+            skir_internal::JsonTokenType::kString);
   EXPECT_EQ(tokenizer->tokenizer->state().string_value, "Foo");
 
   tokenizer = MakeJsonTokenizer(
       "\"Foo \\n\\r\\t\\f \\\\ \t \\\"\\' \\/ \\u0010 😊 \\uD801\\uDC01 \"");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kString);
+            skir_internal::JsonTokenType::kString);
   EXPECT_EQ(tokenizer->tokenizer->state().string_value,
             "Foo \n\r\t\f \\ \t \"' / \x10 \xF0\x9F\x98\x8A \xF0\x90\x90\x81 ");
 
   tokenizer = MakeJsonTokenizer("\"\\u0000\"");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kString);
+            skir_internal::JsonTokenType::kString);
   EXPECT_EQ(tokenizer->tokenizer->state().string_value, std::string({'\0'}));
 
   tokenizer = MakeJsonTokenizer("\"\xc3z\"");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kString);
+            skir_internal::JsonTokenType::kString);
   EXPECT_EQ(tokenizer->tokenizer->state().string_value, "�z");
 }
 
-TEST(SoialibTest, ParseJsonNumber) {
+TEST(SkirlibTest, ParseJsonNumber) {
   auto tokenizer = MakeJsonTokenizer("3.14");
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFloat);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFloat);
   EXPECT_EQ(tokenizer->tokenizer->state().float_value, 3.14);
   tokenizer = MakeJsonTokenizer("0.0314E2");
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFloat);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFloat);
   EXPECT_EQ(tokenizer->tokenizer->state().float_value, 3.14);
   tokenizer = MakeJsonTokenizer("314E-2");
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFloat);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFloat);
   EXPECT_EQ(tokenizer->tokenizer->state().float_value, 3.14);
   tokenizer = MakeJsonTokenizer("31.4E-1");
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFloat);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFloat);
   EXPECT_EQ(tokenizer->tokenizer->state().float_value, 3.14);
   tokenizer = MakeJsonTokenizer("31400000000e-10");
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kFloat);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kFloat);
   EXPECT_EQ(tokenizer->tokenizer->state().float_value, 3.14);
   tokenizer = MakeJsonTokenizer("18446744073709551615");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kUnsignedInteger);
+            skir_internal::JsonTokenType::kUnsignedInteger);
   EXPECT_EQ(tokenizer->tokenizer->state().uint_value, 18446744073709551615U);
   tokenizer = MakeJsonTokenizer("18446744073709551616");
-  EXPECT_EQ(tokenizer->tokenizer->Next(), soia_internal::JsonTokenType::kZero);
+  EXPECT_EQ(tokenizer->tokenizer->Next(), skir_internal::JsonTokenType::kZero);
   tokenizer = MakeJsonTokenizer("-9223372036854775808");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kSignedInteger);
+            skir_internal::JsonTokenType::kSignedInteger);
   EXPECT_EQ(tokenizer->tokenizer->state().int_value,
             std::numeric_limits<int64_t>::min());
   tokenizer = MakeJsonTokenizer("-9223372036854775809");
   EXPECT_EQ(tokenizer->tokenizer->Next(),
-            soia_internal::JsonTokenType::kSignedInteger);
+            skir_internal::JsonTokenType::kSignedInteger);
   EXPECT_EQ(tokenizer->tokenizer->state().int_value,
             std::numeric_limits<int64_t>::max());
 }
@@ -511,7 +511,7 @@ std::vector<int> RepeatVec(int item, int times) {
   return result;
 }
 
-TEST(SoialibTest, ReserializeBool) {
+TEST(SkirlibTest, ReserializeBool) {
   EXPECT_THAT(MakeReserializer(false)
                   .IsDefault()
                   .ExpectReadableJson("false")
@@ -540,7 +540,7 @@ TEST(SoialibTest, ReserializeBool) {
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeInt32) {
+TEST(SkirlibTest, ReserializeInt32) {
   EXPECT_THAT(MakeReserializer<int32_t>(0)
                   .IsDefault()
                   .ExpectReadableJson("0")
@@ -586,7 +586,7 @@ TEST(SoialibTest, ReserializeInt32) {
       IsOk());
 }
 
-TEST(SoialibTest, ReserializeInt64) {
+TEST(SkirlibTest, ReserializeInt64) {
   EXPECT_THAT(MakeReserializer<int64_t>(0)
                   .IsDefault()
                   .ExpectReadableJson("0")
@@ -666,7 +666,7 @@ TEST(SoialibTest, ReserializeInt64) {
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeUint64) {
+TEST(SkirlibTest, ReserializeUint64) {
   EXPECT_THAT(MakeReserializer<uint64_t>(0)
                   .IsDefault()
                   .ExpectReadableJson("0")
@@ -714,7 +714,7 @@ TEST(SoialibTest, ReserializeUint64) {
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeFloat32) {
+TEST(SkirlibTest, ReserializeFloat32) {
   EXPECT_THAT(MakeReserializer<float>(0.0)
                   .IsDefault()
                   .ExpectReadableJson("0")
@@ -783,7 +783,7 @@ TEST(SoialibTest, ReserializeFloat32) {
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeFloat64) {
+TEST(SkirlibTest, ReserializeFloat64) {
   EXPECT_THAT(MakeReserializer<double>(0.0)
                   .IsDefault()
                   .ExpectReadableJson("0")
@@ -852,7 +852,7 @@ TEST(SoialibTest, ReserializeFloat64) {
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeTimestamp) {
+TEST(SkirlibTest, ReserializeTimestamp) {
   EXPECT_THAT(
       MakeReserializer(absl::UnixEpoch())
           .IsDefault()
@@ -892,7 +892,7 @@ TEST(SoialibTest, ReserializeTimestamp) {
               "{\"foo\": true, \"unix_millis\": -8640000000000001}")
           .Check(),
       IsOk());
-  EXPECT_THAT(MakeReserializer(soia::kMinEncodedTimestamp)
+  EXPECT_THAT(MakeReserializer(skir::kMinEncodedTimestamp)
                   .ExpectDenseJson("-8640000000000000")
                   .Check(),
               IsOk());
@@ -912,13 +912,13 @@ TEST(SoialibTest, ReserializeTimestamp) {
                   .AddAlternativeBytes("ee0000dcc208b21e01")
                   .Check(),
               IsOk());
-  EXPECT_THAT(MakeReserializer(soia::kMaxEncodedTimestamp)
+  EXPECT_THAT(MakeReserializer(skir::kMaxEncodedTimestamp)
                   .ExpectDenseJson("8640000000000000")
                   .Check(),
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeString) {
+TEST(SkirlibTest, ReserializeString) {
   EXPECT_THAT(MakeReserializer(std::string(""))
                   .IsDefault()
                   .ExpectReadableJson("\"\"")
@@ -953,12 +953,12 @@ TEST(SoialibTest, ReserializeString) {
   EXPECT_THAT(MakeReserializer(RepeatStr("a", 21846)).Check(), IsOk());
 }
 
-TEST(SoialibTest, ReserializeBytes) {
-  EXPECT_THAT(MakeReserializer(soia::ByteString())
+TEST(SkirlibTest, ReserializeBytes) {
+  EXPECT_THAT(MakeReserializer(skir::ByteString())
                   .IsDefault()
                   .ExpectReadableJson("\"hex:\"")
                   .ExpectDenseJson("\"\"")
-                  .ExpectDebugString("soia::ByteString({})")
+                  .ExpectDebugString("skir::ByteString({})")
                   .ExpectBytes("f4")
                   .AddAlternativeBytes("00")
                   .AddAlternativeJson("0")
@@ -967,16 +967,16 @@ TEST(SoialibTest, ReserializeBytes) {
                       "\"value\": \"bytes\"\n  },\n  \"records\": []\n}")
                   .Check(),
               IsOk());
-  EXPECT_THAT(MakeReserializer(soia::ByteString({0, 0x08, 0xFF}))
+  EXPECT_THAT(MakeReserializer(skir::ByteString({0, 0x08, 0xFF}))
                   .ExpectReadableJson("\"hex:0008ff\"")
                   .ExpectDenseJson("\"AAj/\"")
-                  .ExpectDebugString("soia::ByteString({0x00, 0x08, 0xFF})")
+                  .ExpectDebugString("skir::ByteString({0x00, 0x08, 0xFF})")
                   .ExpectBytes("f5030008ff")
                   .Check(),
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeArray) {
+TEST(SkirlibTest, ReserializeArray) {
   EXPECT_THAT(
       MakeReserializer(std::vector<bool>{})
           .IsDefault()
@@ -1041,7 +1041,7 @@ TEST(SoialibTest, ReserializeArray) {
               IsOk());
 }
 
-TEST(SoialibTest, ReserializeOptional) {
+TEST(SkirlibTest, ReserializeOptional) {
   EXPECT_THAT(MakeReserializer(absl::optional<bool>())
                   .IsDefault()
                   .ExpectReadableJson("null")
@@ -1070,155 +1070,155 @@ TEST(SoialibTest, ReserializeOptional) {
               IsOk());
 }
 
-TEST(SoialibTest, JsonStringEscapingAndUtf8Validation) {
-  EXPECT_EQ(soia::ToDenseJson("é"), "\"é\"");
-  EXPECT_EQ(soia::ToDenseJson("\n\r\t\"\f'"), "\"\\n\\r\\t\\\"\\f'\"");
-  EXPECT_EQ(soia::ToDenseJson("\x01\x1A"), "\"\\u0001\\u001A\"");
-  EXPECT_EQ(soia::ToDenseJson("pokémon"), "\"pokémon\"");
-  EXPECT_EQ(soia::ToDenseJson("这是什么"), "\"这是什么\"");
-  EXPECT_EQ(soia::ToDenseJson("\xf0\x90\x8c\xbc"), "\"𐌼\"");
-  EXPECT_EQ(soia::ToDenseJson(std::string({'\0', '\0'})), "\"\\u0000\\u0000\"");
+TEST(SkirlibTest, JsonStringEscapingAndUtf8Validation) {
+  EXPECT_EQ(skir::ToDenseJson("é"), "\"é\"");
+  EXPECT_EQ(skir::ToDenseJson("\n\r\t\"\f'"), "\"\\n\\r\\t\\\"\\f'\"");
+  EXPECT_EQ(skir::ToDenseJson("\x01\x1A"), "\"\\u0001\\u001A\"");
+  EXPECT_EQ(skir::ToDenseJson("pokémon"), "\"pokémon\"");
+  EXPECT_EQ(skir::ToDenseJson("这是什么"), "\"这是什么\"");
+  EXPECT_EQ(skir::ToDenseJson("\xf0\x90\x8c\xbc"), "\"𐌼\"");
+  EXPECT_EQ(skir::ToDenseJson(std::string({'\0', '\0'})), "\"\\u0000\\u0000\"");
   // Invalid UTF-8 sequences, from https://stackoverflow.com/questions/1301402
-  EXPECT_EQ(soia::ToDenseJson("\xc3z"), "\"�z\"");
-  EXPECT_EQ(soia::ToDenseJson("\xc3\xc3"), "\"��\"");
-  EXPECT_EQ(soia::ToDenseJson("\xc3\xa1\xa1"), "\"�\"");
-  EXPECT_EQ(soia::ToDenseJson("\xa0\xa1"), "\"�\"");
-  EXPECT_EQ(soia::ToDenseJson("\xe2\x28\xa1"), "\"�(�\"");
-  EXPECT_EQ(soia::ToDenseJson("\xe2\x82\x28"), "\"�(\"");
-  EXPECT_EQ(soia::ToDenseJson("\xf0\x28\x8c\xbc"), "\"�(�\"");
-  EXPECT_EQ(soia::ToDenseJson("\xf0\x90\x28\xbc"), "\"�(�\"");
-  EXPECT_EQ(soia::ToDenseJson("\xf0\x28\x8c\x28"), "\"�(�(\"");
-  EXPECT_EQ(soia::ToDenseJson("\xf8\xa1\xa1\xa1\xa1"), "\"�\"");
-  EXPECT_EQ(soia::ToDenseJson("\xfc\xa1\xa1\xa1\xa1\xa1"), "\"�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xc3z"), "\"�z\"");
+  EXPECT_EQ(skir::ToDenseJson("\xc3\xc3"), "\"��\"");
+  EXPECT_EQ(skir::ToDenseJson("\xc3\xa1\xa1"), "\"�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xa0\xa1"), "\"�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xe2\x28\xa1"), "\"�(�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xe2\x82\x28"), "\"�(\"");
+  EXPECT_EQ(skir::ToDenseJson("\xf0\x28\x8c\xbc"), "\"�(�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xf0\x90\x28\xbc"), "\"�(�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xf0\x28\x8c\x28"), "\"�(�(\"");
+  EXPECT_EQ(skir::ToDenseJson("\xf8\xa1\xa1\xa1\xa1"), "\"�\"");
+  EXPECT_EQ(skir::ToDenseJson("\xfc\xa1\xa1\xa1\xa1\xa1"), "\"�\"");
 }
 
-TEST(SoialibTest, DebugStringEscapingAndUtf8Validation) {
-  EXPECT_EQ(soia_internal::ToDebugString("\n\r\t\"\f'"),
+TEST(SkirlibTest, DebugStringEscapingAndUtf8Validation) {
+  EXPECT_EQ(skir_internal::ToDebugString("\n\r\t\"\f'"),
             "\"\\n\\r\\t\\\"\\f'\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\x01\x1A"), "\"\\x01\\x1A\"");
-  EXPECT_EQ(soia_internal::ToDebugString("pokémon"), "\"pokémon\"");
-  EXPECT_EQ(soia_internal::ToDebugString("这是什么"), "\"这是什么\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xf0\x90\x8c\xbc"), "\"𐌼\"");
-  EXPECT_EQ(soia_internal::ToDebugString(std::string({'\0', '\0'})),
+  EXPECT_EQ(skir_internal::ToDebugString("\x01\x1A"), "\"\\x01\\x1A\"");
+  EXPECT_EQ(skir_internal::ToDebugString("pokémon"), "\"pokémon\"");
+  EXPECT_EQ(skir_internal::ToDebugString("这是什么"), "\"这是什么\"");
+  EXPECT_EQ(skir_internal::ToDebugString("\xf0\x90\x8c\xbc"), "\"𐌼\"");
+  EXPECT_EQ(skir_internal::ToDebugString(std::string({'\0', '\0'})),
             "\"\\0\\0\"");
   // Invalid UTF-8 sequences, from https://stackoverflow.com/questions/1301402
-  EXPECT_EQ(soia_internal::ToDebugString("\xc3z"), "\"\\xC3z\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xc3\xc3"), "\"\\xC3\\xC3\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xc3\xa1\xa1"),
+  EXPECT_EQ(skir_internal::ToDebugString("\xc3z"), "\"\\xC3z\"");
+  EXPECT_EQ(skir_internal::ToDebugString("\xc3\xc3"), "\"\\xC3\\xC3\"");
+  EXPECT_EQ(skir_internal::ToDebugString("\xc3\xa1\xa1"),
             "\"\\xC3\\xA1\\xA1\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xa0\xa1"), "\"\\xA0\\xA1\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xe2\x28\xa1"), "\"\\xE2(\\xA1\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xe2\x82\x28"), "\"\\xE2\\x82(\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xf0\x28\x8c\xbc"),
+  EXPECT_EQ(skir_internal::ToDebugString("\xa0\xa1"), "\"\\xA0\\xA1\"");
+  EXPECT_EQ(skir_internal::ToDebugString("\xe2\x28\xa1"), "\"\\xE2(\\xA1\"");
+  EXPECT_EQ(skir_internal::ToDebugString("\xe2\x82\x28"), "\"\\xE2\\x82(\"");
+  EXPECT_EQ(skir_internal::ToDebugString("\xf0\x28\x8c\xbc"),
             "\"\\xF0(\\x8C\\xBC\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xf0\x90\x28\xbc"),
+  EXPECT_EQ(skir_internal::ToDebugString("\xf0\x90\x28\xbc"),
             "\"\\xF0\\x90(\\xBC\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xf0\x28\x8c\x28"),
+  EXPECT_EQ(skir_internal::ToDebugString("\xf0\x28\x8c\x28"),
             "\"\\xF0(\\x8C(\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xf8\xa1\xa1\xa1\xa1"),
+  EXPECT_EQ(skir_internal::ToDebugString("\xf8\xa1\xa1\xa1\xa1"),
             "\"\\xF8\\xA1\\xA1\\xA1\\xA1\"");
-  EXPECT_EQ(soia_internal::ToDebugString("\xfc\xa1\xa1\xa1\xa1\xa1"),
+  EXPECT_EQ(skir_internal::ToDebugString("\xfc\xa1\xa1\xa1\xa1\xa1"),
             "\"\\xFC\\xA1\\xA1\\xA1\\xA1\\xA1\"");
 }
 
-TEST(SoialibTest, ParseJsonReturnsError) {
-  EXPECT_EQ(soia::Parse<int32_t>("[]").status(),
+TEST(SkirlibTest, ParseJsonReturnsError) {
+  EXPECT_EQ(skir::Parse<int32_t>("[]").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: number; found: '['"));
-  EXPECT_EQ(soia::Parse<int32_t>("").status(),
+  EXPECT_EQ(skir::Parse<int32_t>("").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: number; found: end"));
-  EXPECT_EQ(soia::Parse<std::vector<int32_t>>("[").status(),
+  EXPECT_EQ(skir::Parse<std::vector<int32_t>>("[").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: number; found: end"));
-  EXPECT_EQ(soia::Parse<int32_t>("\"NaN\"").status(),
+  EXPECT_EQ(skir::Parse<int32_t>("\"NaN\"").status(),
             absl::UnknownError("can't parse number from JSON string"));
-  EXPECT_EQ(soia::Parse<float>("{}").status(),
+  EXPECT_EQ(skir::Parse<float>("{}").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: number; found: '{'"));
-  EXPECT_EQ(soia::Parse<float>("{").status(),
+  EXPECT_EQ(skir::Parse<float>("{").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: number; found: '{'"));
-  EXPECT_EQ(soia::Parse<float>("3.").status(),
+  EXPECT_EQ(skir::Parse<float>("3.").status(),
             absl::UnknownError(
                 "error while parsing JSON at position 2: expected: digit"));
-  EXPECT_EQ(soia::Parse<float>("-").status(),
+  EXPECT_EQ(skir::Parse<float>("-").status(),
             absl::UnknownError(
                 "error while parsing JSON at position 1: expected: digit"));
-  EXPECT_EQ(soia::Parse<float>("3E+").status(),
+  EXPECT_EQ(skir::Parse<float>("3E+").status(),
             absl::UnknownError(
                 "error while parsing JSON at position 3: expected: digit"));
-  EXPECT_EQ(soia::Parse<float>("3E").status(),
+  EXPECT_EQ(skir::Parse<float>("3E").status(),
             absl::UnknownError(
                 "error while parsing JSON at position 2: expected: digit"));
   EXPECT_EQ(
-      soia::Parse<float>(" <").status(),
+      skir::Parse<float>(" <").status(),
       absl::UnknownError(
           "error while parsing JSON at position 1: expected: JSON token"));
-  EXPECT_EQ(soia::Parse<std::string>("\"foo").status(),
+  EXPECT_EQ(skir::Parse<std::string>("\"foo").status(),
             absl::UnknownError(
                 "error while parsing JSON: unterminated string literal"));
-  EXPECT_EQ(soia::Parse<std::vector<int32_t>>("[1 2]").status(),
+  EXPECT_EQ(skir::Parse<std::vector<int32_t>>("[1 2]").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: ','; found: number"));
-  EXPECT_EQ(soia::Parse<absl::Time>("{1:2}").status(),
+  EXPECT_EQ(skir::Parse<absl::Time>("{1:2}").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: string; found: number"));
-  EXPECT_EQ(soia::Parse<absl::Time>("{\"foo\" 2}").status(),
+  EXPECT_EQ(skir::Parse<absl::Time>("{\"foo\" 2}").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: ':'; found: number"));
-  EXPECT_EQ(soia::Parse<absl::Time>("{\"foo\": }").status(),
+  EXPECT_EQ(skir::Parse<absl::Time>("{\"foo\": }").status(),
             absl::UnknownError(
                 "error while parsing JSON: expected: value; found: '}'"));
   EXPECT_EQ(
-      soia::Parse<soia::ByteString>("3").status(),
+      skir::Parse<skir::ByteString>("3").status(),
       absl::UnknownError(
           "error while parsing JSON: expected: Base64 string; found: number"));
   EXPECT_EQ(
-      soia::Parse<soia::ByteString>("\"?\"").status(),
+      skir::Parse<skir::ByteString>("\"?\"").status(),
       absl::UnknownError("error while parsing JSON: not a Base64 string"));
   EXPECT_EQ(
-      soia::Parse<soia::ByteString>("\"\\").status(),
+      skir::Parse<skir::ByteString>("\"\\").status(),
       absl::UnknownError(
           "error while parsing JSON at position 2: expected: escape sequence"));
 }
 
-TEST(SoialibTest, ParseBytesReturnsError) {
+TEST(SkirlibTest, ParseBytesReturnsError) {
   EXPECT_FALSE(
-      soia::Parse<int32_t>(HexToBytes("e9ffffff").value()).status().ok());
-  EXPECT_FALSE(soia::Parse<int32_t>(HexToBytes("").value()).status().ok());
+      skir::Parse<int32_t>(HexToBytes("e9ffffff").value()).status().ok());
+  EXPECT_FALSE(skir::Parse<int32_t>(HexToBytes("").value()).status().ok());
   EXPECT_FALSE(
-      soia::Parse<float>(HexToBytes("f00000c0").value()).status().ok());
+      skir::Parse<float>(HexToBytes("f00000c0").value()).status().ok());
   EXPECT_FALSE(
-      soia::Parse<std::vector<int32_t>>(HexToBytes("").value()).status().ok());
-  EXPECT_FALSE(soia::Parse<std::vector<int32_t>>(HexToBytes("f9").value())
+      skir::Parse<std::vector<int32_t>>(HexToBytes("").value()).status().ok());
+  EXPECT_FALSE(skir::Parse<std::vector<int32_t>>(HexToBytes("f9").value())
                    .status()
                    .ok());
-  EXPECT_FALSE(soia::Parse<std::vector<int32_t>>(HexToBytes("f90a0b").value())
+  EXPECT_FALSE(skir::Parse<std::vector<int32_t>>(HexToBytes("f90a0b").value())
                    .status()
                    .ok());
-  EXPECT_FALSE(soia::Parse<std::vector<int32_t>>(HexToBytes("fa").value())
+  EXPECT_FALSE(skir::Parse<std::vector<int32_t>>(HexToBytes("fa").value())
                    .status()
                    .ok());
   // NaN
   EXPECT_FALSE(
-      soia::Parse<std::vector<int32_t>>(HexToBytes("f00000c07f").value())
+      skir::Parse<std::vector<int32_t>>(HexToBytes("f00000c07f").value())
           .status()
           .ok());
   // Infinity
   EXPECT_FALSE(
-      soia::Parse<std::vector<int64_t>>(HexToBytes("f00000807f").value())
+      skir::Parse<std::vector<int64_t>>(HexToBytes("f00000807f").value())
           .status()
           .ok());
   // -Infinity
   EXPECT_FALSE(
-      soia::Parse<std::vector<int64_t>>(HexToBytes("f0000080ff").value())
+      skir::Parse<std::vector<int64_t>>(HexToBytes("f0000080ff").value())
           .status()
           .ok());
 }
 
-TEST(SoialibTest, HttpHeaders) {
-  soia::service::HttpHeaders headers;
+TEST(SkirlibTest, HttpHeaders) {
+  skir::service::HttpHeaders headers;
   headers.Insert("accept", "A");
   headers.Insert("Accept", "B");
   headers.Insert("origin", "C");
@@ -1232,13 +1232,13 @@ TEST(SoialibTest, HttpHeaders) {
                                    Pair("origin", ElementsAre("C"))));
 }
 
-TEST(Soialib, DecodeUrlQueryString) {
+TEST(Skirlib, DecodeUrlQueryString) {
   EXPECT_THAT(
-      soia::service::DecodeUrlQueryString("%D1%88%D0%B5%D0%BB%D0%BB%D1%8B +"),
+      skir::service::DecodeUrlQueryString("%D1%88%D0%B5%D0%BB%D0%BB%D1%8B +"),
       IsOkAndHolds("шеллы  "));
-  EXPECT_THAT(soia::service::DecodeUrlQueryString("%3"),
+  EXPECT_THAT(skir::service::DecodeUrlQueryString("%3"),
               absl::InvalidArgumentError("Invalid escape sequence"));
-  EXPECT_THAT(soia::service::DecodeUrlQueryString("%4z"),
+  EXPECT_THAT(skir::service::DecodeUrlQueryString("%4z"),
               absl::InvalidArgumentError("Invalid escape sequence"));
 }
 

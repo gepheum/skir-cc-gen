@@ -1,5 +1,5 @@
-#ifndef SOIA_RESERIALIZER_TESTING_H
-#define SOIA_RESERIALIZER_TESTING_H
+#ifndef SKIR_RESERIALIZER_TESTING_H
+#define SKIR_RESERIALIZER_TESTING_H
 
 #include <functional>
 #include <string>
@@ -16,9 +16,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/optional.h"
-#include "soia.h"
+#include "skir.h"
 
-namespace soia_testing_internal {
+namespace skir_testing_internal {
 struct Utils {
   static absl::StatusOr<std::string> HexToBytes(absl::string_view hex_string) {
     const auto hex_digit_to_int = [](char c) {
@@ -30,7 +30,7 @@ struct Utils {
       return -1;
     };
     const size_t num_bytes = hex_string.length() / 2;
-    std::string bytes = "soia";
+    std::string bytes = "skir";
     bytes.reserve(4 + num_bytes);
     for (size_t i = 0; i < num_bytes; ++i) {
       const int hi = hex_digit_to_int(hex_string[2 * i]);
@@ -71,7 +71,7 @@ class ErrorSink {
 
 struct ReserializerUtils {
   static std::string BytesToHex(absl::string_view bytes) {
-    bytes = absl::StripPrefix(bytes, "soia");
+    bytes = absl::StripPrefix(bytes, "skir");
     constexpr char kHexDigits[] = "0123456789abcdef";
     std::string result;
     result.reserve(bytes.length() * 2);
@@ -83,11 +83,11 @@ struct ReserializerUtils {
   }
 
   static absl::StatusOr<std::string> BytesToDenseJson(absl::string_view bytes) {
-    if (!absl::StartsWith(bytes, "soia")) {
-      return absl::UnknownError("missing soia prefix");
+    if (!absl::StartsWith(bytes, "skir")) {
+      return absl::UnknownError("missing skir prefix");
     }
-    soia_internal::ByteSource source(bytes.data() + 4, bytes.length() - 4);
-    soia_internal::UnrecognizedValues unrecognized_value;
+    skir_internal::ByteSource source(bytes.data() + 4, bytes.length() - 4);
+    skir_internal::UnrecognizedValues unrecognized_value;
     unrecognized_value.ParseFrom(source);
     if (source.error) {
       return absl::UnknownError("error while parsing bytes");
@@ -97,7 +97,7 @@ struct ReserializerUtils {
           "source.pos != source.end; source.pos: ", (size_t)source.pos,
           "; source.end: ", (size_t)source.end));
     }
-    soia_internal::DenseJson dense_json;
+    skir_internal::DenseJson dense_json;
     unrecognized_value.AppendTo(dense_json);
     return dense_json.out;
   }
@@ -106,18 +106,18 @@ struct ReserializerUtils {
                                         ErrorSink& errors) {
     // Copy to a non-NULL-terminated vector.
     std::vector<char> dense_json_chars(json.begin(), json.end());
-    soia_internal::JsonTokenizer tokenizer(
+    skir_internal::JsonTokenizer tokenizer(
         json.data(), json.data() + json.length(),
-        soia::UnrecognizedFieldsPolicy::kKeep);
+        skir::UnrecognizedFieldsPolicy::kKeep);
 
     tokenizer.Next();
-    soia_internal::SkipValue(tokenizer);
+    skir_internal::SkipValue(tokenizer);
     if (!tokenizer.state().status.ok()) {
       errors.Push(
           "error while skipping JSON value",
           {{"error", tokenizer.state().status.ToString()}, {"json", json}});
     } else if (tokenizer.state().token_type !=
-               soia_internal::JsonTokenType::kStrEnd) {
+               skir_internal::JsonTokenType::kStrEnd) {
       errors.Push(
           "error while skipping JSON value: "
           "tokenizer.state().token_type != JsonTokenType::kStrEnd",
@@ -127,14 +127,14 @@ struct ReserializerUtils {
 
   static void CheckBytesValueIsSkippable(absl::string_view bytes,
                                          ErrorSink& errors) {
-    if (!absl::StartsWith(bytes, "soia")) {
+    if (!absl::StartsWith(bytes, "skir")) {
       errors.Push(
-          "missing soia prefix",
+          "missing skir prefix",
           {{"bytes", reserializer::ReserializerUtils::BytesToHex(bytes)}});
       return;
     }
-    soia_internal::ByteSource source(bytes.data() + 4, bytes.length() - 4);
-    soia_internal::SkipValue(source);
+    skir_internal::ByteSource source(bytes.data() + 4, bytes.length() - 4);
+    skir_internal::SkipValue(source);
     if (source.error) {
       errors.Push(
           "error while skipping bytes value",
@@ -203,17 +203,17 @@ class Reserializer {
     compatible_schema.reencode_json_fn =
         [](const std::string& json) -> absl::StatusOr<std::string> {
       absl::StatusOr<Other> other =
-          soia::Parse<Other>(json, soia::UnrecognizedFieldsPolicy::kKeep);
+          skir::Parse<Other>(json, skir::UnrecognizedFieldsPolicy::kKeep);
       if (!other.ok()) return other.status();
-      return soia::ToDenseJson(*other);
+      return skir::ToDenseJson(*other);
     };
     compatible_schema.reencode_bytes_fn =
         [schema_name_str](
             const std::string& bytes) -> absl::StatusOr<std::string> {
       absl::StatusOr<Other> other =
-          soia::Parse<Other>(bytes, soia::UnrecognizedFieldsPolicy::kKeep);
+          skir::Parse<Other>(bytes, skir::UnrecognizedFieldsPolicy::kKeep);
       if (!other.ok()) return other.status();
-      return soia::ToBytes(*other).as_string();
+      return skir::ToBytes(*other).as_string();
     };
     return *this;
   }
@@ -265,26 +265,26 @@ class Reserializer {
   std::function<bool(const T&)> identity_;
 
   void CheckDefault(reserializer::ErrorSink& errors) const {
-    if (soia_internal::IsDefault(subject_) && !is_default_) {
+    if (skir_internal::IsDefault(subject_) && !is_default_) {
       errors.Push("is default but IsDefault() was not called");
-    } else if (!soia_internal::IsDefault(subject_) && is_default_) {
+    } else if (!skir_internal::IsDefault(subject_) && is_default_) {
       errors.Push("is not default");
     }
   }
 
   void CheckDenseJson(reserializer::ErrorSink& errors) const {
-    const std::string actual_dense_json = soia::ToDenseJson(subject_);
+    const std::string actual_dense_json = skir::ToDenseJson(subject_);
 
     if (expected_dense_json_.has_value() &&
         actual_dense_json != *expected_dense_json_) {
       errors.Push(
           "Dense JSON doesn't match",
-          {{"expected", soia_internal::ToDebugString(*expected_dense_json_)},
-           {"actual", soia_internal::ToDebugString(actual_dense_json)}});
+          {{"expected", skir_internal::ToDebugString(*expected_dense_json_)},
+           {"actual", skir_internal::ToDebugString(actual_dense_json)}});
       // Don't return.
     }
 
-    absl::StatusOr<T> reserialized = soia::Parse<T>(actual_dense_json);
+    absl::StatusOr<T> reserialized = skir::Parse<T>(actual_dense_json);
     if (!reserialized.ok()) {
       errors.Push("Parse(ToDenseJson()) returned an error",
                   {{"error", reserialized.status().ToString()},
@@ -294,8 +294,8 @@ class Reserializer {
 
     if (!identity_(*reserialized)) {
       errors.Push("Parse(ToDenseJson()) doesn't match subject",
-                  {{"expected", soia_internal::ToDebugString(subject_)},
-                   {"actual", soia_internal::ToDebugString(*reserialized)}});
+                  {{"expected", skir_internal::ToDebugString(subject_)},
+                   {"actual", skir_internal::ToDebugString(*reserialized)}});
       return;
     }
 
@@ -306,7 +306,7 @@ class Reserializer {
         std::vector<char> chars;
         chars.insert(chars.end(), actual_dense_json.begin(),
                      actual_dense_json.begin() + i);
-        soia::Parse<T>(absl::string_view(chars.data(), i)).IgnoreError();
+        skir::Parse<T>(absl::string_view(chars.data(), i)).IgnoreError();
       }
     }
 
@@ -338,18 +338,18 @@ class Reserializer {
   }
 
   void CheckReadableJson(reserializer::ErrorSink& errors) const {
-    const std::string actual_readable_json = soia::ToReadableJson(subject_);
+    const std::string actual_readable_json = skir::ToReadableJson(subject_);
 
     if (expected_readable_json_.has_value() &&
         actual_readable_json != *expected_readable_json_) {
       errors.Push(
           "Readable JSON doesn't match",
-          {{"expected", soia_internal::ToDebugString(*expected_readable_json_)},
-           {"actual", soia_internal::ToDebugString(actual_readable_json)}});
+          {{"expected", skir_internal::ToDebugString(*expected_readable_json_)},
+           {"actual", skir_internal::ToDebugString(actual_readable_json)}});
       // Don't return.
     }
 
-    const absl::StatusOr<T> reserialized = soia::Parse<T>(actual_readable_json);
+    const absl::StatusOr<T> reserialized = skir::Parse<T>(actual_readable_json);
     if (!reserialized.ok()) {
       errors.Push("Parse(ToReadableJson()) returned an error",
                   {{"error", reserialized.status().ToString()},
@@ -359,8 +359,8 @@ class Reserializer {
 
     if (!identity_(*reserialized)) {
       errors.Push("Parse(ToReadableJson()) doesn't match subject",
-                  {{"expected", soia_internal::ToDebugString(subject_)},
-                   {"actual", soia_internal::ToDebugString(*reserialized)},
+                  {{"expected", skir_internal::ToDebugString(subject_)},
+                   {"actual", skir_internal::ToDebugString(*reserialized)},
                    {"json", actual_readable_json}});
     }
 
@@ -369,10 +369,10 @@ class Reserializer {
   }
 
   void CheckBytes(reserializer::ErrorSink& errors) const {
-    const std::string actual_bytes = soia::ToBytes(subject_).as_string();
+    const std::string actual_bytes = skir::ToBytes(subject_).as_string();
 
-    if (!absl::StartsWith(actual_bytes, "soia")) {
-      errors.Push("missing soia prefix",
+    if (!absl::StartsWith(actual_bytes, "skir")) {
+      errors.Push("missing skir prefix",
                   {{"bytes", reserializer::ReserializerUtils::BytesToHex(
                                  actual_bytes)}});
       return;
@@ -385,12 +385,12 @@ class Reserializer {
         actual_bytes_hex != *expected_bytes_hex_) {
       errors.Push(
           "Bytes don't match",
-          {{"expected", soia_internal::ToDebugString(*expected_bytes_hex_)},
-           {"actual", soia_internal::ToDebugString(actual_bytes_hex)}});
+          {{"expected", skir_internal::ToDebugString(*expected_bytes_hex_)},
+           {"actual", skir_internal::ToDebugString(actual_bytes_hex)}});
       // Don't return.
     }
 
-    absl::StatusOr<T> reserialized = soia::Parse<T>(actual_bytes);
+    absl::StatusOr<T> reserialized = skir::Parse<T>(actual_bytes);
     if (!reserialized.ok()) {
       errors.Push("Parse(ToBytes()) returned an error",
                   {{"error", reserialized.status().ToString()},
@@ -400,8 +400,8 @@ class Reserializer {
 
     if (!identity_(*reserialized)) {
       errors.Push("Parse(ToBytes()) doesn't match subject",
-                  {{"expected", soia_internal::ToDebugString(subject_)},
-                   {"actual", soia_internal::ToDebugString(*reserialized)},
+                  {{"expected", skir_internal::ToDebugString(subject_)},
+                   {"actual", skir_internal::ToDebugString(*reserialized)},
                    {"bytes", actual_bytes_hex}});
       return;
     }
@@ -413,7 +413,7 @@ class Reserializer {
         std::vector<char> substr;
         substr.insert(substr.end(), actual_bytes.begin(),
                       actual_bytes.begin() + i);
-        soia::Parse<T>(absl::string_view(substr.data(), i)).IgnoreError();
+        skir::Parse<T>(absl::string_view(substr.data(), i)).IgnoreError();
       }
     }
 
@@ -452,7 +452,7 @@ class Reserializer {
       return;
     }
 
-    reserialized = soia::Parse<T>(*dense_json);
+    reserialized = skir::Parse<T>(*dense_json);
     if (!reserialized.ok()) {
       errors.Push(
           "Parse(BytesToDenseJson(ToBytes())) returned an error",
@@ -462,8 +462,8 @@ class Reserializer {
 
     if (!identity_(*reserialized)) {
       errors.Push("Parse(BytesToDenseJson(ToBytes())) doesn't match subject",
-                  {{"expected", soia_internal::ToDebugString(subject_)},
-                   {"actual", soia_internal::ToDebugString(*reserialized)},
+                  {{"expected", skir_internal::ToDebugString(subject_)},
+                   {"actual", skir_internal::ToDebugString(*reserialized)},
                    {"bytes", actual_bytes_hex},
                    {"json", *dense_json}});
     }
@@ -471,13 +471,13 @@ class Reserializer {
 
   void CheckDebugString(reserializer::ErrorSink& errors) const {
     const std::string actual_debug_string =
-        soia_internal::ToDebugString(subject_);
+        skir_internal::ToDebugString(subject_);
     if (expected_debug_string_.has_value() &&
         actual_debug_string != *expected_debug_string_) {
       errors.Push(
           "Debug string doesn't match",
-          {{"expected", soia_internal::ToDebugString(*expected_debug_string_)},
-           {"actual", soia_internal::ToDebugString(actual_debug_string)}});
+          {{"expected", skir_internal::ToDebugString(*expected_debug_string_)},
+           {"actual", skir_internal::ToDebugString(actual_debug_string)}});
     }
   }
 
@@ -486,7 +486,7 @@ class Reserializer {
       reserializer::ReserializerUtils::CheckJsonValueIsSkippable(
           alternative_json, errors);
 
-      const absl::StatusOr<T> deserialized = soia::Parse<T>(alternative_json);
+      const absl::StatusOr<T> deserialized = skir::Parse<T>(alternative_json);
       if (!deserialized.ok()) {
         errors.Push("Parse() returned an error",
                     {{"error", deserialized.status().ToString()},
@@ -496,8 +496,8 @@ class Reserializer {
 
       if (!identity_(*deserialized)) {
         errors.Push("Parse(json) doesn't match subject",
-                    {{"expected", soia_internal::ToDebugString(subject_)},
-                     {"actual", soia_internal::ToDebugString(*deserialized)},
+                    {{"expected", skir_internal::ToDebugString(subject_)},
+                     {"actual", skir_internal::ToDebugString(*deserialized)},
                      {"json", alternative_json}});
       }
     }
@@ -516,7 +516,7 @@ class Reserializer {
       reserializer::ReserializerUtils::CheckBytesValueIsSkippable(*bytes,
                                                                   errors);
 
-      const absl::StatusOr<T> deserialized = soia::Parse<T>(*bytes);
+      const absl::StatusOr<T> deserialized = skir::Parse<T>(*bytes);
       if (!deserialized.ok()) {
         errors.Push("Parse() returned an error",
                     {{"error", deserialized.status().ToString()},
@@ -526,8 +526,8 @@ class Reserializer {
 
       if (!identity_(*deserialized)) {
         errors.Push("Parse(bytes) doesn't match subject",
-                    {{"expected", soia_internal::ToDebugString(subject_)},
-                     {"actual", soia_internal::ToDebugString(*deserialized)},
+                    {{"expected", skir_internal::ToDebugString(subject_)},
+                     {"actual", skir_internal::ToDebugString(*deserialized)},
                      {"bytes", alternative_bytes_hex}});
       }
     }
@@ -535,20 +535,20 @@ class Reserializer {
 
   void CheckTypeDescriptor(reserializer::ErrorSink& errors) const {
     const std::string actual_type_descriptor_json =
-        soia::reflection::GetTypeDescriptor<T>().AsJson();
+        skir::reflection::GetTypeDescriptor<T>().AsJson();
     if (expected_type_descriptor_json_.has_value() &&
         actual_type_descriptor_json != *expected_type_descriptor_json_) {
       errors.Push(
           "Type descriptor JSON doesn't match",
           {{"expected",
-            soia_internal::ToDebugString(*expected_type_descriptor_json_)},
+            skir_internal::ToDebugString(*expected_type_descriptor_json_)},
            {"actual",
-            soia_internal::ToDebugString(actual_type_descriptor_json)}});
+            skir_internal::ToDebugString(actual_type_descriptor_json)}});
       // Don't return.
     }
 
-    absl::StatusOr<soia::reflection::TypeDescriptor> reserialized =
-        soia::reflection::TypeDescriptor::FromJson(actual_type_descriptor_json);
+    absl::StatusOr<skir::reflection::TypeDescriptor> reserialized =
+        skir::reflection::TypeDescriptor::FromJson(actual_type_descriptor_json);
     if (!reserialized.ok()) {
       errors.Push("TypeDescriptor::FromJson() returned an error",
                   {{"error", reserialized.status().ToString()},
@@ -562,8 +562,8 @@ class Reserializer {
           "TypeDescriptor::FromJson(TypeDescriptor::AsJson()) doesn't match "
           "subject",
           {{"expected",
-            soia_internal::ToDebugString(actual_type_descriptor_json)},
-           {"actual", soia_internal::ToDebugString(reserialized_as_json)}});
+            skir_internal::ToDebugString(actual_type_descriptor_json)},
+           {"actual", skir_internal::ToDebugString(reserialized_as_json)}});
     }
   }
 };
@@ -573,6 +573,6 @@ Reserializer<T> MakeReserializer(T subject) {
   return Reserializer<T>(std::move(subject));
 }
 
-}  // namespace soia_testing_internal
+}  // namespace skir_testing_internal
 
 #endif

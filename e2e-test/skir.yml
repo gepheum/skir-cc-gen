@@ -1,6 +1,7 @@
-srcDir: ./src
+srcDir: ./skir-src
 
 generators:
   - mod: ../../../dist/index.js
+    skiroutDir: ./skirout
     config:
       writeGoogleTestHeaders: true

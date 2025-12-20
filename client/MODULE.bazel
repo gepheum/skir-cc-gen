@@ -1,6 +1,6 @@
 """MODULE.bazel"""
 
-module(name = "soia-client")
+module(name = "skir-client")
 
 # Choose the most recent version available at
 # https://registry.bazel.build/modules/abseil-cpp

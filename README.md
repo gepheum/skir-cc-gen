@@ -1,43 +1,43 @@
-[![npm](https://img.shields.io/npm/v/soia-cc-gen)](https://www.npmjs.com/package/soia-cc-gen)
-[![build](https://github.com/gepheum/soia-cc-gen/workflows/Build/badge.svg)](https://github.com/gepheum/soia-cc-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir-cc-gen)](https://www.npmjs.com/package/skir-cc-gen)
+[![build](https://github.com/gepheum/skir-cc-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-cc-gen/actions)
 
-# Soia's C++ Code Generator
+# Skir's C++ Code Generator
 
-Official plugin for generating C++ code from [.soia](https://github.com/gepheum/soia) files.
+Official plugin for generating C++ code from [.skir](https://github.com/gepheum/skir) files.
 
 Targets C++17 and higher.
 
 ## Installation
 
-From your project's root directory, run `npm i --save-dev soia-cc-gen`.
+From your project's root directory, run `npm i --save-dev skir-cc-gen`.
 
-In your `soia.yml` file, add the following snippet under `generators`:
+In your `skir.yml` file, add the following snippet under `generators`:
 ```yaml
-  - mod: soia-cc-gen
+  - mod: skir-cc-gen
     config:
       writeGoogleTestHeaders: true
 ```
 
-The `npm run soiac` command will now generate C++ code within the `soiagen` directory.
+The `npm run skir` command will now generate C++ code within the `skirout` directory.
 
-For more information, see this C++ project [example](https://github.com/gepheum/soia-cc-example).
+For more information, see this C++ project [example](https://github.com/gepheum/skir-cc-example).
 
 ## C++ generated code guide
 
-The examples below are for the code generated from [this](https://github.com/gepheum/soia-cc-example/blob/main/soia_src/user.soia) .soia file.
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-cc-example/blob/main/skir_src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
-Every generated symbol lives in a namespace called `soiagen_${path}`,
-where `${path}` is the path to the .soia file relative from the root of the
-soia source directory, with the ".soia" extension removed, and slashes
+Every generated symbol lives in a namespace called `skirout_${path}`,
+where `${path}` is the path to the .skir file relative from the root of the
+skir source directory, with the ".skir" extension removed, and slashes
 replaced with underscores.
 
 ```c++
-#include "soiagen/user.h"
+#include "skirout/user.h"
 
-using ::soiagen_user::User;
-using ::soiagen_user::UserRegistry;
+using ::skirout_user::User;
+using ::skirout_user::UserRegistry;
 ```
 
 ### Constructing structs
@@ -60,7 +60,7 @@ User jane = {
                   .name = "Rex",
                   .picture = "dog",
               }},
-    .subscription_status = soiagen::kPremium,
+    .subscription_status = skirout::kPremium,
     .user_id = 43,
 };
 
@@ -77,7 +77,7 @@ User lyla = User::whole{
             },
         },
     .quote = "This is Lyla's world, you just live in it",
-    .subscription_status = soiagen::kFree,
+    .subscription_status = skirout::kFree,
     .user_id = 44,
 };
 ```
@@ -86,16 +86,16 @@ User lyla = User::whole{
 
 ```c++
 
-// Use soiagen::${kFieldName} for constant variants.
-User::SubscriptionStatus john_status = soiagen::kFree;
-User::SubscriptionStatus jane_status = soiagen::kPremium;
+// Use skirout::${kFieldName} for constant variants.
+User::SubscriptionStatus john_status = skirout::kFree;
+User::SubscriptionStatus jane_status = skirout::kPremium;
 
 // Compilation error: MONDAY is not a field of the SubscriptionStatus enum.
-// User::SubscriptionStatus sara_status = soiagen::kMonday;
+// User::SubscriptionStatus sara_status = skirout::kMonday;
 
-// Use soiagen::wrap_${field_name} for data variants.
+// Use skirout::wrap_${field_name} for data variants.
 User::SubscriptionStatus jade_status =
-    soiagen::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
+    skirout::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
 
 // The ${kFieldName} and wrap_${field_name} symbols are also defined in the
 // generated class.
@@ -105,7 +105,7 @@ User::SubscriptionStatus lara_status = User::SubscriptionStatus::kFree;
 ### Conditions on enums
 
 ```c++
-if (john_status == soiagen::kFree) {
+if (john_status == skirout::kFree) {
   std::cout << "John, would you like to upgrade to premium?\n";
 }
 
@@ -136,13 +136,13 @@ switch (lara_status.kind()) {
 
 // Another way to do an exhaustive switch using the visitor pattern.
 struct Visitor {
-  void operator()(soiagen::k_unknown) const {
+  void operator()(skirout::k_unknown) const {
     std::cout << "Lara's subscription status is UNKNOWN\n";
   }
-  void operator()(soiagen::k_free) const {
+  void operator()(skirout::k_free) const {
     std::cout << "Lara's subscription status is FREE\n";
   }
-  void operator()(soiagen::k_premium) const {
+  void operator()(skirout::k_premium) const {
     std::cout << "Lara's subscription status is PREMIUM\n";
   }
   void operator()(
@@ -156,21 +156,21 @@ lara_status.visit(Visitor());
 
 ### Serialization
 
-Use `ToDenseJson`, `ToReadableJson` or `ToBytes` to serialize a soia value.
+Use `ToDenseJson`, `ToReadableJson` or `ToBytes` to serialize a skir value.
 
 ```c++
-// Serialize a soia value to JSON with ToDenseJson or ToReadableJson.
-std::cout << soia::ToDenseJson(john) << "\n";
+// Serialize a skir value to JSON with ToDenseJson or ToReadableJson.
+std::cout << skir::ToDenseJson(john) << "\n";
 // [42,"John Doe"]
 
-std::cout << soia::ToReadableJson(john) << "\n";
+std::cout << skir::ToReadableJson(john) << "\n";
 // {
 //   "user_id": 42,
 //   "name": "John Doe"
 // }
 
 // The dense flavor is the flavor you should pick if you intend to
-// deserialize the value in the future. Soia allows fields to be renamed, and
+// deserialize the value in the future. Skir allows fields to be renamed, and
 // because fields names are not part of the dense JSON, renaming a field does
 // not prevent you from deserializing the value.
 // You should pick the readable flavor mostly for debugging purposes.
@@ -179,16 +179,16 @@ std::cout << soia::ToReadableJson(john) << "\n";
 // JSON, and serialization/deserialization can be a bit faster.
 // Only use it when this small performance gain is likely to matter, which
 // should be rare.
-std::cout << soia::ToBytes(john).as_string() << "\n";
-// soia�+Jane Doe����Fluffy�cat��Rex�dog
+std::cout << skir::ToBytes(john).as_string() << "\n";
+// skir�+Jane Doe����Fluffy�cat��Rex�dog
 ```
 
 ### Deserialization
 
-Use `Parse` to deserialize a soia value from JSON or binary format.
+Use `Parse` to deserialize a skir value from JSON or binary format.
 
 ```c++
-absl::StatusOr<User> maybe_john = soia::Parse<User>(soia::ToDenseJson(john));
+absl::StatusOr<User> maybe_john = skir::Parse<User>(skir::ToDenseJson(john));
 assert(maybe_john.ok() && *maybe_john == john);
 ```
 
@@ -199,7 +199,7 @@ and allows for fast lookups by key using a hash table.
 
 ```c++
 UserRegistry user_registry;
-soia::keyed_items<User, soiagen::get_user_id<>>& users = user_registry.users;
+skir::keyed_items<User, skirout::get_user_id<>>& users = user_registry.users;
 users.push_back(john);
 users.push_back(jane);
 users.push_back(lyla);
@@ -216,7 +216,7 @@ assert(users.find_or_default(45).name == "");
 
 ### Equality and hashing
 
-Soia structs and enums are equality comparable and hashable.
+Skir structs and enums are equality comparable and hashable.
 
 ```c++
 absl::flat_hash_set<User> user_set;
@@ -231,27 +231,27 @@ assert(user_set.size() == 3);
 ### Constants
 
 ```c++
-const User& tarzan = soiagen_user::k_tarzan();
+const User& tarzan = skirout_user::k_tarzan();
 assert(tarzan.name == "Tarzan");
 ```
 
-### Soia services
+### Skir services
 
-#### Starting a soia service on an HTTP server
+#### Starting a skir service on an HTTP server
 
-Full example [here](https://github.com/gepheum/soia-cc-example/blob/main/service_start.cc).
+Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc).
 
-#### Sending RPCs to a soia service
+#### Sending RPCs to a skir service
 
-Full example [here](https://github.com/gepheum/soia-cc-example/blob/main/service_client.cc).
+Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc).
 
 ### Dynamic reflection
 
 ```c++
-using ::soia::reflection::GetTypeDescriptor;
-using ::soia::reflection::TypeDescriptor;
+using ::skir::reflection::GetTypeDescriptor;
+using ::skir::reflection::TypeDescriptor;
 
-// A TypeDescriptor describes a soia type. It contains the definition of all
+// A TypeDescriptor describes a skir type. It contains the definition of all
 // the structs and enums referenced from the type.
 const TypeDescriptor& user_descriptor = GetTypeDescriptor<User>();
 
@@ -265,14 +265,14 @@ assert(reserialized_type_descriptor.ok());
 ### Static reflection
 
 Static reflection allows you to inspect and modify values of generated
-soia types in a typesafe maneer.
+skir types in a typesafe maneer.
 
-See [string_capitalizer.h](https://github.com/gepheum/soia-cc-example/blob/main/string_capitalizer.h).
+See [string_capitalizer.h](https://github.com/gepheum/skir-cc-example/blob/main/string_capitalizer.h).
 
 ```c++
-User tarzan_copy = soiagen_user::k_tarzan();
+User tarzan_copy = skirout_user::k_tarzan();
 // CapitalizeStrings recursively capitalizes all the strings found within a
-// soia value.
+// skir value.
 CapitalizeStrings(tarzan_copy);
 
 std::cout << tarzan_copy << "\n";
@@ -287,7 +287,7 @@ std::cout << tarzan_copy << "\n";
 //       .picture: "🐒",
 //     },
 //   },
-//   .subscription_status: ::soiagen::wrap_trial_start_time(absl::FromUnixMillis(1743592409000 /* 2025-04-02T11:13:29+00:00 */)),
+//   .subscription_status: ::skirout::wrap_trial_start_time(absl::FromUnixMillis(1743592409000 /* 2025-04-02T11:13:29+00:00 */)),
 // }
 
 // ...
@@ -295,7 +295,7 @@ std::cout << tarzan_copy << "\n";
 
 ### Writing unit tests with GoogleTest
 
-Full example [here](https://github.com/gepheum/soia-cc-example/blob/main/example.test.cc).
+Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/example.test.cc).
 
 #### Struct matchers
 
@@ -323,12 +323,12 @@ EXPECT_THAT(john, (StructIs<User>{
 #### Enum matchers
 
 ```c++
-User::SubscriptionStatus john_status = soiagen::kFree;
+User::SubscriptionStatus john_status = skirout::kFree;
 
-EXPECT_THAT(john_status, testing::Eq(soiagen::kFree));
+EXPECT_THAT(john_status, testing::Eq(skirout::kFree));
 
 User::SubscriptionStatus jade_status =
-    soiagen::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
+    skirout::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
 
 EXPECT_THAT(jade_status, IsTrialStartTime());
 EXPECT_THAT(jade_status, IsTrialStartTime(testing::Gt(absl::UnixEpoch())));

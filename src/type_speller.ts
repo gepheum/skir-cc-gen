@@ -1,7 +1,7 @@
-import type { Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
+import type { Module, RecordKey, RecordLocation, ResolvedType } from "skir-internal";
 
 /**
- * Transforms a type found in a `.soia` file into a C++ type.
+ * Transforms a type found in a `.skir` file into a C++ type.
  */
 export class TypeSpeller {
   constructor(
@@ -25,13 +25,13 @@ export class TypeSpeller {
           // The record is located in an imported module.
           const path = record.modulePath;
           if (record.modulePath !== this.origin.path) {
-            this.includes.add('"soiagen/' + path.replace(/\.soia$/, '.h"'));
+            this.includes.add('"skirout/' + path.replace(/\.skir$/, '.h"'));
           }
           const namespace = modulePathToNamespace(path);
           qualifiedName = `::${namespace}::${qualifiedName}`;
         }
         if (opts.fieldIsRecursive) {
-          return `::soia::rec<${qualifiedName}>`;
+          return `::skir::rec<${qualifiedName}>`;
         }
         return qualifiedName;
       }
@@ -45,12 +45,12 @@ export class TypeSpeller {
             const fieldName = pathItem.name.text;
             const isLastField = pathItem === path.at(-1);
             if (isLastField && key.keyType.kind === "record") {
-              keyType = `::soia::get_kind<${keyType}>`;
+              keyType = `::skir::get_kind<${keyType}>`;
             } else {
-              keyType = `::soiagen::get_${fieldName}<${keyType}>`;
+              keyType = `::skirout::get_${fieldName}<${keyType}>`;
             }
           }
-          return `::soia::keyed_items<${itemType}, ${keyType}>`;
+          return `::skir::keyed_items<${itemType}, ${keyType}>`;
         } else {
           return `::std::vector<${itemType}>`;
         }
@@ -79,7 +79,7 @@ export class TypeSpeller {
           case "string":
             return "::std::string";
           case "bytes":
-            return "::soia::ByteString";
+            return "::skir::ByteString";
         }
       }
     }
@@ -87,7 +87,7 @@ export class TypeSpeller {
 }
 
 export function modulePathToNamespace(path: string): string {
-  return "soiagen_" + path.replace(/\.soia$/, "").replace("/", "_");
+  return "skirout_" + path.replace(/\.skir$/, "").replace("/", "_");
 }
 
 export function getClassName(record: RecordLocation): string {

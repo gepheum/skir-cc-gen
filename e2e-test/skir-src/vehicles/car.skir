@@ -1,4 +1,4 @@
-import User from "../user.soia";
+import User from "../user.skir";
 
 struct Car {
   model: string;

@@ -1,7 +1,7 @@
-// Soia client library
+// Skir client library
 
-#ifndef SOIA_SOIA_H_VERSION
-#define SOIA_SOIA_H_VERSION 20251107
+#ifndef SKIR_SKIR_H_VERSION
+#define SKIR_SKIR_H_VERSION 20251220
 
 #include <algorithm>
 #include <cmath>
@@ -31,22 +31,23 @@
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 
-namespace soia_internal {
+namespace skir_internal {
 class ByteSink;
 struct RecAdapter;
 
 template <typename T, typename Getter>
 using getter_value_type = std::remove_const_t<
     std::remove_reference_t<decltype(Getter()(std::declval<T&>()))>>;
-}  // namespace soia_internal
+}  // namespace skir_internal
 
-namespace soia {
+namespace skir {
 
-// What to do with unrecognized fields when parsing a soia value from JSON or
+// What to do with unrecognized fields when parsing a skir value from JSON or
 // binary data.
 // Pick kKeep if the input JSON or binary string comes from a trusted program
 // which might have been built from more recent source files.
@@ -58,7 +59,7 @@ enum class UnrecognizedFieldsPolicy { kDrop, kKeep };
 
 // A string of bytes.
 //
-// Soia uses std::string exclusively for UTF-8 string, and  ByteString for
+// Skir uses std::string exclusively for UTF-8 string, and  ByteString for
 // binary data.
 class ByteString {
  public:
@@ -138,7 +139,7 @@ class ByteString {
     return result;
   }
 
-  friend class ::soia_internal::ByteSink;
+  friend class ::skir_internal::ByteSink;
 };
 
 template <typename H>
@@ -148,17 +149,17 @@ H AbslHashValue(H h, const ByteString& byte_string) {
 
 template <typename T, typename GetKey>
 using key_type =
-    std::conditional_t<std::is_same<soia_internal::getter_value_type<T, GetKey>,
+    std::conditional_t<std::is_same<skir_internal::getter_value_type<T, GetKey>,
                                     std::string>::value,
                        absl::string_view,
-                       soia_internal::getter_value_type<T, GetKey>>;
+                       skir_internal::getter_value_type<T, GetKey>>;
 
 // A vector-like container that stores items of type T and allows for fast
 // lookups by key using a hash table. The key is extracted from each item
 // using a user-provided GetKey function.
 //
 // Example:
-//   keyed_items<User, soiagen::get_id> users;
+//   keyed_items<User, skirout::get_id> users;
 //   users.push_back({.id = 1, .name = "Alice"});
 //   users.push_back({.id = 2, .name = "Bob"});
 //   const User* user = users.find_or_null(1);  // returns pointer to Alice
@@ -175,7 +176,7 @@ using key_type =
 // the items in the vector are rehashed, which runs in O(N).
 //
 // Example:
-//   keyed_items<User, soiagen::get_id> users;
+//   keyed_items<User, skirout::get_id> users;
 //   users.push_back({.id = 1, .name = "Alice"});
 //   users.push_back({.id = 2, .name = "Bob"});
 //
@@ -613,7 +614,7 @@ H AbslHashValue(H h, const keyed_items<T, GetKey>& keyed_items) {
 //     and returns a mutable reference to it. The rec is no longer in a
 //     zero-initialized state.
 //
-// The soia C++ code generator can chose to make the field of a generated struct
+// The skir C++ code generator can chose to make the field of a generated struct
 // type a rec<T> instead of a T if T is a recursive type.
 //
 // For example:
@@ -686,7 +687,7 @@ class rec {
  private:
   std::unique_ptr<T> value_;
 
-  friend struct ::soia_internal::RecAdapter;
+  friend struct ::skir_internal::RecAdapter;
 };
 
 template <typename T>
@@ -728,9 +729,9 @@ class must_init<std::vector<T>> {
 };
 
 template <typename T, typename GetKey>
-class must_init<soia::keyed_items<T, GetKey>> {
+class must_init<skir::keyed_items<T, GetKey>> {
  public:
-  using value_type = soia::keyed_items<T, GetKey>;
+  using value_type = skir::keyed_items<T, GetKey>;
   must_init(value_type value) { value_ = std::move(value); }
   must_init(std::initializer_list<T> l) : must_init(value_type(std::move(l))) {}
   value_type operator*() && { return std::move(value_); }
@@ -779,11 +780,11 @@ struct RecordType;
 using Type = std::variant<PrimitiveType, OptionalType, ArrayType, RecordType>;
 
 struct OptionalType {
-  soia::rec<Type> other;
+  skir::rec<Type> other;
 };
 
 struct ArrayType {
-  soia::rec<Type> item;
+  skir::rec<Type> item;
   std::string key_extractor;
 };
 
@@ -791,38 +792,52 @@ struct RecordType {
   std::string record_id;
 };
 
-enum class RecordKind {
-  kStruct,
-  kEnum,
-};
-
 struct Field {
   std::string name;
   int number{};
-  // Can only be nullopt if the record is an enum and the field is a constant
-  // field.
-  absl::optional<Type> type;
+  Type type;
+  std::string doc;
+};
+
+struct Variant {
+  std::string name;
+  int number{};
+  // Present if this variant wraps a value.
+  std::optional<Type> type;
+  std::string doc;
 };
 
 struct get_name {
-  const std::string& operator()(const Field& field) { return field.name; }
+  template <typename FieldOrVariant>
+  const std::string& operator()(const FieldOrVariant& f) { return f.name; }
 };
 
-// Definition of a soia struct or enum.
-struct Record {
-  RecordKind kind{};
+// Definition of a skir struct.
+struct Struct {
   std::string id;
+  std::string doc;
   keyed_items<Field, get_name> fields;
   std::vector<int> removed_numbers;
 };
 
+// Definition of a skir struct.
+struct Enum {
+  std::string id;
+  std::string doc;
+  keyed_items<Variant, get_name> variants;
+  std::vector<int> removed_numbers;
+};
+
+using Record = std::variant<Struct, Enum>;
+
 struct get_id {
   const std::string& operator()(const Record& record) const {
-    return record.id;
+    return std::visit(
+        [](const auto& r) -> const std::string& { return r.id; }, record);
   }
 };
 
-// Describes a soia type. Contains the definition of all the structs and enums
+// Describes a skir type. Contains the definition of all the structs and enums
 // referenced from the type.
 //
 // A TypeDescriptor can be serialized to JSON with AsJson(), and deserialized
@@ -838,23 +853,23 @@ struct TypeDescriptor {
 
 using RecordRegistry = keyed_items<Record, get_id>;
 
-// For static reflection: represents a field of a soia struct.
-// See `soia::reflection::ForEachField`
+// For static reflection: represents a field of a skir struct.
+// See `skir::reflection::ForEachField`
 template <typename Getter, typename Value>
 struct struct_field {
   using getter_type = Getter;
   using value_type = Value;
 };
 
-// For static reflection: represents a constant field of a soia enum.
-// See `soia::reflection::ForEachField`
+// For static reflection: represents a constant field of a skir enum.
+// See `skir::reflection::ForEachField`
 template <typename Const>
 struct enum_const_field {
   using const_type = Const;
 };
 
-// For static reflection: represents a wrapper field of a soia enum.
-// See `soia::reflection::ForEachField`
+// For static reflection: represents a wrapper field of a skir enum.
+// See `skir::reflection::ForEachField`
 template <typename Option, typename Value>
 struct enum_wrapper_field {
   using option_type = Option;
@@ -958,7 +973,7 @@ class HttpHeaders {
   absl::flat_hash_map<std::string, std::vector<std::string>> map_;
 };
 
-// Sends RPCs to a soia service.
+// Sends RPCs to a skir service.
 class Client {
  public:
   virtual ~Client() = default;
@@ -969,29 +984,29 @@ class Client {
 };
 
 }  // namespace service
-}  // namespace soia
+}  // namespace skir
 
-namespace soia_internal {
+namespace skir_internal {
 
 template <typename T>
 T& get(T& input) {
   return input;
 }
 template <typename T>
-T& get(soia::rec<T>& input) {
+T& get(skir::rec<T>& input) {
   return *input;
 }
 template <typename T>
-const T& get(const soia::rec<T>& input) {
+const T& get(const skir::rec<T>& input) {
   return *input;
 }
 
 template <typename Struct, typename Getter>
 using struct_field =
-    soia::reflection::struct_field<Getter, getter_value_type<Struct, Getter>>;
+    skir::reflection::struct_field<Getter, getter_value_type<Struct, Getter>>;
 
 template <typename Enum, typename Option>
-using enum_wrapper_field = soia::reflection::enum_wrapper_field<
+using enum_wrapper_field = skir::reflection::enum_wrapper_field<
     Option, std::remove_const_t<std::remove_pointer_t<
                 decltype(Option::get_or_null(std::declval<Enum&>()))>>>;
 
@@ -1101,8 +1116,8 @@ class ByteSink {
 
   void PopN(size_t n) { pos_ -= n; }
 
-  ::soia::ByteString ToByteString() && {
-    ::soia::ByteString byte_string(data_, length());
+  ::skir::ByteString ToByteString() && {
+    ::skir::ByteString byte_string(data_, length());
     // To prevent the ByteString destructor from deleting the array.
     data_ = nullptr;
     return byte_string;
@@ -1190,9 +1205,9 @@ class JsonTokenizer {
  public:
   JsonTokenizer(const char* absl_nonnull json_code_begin,
                 const char* absl_nonnull json_code_end,
-                soia::UnrecognizedFieldsPolicy unrecognized_fields)
+                skir::UnrecognizedFieldsPolicy unrecognized_fields)
       : keep_unrecognized_fields_(unrecognized_fields ==
-                                  soia::UnrecognizedFieldsPolicy::kKeep) {
+                                  skir::UnrecognizedFieldsPolicy::kKeep) {
     state_.begin = json_code_begin;
     state_.end = json_code_end;
     state_.pos = json_code_begin;
@@ -1285,7 +1300,7 @@ void AppendArrayPrefix(size_t length, ByteSink& out);
 void ParseArrayPrefix(ByteSource& source, uint32_t& length);
 
 template <typename T>
-struct soia_type {};
+struct skir_type {};
 
 struct BoolAdapter {
   static bool IsDefault(bool input) { return !input; }
@@ -1308,12 +1323,12 @@ struct BoolAdapter {
 
   static void Parse(ByteSource& source, bool& out);
 
-  static soia::reflection::Type GetType(soia_type<bool>) {
-    return soia::reflection::PrimitiveType::kBool;
+  static skir::reflection::Type GetType(skir_type<bool>) {
+    return skir::reflection::PrimitiveType::kBool;
   }
 
-  static void RegisterRecords(soia_type<bool>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<bool>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1341,12 +1356,12 @@ struct Int32Adapter {
   static void Parse(JsonTokenizer& tokenizer, int32_t& out);
   static void Parse(ByteSource& source, int32_t& out);
 
-  static soia::reflection::Type GetType(soia_type<int32_t>) {
-    return soia::reflection::PrimitiveType::kInt32;
+  static skir::reflection::Type GetType(skir_type<int32_t>) {
+    return skir::reflection::PrimitiveType::kInt32;
   }
 
-  static void RegisterRecords(soia_type<int32_t>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<int32_t>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1360,8 +1375,8 @@ struct Int64Adapter {
 
   template <typename Out>
   static void Append(int64_t input, Out& out) {
-    if (soia_internal::kMinSafeJavascriptInt <= input &&
-        input <= soia_internal::kMaxSafeJavascriptInt) {
+    if (skir_internal::kMinSafeJavascriptInt <= input &&
+        input <= skir_internal::kMaxSafeJavascriptInt) {
       absl::StrAppend(&out.out, input);
     } else {
       out.out += '"';
@@ -1378,12 +1393,12 @@ struct Int64Adapter {
   static void Parse(JsonTokenizer& tokenizer, int64_t& out);
   static void Parse(ByteSource& source, int64_t& out);
 
-  static soia::reflection::Type GetType(soia_type<int64_t>) {
-    return soia::reflection::PrimitiveType::kInt64;
+  static skir::reflection::Type GetType(skir_type<int64_t>) {
+    return skir::reflection::PrimitiveType::kInt64;
   }
 
-  static void RegisterRecords(soia_type<int64_t>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<int64_t>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1394,7 +1409,7 @@ struct Uint64Adapter {
 
   template <typename Out>
   static void Append(uint64_t input, Out& out) {
-    if (input <= soia_internal::kMaxSafeJavascriptInt) {
+    if (input <= skir_internal::kMaxSafeJavascriptInt) {
       absl::StrAppend(&out.out, input);
     } else {
       out.out += '"';
@@ -1411,12 +1426,12 @@ struct Uint64Adapter {
   static void Parse(JsonTokenizer& tokenizer, uint64_t& out);
   static void Parse(ByteSource& source, uint64_t& out);
 
-  static soia::reflection::Type GetType(soia_type<uint64_t>) {
-    return soia::reflection::PrimitiveType::kUint64;
+  static skir::reflection::Type GetType(skir_type<uint64_t>) {
+    return skir::reflection::PrimitiveType::kUint64;
   }
 
-  static void RegisterRecords(soia_type<uint64_t>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<uint64_t>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1463,12 +1478,12 @@ struct Float32Adapter {
   static void Parse(JsonTokenizer& tokenizer, float& out);
   static void Parse(ByteSource& source, float& out);
 
-  static soia::reflection::Type GetType(soia_type<float>) {
-    return soia::reflection::PrimitiveType::kFloat32;
+  static skir::reflection::Type GetType(skir_type<float>) {
+    return skir::reflection::PrimitiveType::kFloat32;
   }
 
-  static void RegisterRecords(soia_type<float>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<float>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1500,12 +1515,12 @@ struct Float64Adapter {
   static void Parse(JsonTokenizer& tokenizer, double& out);
   static void Parse(ByteSource& source, double& out);
 
-  static soia::reflection::Type GetType(soia_type<double>) {
-    return soia::reflection::PrimitiveType::kFloat64;
+  static skir::reflection::Type GetType(skir_type<double>) {
+    return skir::reflection::PrimitiveType::kFloat64;
   }
 
-  static void RegisterRecords(soia_type<double>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<double>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1521,12 +1536,12 @@ struct TimestampAdapter {
   static void Parse(JsonTokenizer& tokenizer, absl::Time& out);
   static void Parse(ByteSource& source, absl::Time& out);
 
-  static soia::reflection::Type GetType(soia_type<absl::Time>) {
-    return soia::reflection::PrimitiveType::kTimestamp;
+  static skir::reflection::Type GetType(skir_type<absl::Time>) {
+    return skir::reflection::PrimitiveType::kTimestamp;
   }
 
-  static void RegisterRecords(soia_type<absl::Time>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<absl::Time>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
@@ -1546,153 +1561,147 @@ struct StringAdapter {
   static void Parse(JsonTokenizer& tokenizer, std::string& out);
   static void Parse(ByteSource& source, std::string& out);
 
-  static soia::reflection::Type GetType(soia_type<std::string>) {
-    return soia::reflection::PrimitiveType::kString;
+  static skir::reflection::Type GetType(skir_type<std::string>) {
+    return skir::reflection::PrimitiveType::kString;
   }
 
-  static void RegisterRecords(soia_type<std::string>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<std::string>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
 };
 
 struct BytesAdapter {
-  static bool IsDefault(const soia::ByteString& input) { return input.empty(); }
+  static bool IsDefault(const skir::ByteString& input) { return input.empty(); }
 
-  static void Append(const soia::ByteString&, DenseJson& out);
-  static void Append(const soia::ByteString&, ReadableJson& out);
-  static void Append(const soia::ByteString& input, DebugString& out);
-  static void Append(const soia::ByteString& input, ByteSink& out);
-  static void Parse(JsonTokenizer& tokenizer, soia::ByteString& out);
-  static void Parse(ByteSource& source, soia::ByteString& out);
+  static void Append(const skir::ByteString&, DenseJson& out);
+  static void Append(const skir::ByteString&, ReadableJson& out);
+  static void Append(const skir::ByteString& input, DebugString& out);
+  static void Append(const skir::ByteString& input, ByteSink& out);
+  static void Parse(JsonTokenizer& tokenizer, skir::ByteString& out);
+  static void Parse(ByteSource& source, skir::ByteString& out);
 
-  static soia::reflection::Type GetType(soia_type<soia::ByteString>) {
-    return soia::reflection::PrimitiveType::kBytes;
+  static skir::reflection::Type GetType(skir_type<skir::ByteString>) {
+    return skir::reflection::PrimitiveType::kBytes;
   }
 
-  static void RegisterRecords(soia_type<soia::ByteString>,
-                              soia::reflection::RecordRegistry&) {}
+  static void RegisterRecords(skir_type<skir::ByteString>,
+                              skir::reflection::RecordRegistry&) {}
 
   static constexpr bool IsStruct() { return false; }
   static constexpr bool IsEnum() { return false; }
 };
 
 template <typename T>
-void GetAdapter(soia_type<T>) {
-  static_assert(false, "not a soia type");
+void GetAdapter(skir_type<T>) {
+  static_assert(false, "not a skir type");
 }
 
-inline BoolAdapter GetAdapter(soia_type<bool>);
-inline Int32Adapter GetAdapter(soia_type<int32_t>);
-inline Int64Adapter GetAdapter(soia_type<int64_t>);
-inline Uint64Adapter GetAdapter(soia_type<uint64_t>);
-inline Float32Adapter GetAdapter(soia_type<float>);
-inline Float64Adapter GetAdapter(soia_type<double>);
-inline TimestampAdapter GetAdapter(soia_type<absl::Time>);
-inline StringAdapter GetAdapter(soia_type<std::string>);
-inline BytesAdapter GetAdapter(soia_type<soia::ByteString>);
+inline BoolAdapter GetAdapter(skir_type<bool>);
+inline Int32Adapter GetAdapter(skir_type<int32_t>);
+inline Int64Adapter GetAdapter(skir_type<int64_t>);
+inline Uint64Adapter GetAdapter(skir_type<uint64_t>);
+inline Float32Adapter GetAdapter(skir_type<float>);
+inline Float64Adapter GetAdapter(skir_type<double>);
+inline TimestampAdapter GetAdapter(skir_type<absl::Time>);
+inline StringAdapter GetAdapter(skir_type<std::string>);
+inline BytesAdapter GetAdapter(skir_type<skir::ByteString>);
 
 // =============================================================================
 // BEGIN serialization of type descriptors
 // =============================================================================
 
 struct ReflectionTypeAdapter {
-  static bool IsDefault(const soia::reflection::Type& input) { return false; }
-  static void Append(const soia::reflection::Type& input, ReadableJson& out);
-  static void Parse(JsonTokenizer& tokenizer, soia::reflection::Type& out);
+  static bool IsDefault(const skir::reflection::Type& input) { return false; }
+  static void Append(const skir::reflection::Type& input, ReadableJson& out);
+  static void Parse(JsonTokenizer& tokenizer, skir::reflection::Type& out);
 };
 
 struct ReflectionPrimitiveTypeAdapter {
-  static bool IsDefault(soia::reflection::PrimitiveType input) { return false; }
-  static void Append(soia::reflection::PrimitiveType input, ReadableJson& out);
+  static bool IsDefault(skir::reflection::PrimitiveType input) { return false; }
+  static void Append(skir::reflection::PrimitiveType input, ReadableJson& out);
   static void Parse(JsonTokenizer& tokenizer,
-                    soia::reflection::PrimitiveType& out);
+                    skir::reflection::PrimitiveType& out);
 };
 
 struct ReflectionOptionalTypeAdapter {
-  static bool IsDefault(const soia::reflection::OptionalType& input) {
+  static bool IsDefault(const skir::reflection::OptionalType& input) {
     return false;
   }
-  static void Append(const soia::reflection::OptionalType& input,
+  static void Append(const skir::reflection::OptionalType& input,
                      ReadableJson& out);
   static void Parse(JsonTokenizer& tokenizer,
-                    soia::reflection::OptionalType& out);
+                    skir::reflection::OptionalType& out);
 };
 
 struct ReflectionArrayTypeAdapter {
-  static bool IsDefault(const soia::reflection::ArrayType& input) {
+  static bool IsDefault(const skir::reflection::ArrayType& input) {
     return false;
   }
-  static void Append(const soia::reflection::ArrayType& input,
+  static void Append(const skir::reflection::ArrayType& input,
                      ReadableJson& out);
-  static void Parse(JsonTokenizer& tokenizer, soia::reflection::ArrayType& out);
+  static void Parse(JsonTokenizer& tokenizer, skir::reflection::ArrayType& out);
 };
 
 struct ReflectionRecordTypeAdapter {
-  static bool IsDefault(const soia::reflection::RecordType& input) {
+  static bool IsDefault(const skir::reflection::RecordType& input) {
     return false;
   }
-  static void Append(const soia::reflection::RecordType& input,
+  static void Append(const skir::reflection::RecordType& input,
                      ReadableJson& out);
   static void Parse(JsonTokenizer& tokenizer,
-                    soia::reflection::RecordType& out);
+                    skir::reflection::RecordType& out);
 };
 
-struct ReflectionRecordKindAdapter {
-  static bool IsDefault(const soia::reflection::RecordKind& input) {
-    return false;
-  }
-  static void Append(const soia::reflection::RecordKind& input,
-                     ReadableJson& out);
-  static void Parse(JsonTokenizer& tokenizer,
-                    soia::reflection::RecordKind& out);
-};
+struct ReflectionFieldOrVariantAdapter {
+  template <typename FieldOrVariant>
+  static bool IsDefault(const FieldOrVariant& input) { return false; }
 
-struct ReflectionFieldAdapter {
-  static bool IsDefault(const soia::reflection::Field& input) { return false; }
-  static void Append(const soia::reflection::Field& input, ReadableJson& out);
-  static void Parse(JsonTokenizer& tokenizer, soia::reflection::Field& out);
+  static void Append(const skir::reflection::Field& input, ReadableJson& out);
+  static void Append(const skir::reflection::Variant& input, ReadableJson& out);
+
+  static void Parse(JsonTokenizer& tokenizer, skir::reflection::Field& out);
+  static void Parse(JsonTokenizer& tokenizer, skir::reflection::Variant& out);
 };
 
 struct ReflectionRecordAdapter {
-  static bool IsDefault(const soia::reflection::Record& input) { return false; }
-  static void Append(const soia::reflection::Record& input, ReadableJson& out);
-  static void Parse(JsonTokenizer& tokenizer, soia::reflection::Record& out);
+  static bool IsDefault(const skir::reflection::Record& input) { return false; }
+  static void Append(const skir::reflection::Record& input, ReadableJson& out);
+  static void Parse(JsonTokenizer& tokenizer, skir::reflection::Record& out);
 };
 
 struct ReflectionTypeDescriptorAdapter {
-  static bool IsDefault(const soia::reflection::TypeDescriptor& input) {
+  static bool IsDefault(const skir::reflection::TypeDescriptor& input) {
     return false;
   }
-  static void Append(const soia::reflection::TypeDescriptor& input,
+  static void Append(const skir::reflection::TypeDescriptor& input,
                      ReadableJson& out);
   static void Parse(JsonTokenizer& tokenizer,
-                    soia::reflection::TypeDescriptor& out);
+                    skir::reflection::TypeDescriptor& out);
 };
 
-inline ReflectionTypeAdapter GetAdapter(soia_type<soia::reflection::Type>);
+inline ReflectionTypeAdapter GetAdapter(skir_type<skir::reflection::Type>);
 inline ReflectionPrimitiveTypeAdapter GetAdapter(
-    soia_type<soia::reflection::PrimitiveType>);
+    skir_type<skir::reflection::PrimitiveType>);
 inline ReflectionOptionalTypeAdapter GetAdapter(
-    soia_type<soia::reflection::OptionalType>);
+    skir_type<skir::reflection::OptionalType>);
 inline ReflectionArrayTypeAdapter GetAdapter(
-    soia_type<soia::reflection::ArrayType>);
-inline ReflectionRecordKindAdapter GetAdapter(
-    soia_type<soia::reflection::RecordKind>);
+    skir_type<skir::reflection::ArrayType>);
 inline ReflectionRecordTypeAdapter GetAdapter(
-    soia_type<soia::reflection::RecordType>);
-inline ReflectionFieldAdapter GetAdapter(soia_type<soia::reflection::Field>);
-inline ReflectionRecordAdapter GetAdapter(soia_type<soia::reflection::Record>);
+    skir_type<skir::reflection::RecordType>);
+inline ReflectionFieldOrVariantAdapter GetAdapter(skir_type<skir::reflection::Field>);
+inline ReflectionFieldOrVariantAdapter GetAdapter(skir_type<skir::reflection::Variant>);
+inline ReflectionRecordAdapter GetAdapter(skir_type<skir::reflection::Record>);
 inline ReflectionTypeDescriptorAdapter GetAdapter(
-    soia_type<soia::reflection::TypeDescriptor>);
+    skir_type<skir::reflection::TypeDescriptor>);
 
 // =============================================================================
 // END serialization of type descriptors
 // =============================================================================
 
 template <typename T>
-using TypeAdapter = decltype(GetAdapter(soia_type<T>()));
+using TypeAdapter = decltype(GetAdapter(skir_type<T>()));
 
 template <typename T>
 bool IsDefault(const T& input) {
@@ -1707,20 +1716,20 @@ void Parse(Source& source, T& out) {
   TypeAdapter<T>::Parse(source, out);
 }
 template <typename T>
-soia::reflection::Type GetType() {
-  return TypeAdapter<T>::GetType(soia_type<T>());
+skir::reflection::Type GetType() {
+  return TypeAdapter<T>::GetType(skir_type<T>());
 }
 
 template <typename T>
-void RegisterRecords(soia::reflection::RecordRegistry& registry) {
-  TypeAdapter<T>::RegisterRecords(soia_type<T>(), registry);
+void RegisterRecords(skir::reflection::RecordRegistry& registry) {
+  TypeAdapter<T>::RegisterRecords(skir_type<T>(), registry);
 }
 
 template <typename T>
 std::string ToDebugString(const T& input) {
   static_assert(!std::is_pointer<T>::value,
                 "Can't pass a pointer to ToDebugString");
-  soia_internal::DebugString result;
+  skir_internal::DebugString result;
   Append(input, result);
   return result.out;
 }
@@ -1780,7 +1789,7 @@ struct OptionalAdapter {
     if (tokenizer.state().token_type == JsonTokenType::kNull) {
       tokenizer.Next();
     } else {
-      soia_internal::Parse(tokenizer, out.emplace());
+      skir_internal::Parse(tokenizer, out.emplace());
     }
   }
 
@@ -1794,14 +1803,14 @@ struct OptionalAdapter {
   }
 
   template <typename T>
-  static soia::reflection::Type GetType(soia_type<absl::optional<T>>) {
-    return soia::reflection::OptionalType{soia_internal::GetType<T>()};
+  static skir::reflection::Type GetType(skir_type<absl::optional<T>>) {
+    return skir::reflection::OptionalType{skir_internal::GetType<T>()};
   }
 
   template <typename T>
-  static void RegisterRecords(soia_type<absl::optional<T>>,
-                              soia::reflection::RecordRegistry& registry) {
-    soia_internal::RegisterRecords<T>(registry);
+  static void RegisterRecords(skir_type<absl::optional<T>>,
+                              skir::reflection::RecordRegistry& registry) {
+    skir_internal::RegisterRecords<T>(registry);
   }
 
   static constexpr bool IsStruct() { return false; }
@@ -1809,7 +1818,7 @@ struct OptionalAdapter {
 };
 
 template <typename T>
-inline OptionalAdapter GetAdapter(soia_type<absl::optional<T>>);
+inline OptionalAdapter GetAdapter(skir_type<absl::optional<T>>);
 
 template <typename GetKey>
 void MakeKeyChain(std::vector<std::string>& out) {
@@ -1818,7 +1827,7 @@ void MakeKeyChain(std::vector<std::string>& out) {
   out.emplace_back(GetKey::kFieldName);
 }
 template <>
-inline void MakeKeyChain<soia::identity>(std::vector<std::string>& out) {}
+inline void MakeKeyChain<skir::identity>(std::vector<std::string>& out) {}
 
 struct ArrayAdapter {
   template <typename Input>
@@ -1920,23 +1929,23 @@ struct ArrayAdapter {
   }
 
   template <typename T>
-  static soia::reflection::Type GetType(soia_type<std::vector<T>>) {
-    return soia::reflection::ArrayType{soia_internal::GetType<T>()};
+  static skir::reflection::Type GetType(skir_type<std::vector<T>>) {
+    return skir::reflection::ArrayType{skir_internal::GetType<T>()};
   }
 
   template <typename T, typename GetKey>
-  static soia::reflection::Type GetType(
-      soia_type<soia::keyed_items<T, GetKey>>) {
+  static skir::reflection::Type GetType(
+      skir_type<skir::keyed_items<T, GetKey>>) {
     std::vector<std::string> key_chain;
     MakeKeyChain<GetKey>(key_chain);
-    return soia::reflection::ArrayType{soia_internal::GetType<T>(),
+    return skir::reflection::ArrayType{skir_internal::GetType<T>(),
                                        absl::StrJoin(key_chain, ".")};
   }
 
   template <typename T>
-  static void RegisterRecords(soia_type<T>,
-                              soia::reflection::RecordRegistry& registry) {
-    soia_internal::RegisterRecords<typename T::value_type>(registry);
+  static void RegisterRecords(skir_type<T>,
+                              skir::reflection::RecordRegistry& registry) {
+    skir_internal::RegisterRecords<typename T::value_type>(registry);
   }
 
   static constexpr bool IsStruct() { return false; }
@@ -1957,7 +1966,7 @@ struct ArrayAdapter {
   }
 
   template <typename Source, typename T, typename GetKey>
-  static void ParseAndPush(Source& source, soia::keyed_items<T, GetKey>& out) {
+  static void ParseAndPush(Source& source, skir::keyed_items<T, GetKey>& out) {
     T item{};
     TypeAdapter<T>::Parse(source, item);
     out.push_back(std::move(item));
@@ -1965,19 +1974,19 @@ struct ArrayAdapter {
 };
 
 template <typename T>
-inline ArrayAdapter GetAdapter(soia_type<std::vector<T>>);
+inline ArrayAdapter GetAdapter(skir_type<std::vector<T>>);
 
 template <typename T, typename GetKey>
-inline ArrayAdapter GetAdapter(soia_type<soia::keyed_items<T, GetKey>>);
+inline ArrayAdapter GetAdapter(skir_type<skir::keyed_items<T, GetKey>>);
 
 struct RecAdapter {
   template <typename T>
-  static bool IsDefault(const soia::rec<T>& input) {
+  static bool IsDefault(const skir::rec<T>& input) {
     return input.value_ == nullptr || TypeAdapter<T>::IsDefault(*input);
   }
 
   template <typename T>
-  static void Append(const soia::rec<T>& input, DenseJson& out) {
+  static void Append(const skir::rec<T>& input, DenseJson& out) {
     if (input.value_ == nullptr) {
       out.out += {'[', ']'};
     } else {
@@ -1986,7 +1995,7 @@ struct RecAdapter {
   }
 
   template <typename T>
-  static void Append(const soia::rec<T>& input, ReadableJson& out) {
+  static void Append(const skir::rec<T>& input, ReadableJson& out) {
     if (input.value_ == nullptr) {
       out.out += {'{', '}'};
     } else {
@@ -1995,7 +2004,7 @@ struct RecAdapter {
   }
 
   template <typename T>
-  static void Append(const soia::rec<T>& input, DebugString& out) {
+  static void Append(const skir::rec<T>& input, DebugString& out) {
     if (input.value_ == nullptr) {
       out.out += {'{', '}'};
     } else {
@@ -2004,7 +2013,7 @@ struct RecAdapter {
   }
 
   template <typename T>
-  static void Append(const soia::rec<T>& input, ByteSink& out) {
+  static void Append(const skir::rec<T>& input, ByteSink& out) {
     if (input.value_ == nullptr) {
       out.Push(246);
     } else {
@@ -2013,24 +2022,24 @@ struct RecAdapter {
   }
 
   template <typename T>
-  static void Parse(JsonTokenizer& tokenizer, soia::rec<T>& out) {
+  static void Parse(JsonTokenizer& tokenizer, skir::rec<T>& out) {
     TypeAdapter<T>::Parse(tokenizer, *out);
   }
 
   template <typename T>
-  static void Parse(ByteSource& source, soia::rec<T>& out) {
+  static void Parse(ByteSource& source, skir::rec<T>& out) {
     return TypeAdapter<T>::Parse(source, *out);
   }
 
   template <typename T>
-  static soia::reflection::Type GetType(soia_type<soia::rec<T>>) {
-    return soia_internal::GetType<T>();
+  static skir::reflection::Type GetType(skir_type<skir::rec<T>>) {
+    return skir_internal::GetType<T>();
   }
 
   template <typename T>
-  static void RegisterRecords(soia_type<soia::rec<T>>,
-                              soia::reflection::RecordRegistry& registry) {
-    soia_internal::RegisterRecords<T>(registry);
+  static void RegisterRecords(skir_type<skir::rec<T>>,
+                              skir::reflection::RecordRegistry& registry) {
+    skir_internal::RegisterRecords<T>(registry);
   }
 
   static constexpr bool IsStruct() { return false; }
@@ -2038,7 +2047,7 @@ struct RecAdapter {
 };
 
 template <typename T>
-inline RecAdapter GetAdapter(soia_type<soia::rec<T>>);
+inline RecAdapter GetAdapter(skir_type<skir::rec<T>>);
 
 class JsonObjectWriter {
  public:
@@ -2064,6 +2073,29 @@ class JsonObjectWriter {
   template <typename T>
   JsonObjectWriter& WriteEvenIfDefault(const char* absl_nonnull field_name,
                                        const T& value) {
+    struct value_writer {
+      const T& value_;
+
+      void operator()(ReadableJson& out) const {
+        TypeAdapter<T>::Append(value_, out);
+      }
+    };
+    return WriteImpl(field_name, value_writer{value});
+  }
+
+  JsonObjectWriter& Write(const char* absl_nonnull field_name, const ReadableJson& value) {
+    struct value_writer {
+      const ReadableJson& value_;
+
+      void operator()(ReadableJson& out) const {
+        out.out += absl::StrReplaceAll(value_.out, {{"\n", *out.new_line}});
+      }
+    };
+    return WriteImpl(field_name, value_writer{value});
+  }
+
+  template <typename value_writer_t>
+  JsonObjectWriter& WriteImpl(const char* absl_nonnull field_name, value_writer_t value_writer) {
     if (has_content_) {
       out_.out += ',';
       out_.out += *out_.new_line;
@@ -2075,7 +2107,7 @@ class JsonObjectWriter {
     out_.out += '"';
     out_.out += field_name;
     out_.out += "\": ";
-    TypeAdapter<T>::Append(value, out_);
+    value_writer(out_);
     return *this;
   }
 
@@ -2108,7 +2140,7 @@ class StructJsonObjectParserImpl {
         : data_member_(data_member) {}
     void Parse(JsonTokenizer& tokenizer,
                void* absl_nonnull out) const override {
-      ::soia_internal::Parse(tokenizer, static_cast<T*>(out)->*data_member_);
+      ::skir_internal::Parse(tokenizer, static_cast<T*>(out)->*data_member_);
     }
     field_value T::* absl_nonnull const data_member_;
   };
@@ -2159,7 +2191,7 @@ class EnumJsonObjectParserImpl {
     void Parse(JsonTokenizer& tokenizer,
                void* absl_nonnull out) const override {
       WrapperType wrapper;
-      ::soia_internal::Parse(tokenizer, wrapper.value);
+      ::skir_internal::Parse(tokenizer, wrapper.value);
       *static_cast<T*>(out) = std::move(wrapper);
     }
   };
@@ -2169,7 +2201,7 @@ class EnumJsonObjectParserImpl {
     void Parse(JsonTokenizer& tokenizer,
                void* absl_nonnull out) const override {
       ValueType value;
-      ::soia_internal::Parse(tokenizer, value);
+      ::skir_internal::Parse(tokenizer, value);
       *static_cast<T*>(out) = std::move(value);
     }
   };
@@ -2305,7 +2337,7 @@ void ParseUnrecognizedFields(ByteSource& source, size_t array_len,
                              std::shared_ptr<UnrecognizedFieldsData>& out);
 
 template <typename HttplibHeaders>
-void SoiaToHttplibHeaders(const soia::service::HttpHeaders& input,
+void SkirToHttplibHeaders(const skir::service::HttpHeaders& input,
                           HttplibHeaders& out) {
   for (const auto& [name, values] : input.map()) {
     for (const absl::string_view value : values) {
@@ -2315,8 +2347,8 @@ void SoiaToHttplibHeaders(const soia::service::HttpHeaders& input,
 }
 
 template <typename HttplibHeaders>
-soia::service::HttpHeaders HttplibToSoiaHeaders(const HttplibHeaders& input) {
-  soia::service::HttpHeaders result;
+skir::service::HttpHeaders HttplibToSkirHeaders(const HttplibHeaders& input) {
+  skir::service::HttpHeaders result;
   for (const auto& [name, value] : input) {
     result.Insert(name, value);
   }
@@ -2349,37 +2381,37 @@ void assert_unique_method_numbers() {
                 "Method numbers are not unique");
 }
 
-}  // namespace soia_internal
+}  // namespace skir_internal
 
-namespace soia {
+namespace skir {
 
-// Deserializes a soia value.
+// Deserializes a skir value.
 // The input string can either be:
-//   - the JSON returned by soia::ToDenseJson or soia::ToReadableJson
-//   - the bytes returned by soia::ToBytes
+//   - the JSON returned by skir::ToDenseJson or skir::ToReadableJson
+//   - the bytes returned by skir::ToBytes
 template <typename T>
 absl::StatusOr<T> Parse(absl::string_view bytes_or_json,
                         UnrecognizedFieldsPolicy unrecognized_fields =
                             UnrecognizedFieldsPolicy::kDrop) {
   T result{};
   if (bytes_or_json.length() >= 4 && bytes_or_json[0] == 's' &&
-      bytes_or_json[1] == 'o' && bytes_or_json[2] == 'i' &&
-      bytes_or_json[3] == 'a') {
+      bytes_or_json[1] == 'k' && bytes_or_json[2] == 'i' &&
+      bytes_or_json[3] == 'r') {
     bytes_or_json = bytes_or_json.substr(4);
-    soia_internal::ByteSource byte_source(bytes_or_json.data(),
+    skir_internal::ByteSource byte_source(bytes_or_json.data(),
                                           bytes_or_json.length());
     byte_source.keep_unrecognized_fields =
         unrecognized_fields == UnrecognizedFieldsPolicy::kKeep;
-    soia_internal::Parse(byte_source, result);
+    skir_internal::Parse(byte_source, result);
     if (byte_source.error || byte_source.pos < byte_source.end) {
-      return absl::UnknownError("error while decoding soia value from bytes");
+      return absl::UnknownError("error while decoding skir value from bytes");
     }
   } else {
-    soia_internal::JsonTokenizer tokenizer(
+    skir_internal::JsonTokenizer tokenizer(
         bytes_or_json.begin(), bytes_or_json.end(), unrecognized_fields);
     tokenizer.Next();
-    soia_internal::Parse(tokenizer, result);
-    if (tokenizer.state().token_type != soia_internal::JsonTokenType::kStrEnd) {
+    skir_internal::Parse(tokenizer, result);
+    if (tokenizer.state().token_type != skir_internal::JsonTokenType::kStrEnd) {
       tokenizer.mutable_state().PushUnexpectedTokenError("end");
     }
     const absl::Status status = tokenizer.state().status;
@@ -2393,7 +2425,7 @@ template <typename T>
 std::string ToDenseJson(const T& input) {
   static_assert(!std::is_pointer<T>::value,
                 "Can't pass a pointer to ToDenseJson");
-  soia_internal::DenseJson dense_json;
+  skir_internal::DenseJson dense_json;
   Append(input, dense_json);
   return std::move(dense_json).out;
 }
@@ -2407,7 +2439,7 @@ template <typename T>
 std::string ToReadableJson(const T& input) {
   static_assert(!std::is_pointer<T>::value,
                 "Can't pass a pointer to ToReadableJson");
-  soia_internal::ReadableJson readable_json;
+  skir_internal::ReadableJson readable_json;
   Append(input, readable_json);
   return std::move(readable_json).out;
 }
@@ -2420,8 +2452,8 @@ inline std::string ToReadableJson(const char* absl_nonnull input) {
 template <typename T>
 ByteString ToBytes(const T& input) {
   static_assert(!std::is_pointer<T>::value, "Can't pass a pointer to ToBytes");
-  soia_internal::ByteSink byte_sink;
-  byte_sink.Push('s', 'o', 'i', 'a');
+  skir_internal::ByteSink byte_sink;
+  byte_sink.Push('s', 'k', 'i', 'r');
   Append(input, byte_sink);
   return std::move(byte_sink).ToByteString();
 }
@@ -2430,18 +2462,18 @@ inline ByteString ToBytes(const char* absl_nonnull input) {
   return ToBytes(std::string(input));
 }
 
-// Minimum absl::Time encodable as a soia timestamp.
+// Minimum absl::Time encodable as a skir timestamp.
 // Equal to 100M days before the Unix EPOCH.
 constexpr absl::Time kMinEncodedTimestamp =
     absl::FromUnixMillis(-8640000000000000);
-// Maximum absl::Time encodable as a soia timestamp.
+// Maximum absl::Time encodable as a skir timestamp.
 // Equal to 100M days before the Unix EPOCH.
 constexpr absl::Time kMaxEncodedTimestamp =
     absl::FromUnixMillis(8640000000000000);
 
 template <typename H, typename T>
 H AbslHashValue(H h, const rec<T>& rec) {
-  if (::soia_internal::RecAdapter::IsDefault(rec)) {
+  if (::skir_internal::RecAdapter::IsDefault(rec)) {
     return H::combine(std::move(h), -6387689);
   } else {
     return H::combine(std::move(h), *rec);
@@ -2454,20 +2486,20 @@ template <typename T>
 const TypeDescriptor& GetTypeDescriptor() {
   static const TypeDescriptor* result = []() -> const TypeDescriptor* {
     RecordRegistry registry;
-    soia_internal::RegisterRecords<T>(registry);
-    return new TypeDescriptor{soia_internal::GetType<T>(), std::move(registry)};
+    skir_internal::RegisterRecords<T>(registry);
+    return new TypeDescriptor{skir_internal::GetType<T>(), std::move(registry)};
   }();
   return *result;
 }
 
 template <typename T>
 constexpr bool IsStruct() {
-  return soia_internal::TypeAdapter<T>::IsStruct();
+  return skir_internal::TypeAdapter<T>::IsStruct();
 }
 
 template <typename T>
 constexpr bool IsEnum() {
-  return soia_internal::TypeAdapter<T>::IsEnum();
+  return skir_internal::TypeAdapter<T>::IsEnum();
 }
 
 template <typename T>
@@ -2475,7 +2507,7 @@ constexpr bool IsRecord() {
   return IsStruct<T>() || IsEnum<T>();
 }
 
-// Calls f(field) for each field in the soia-generated datatype.
+// Calls f(field) for each field in the skir-generated datatype.
 // The type of the single argument passed to f is one of: struct_field,
 // enum_const_field, enum_wrapper_field.
 template <typename Record, typename F>
@@ -2485,17 +2517,17 @@ void ForEachField(F&& f) {
       [&f](auto&&... x) {
         (static_cast<void>(f(std::forward<decltype(x)>(x))), ...);
       },
-      typename soia_internal::TypeAdapter<Record>::fields_tuple());
+      typename skir_internal::TypeAdapter<Record>::fields_tuple());
 }
 
 }  // namespace reflection
-}  // namespace soia
+}  // namespace skir
 
-namespace soia_internal {
+namespace skir_internal {
 
 struct RequestBody {
   std::string method_name;
-  absl::optional<int> method_number;
+  absl::optional<int64_t> method_number;
   bool readable = true;
   absl::string_view request_data;
 
@@ -2504,9 +2536,10 @@ struct RequestBody {
 
 struct MethodDescriptor {
   absl::string_view name;
-  int number = 0;
-  std::string request_descriptor_json;
-  std::string response_descriptor_json;
+  int64_t number = 0;
+  ReadableJson request_descriptor_json;
+  ReadableJson response_descriptor_json;
+  std::string doc;
 };
 
 template <typename Method>
@@ -2514,16 +2547,32 @@ MethodDescriptor MakeMethodDescriptor(Method method) {
   MethodDescriptor result;
   result.name = Method::kMethodName;
   result.number = Method::kNumber;
-  result.request_descriptor_json =
-      soia::reflection::GetTypeDescriptor<typename Method::request_type>()
+  result.request_descriptor_json.out =
+      skir::reflection::GetTypeDescriptor<typename Method::request_type>()
           .AsJson();
-  result.response_descriptor_json =
-      soia::reflection::GetTypeDescriptor<typename Method::response_type>()
+  result.response_descriptor_json.out =
+      skir::reflection::GetTypeDescriptor<typename Method::response_type>()
           .AsJson();
+  result.doc = Method::kDoc;
   return result;
 }
 
-std::string MethodListToJson(const std::vector<MethodDescriptor>&);
+struct MethodList {
+  std::vector<MethodDescriptor> methods;
+};
+
+struct MethodDescriptorAdapter {
+  static bool IsDefault(const MethodDescriptor& input) { return false; }
+  static void Append(const MethodDescriptor& input, ReadableJson& out);
+};
+
+struct MethodListAdapter {
+  static bool IsDefault(const MethodList& input) { return false; }
+  static void Append(const MethodList& input, ReadableJson& out);
+};
+
+inline MethodDescriptorAdapter GetAdapter(skir_type<MethodDescriptor>);
+inline MethodListAdapter GetAdapter(skir_type<MethodList>);
 
 constexpr absl::string_view kRestudioHtml = R"html(<!DOCTYPE html>
 
@@ -2544,7 +2593,7 @@ class HandleRequestOp {
  public:
   HandleRequestOp(ServiceImpl* absl_nonnull service_impl,
                   absl::string_view request_body,
-                  soia::UnrecognizedFieldsPolicy unrecognized_fields,
+                  skir::UnrecognizedFieldsPolicy unrecognized_fields,
                   const RequestMeta* absl_nonnull request_meta,
                   ResponseMeta* absl_nonnull response_meta)
       : service_impl_(*service_impl),
@@ -2553,27 +2602,29 @@ class HandleRequestOp {
         request_meta_(*request_meta),
         response_meta_(*response_meta) {}
 
-  soia::service::RawResponse Run() {
+  skir::service::RawResponse Run() {
     if (request_body_ == "" || request_body_ == "list") {
-      std::vector<MethodDescriptor> method_descriptors;
+      MethodList method_list;
       std::apply(
           [&](auto... method) {
-            (method_descriptors.push_back(MakeMethodDescriptor(method)), ...);
+            (method_list.methods.push_back(MakeMethodDescriptor(method)), ...);
           },
           typename ServiceImpl::methods());
+      ReadableJson json;
+      MethodListAdapter::Append(method_list, json);
       return {
-          MethodListToJson(method_descriptors),
-          soia::service::ResponseType::kOkJson,
+          json.out,
+          skir::service::ResponseType::kOkJson,
       };
     } else if (request_body_ == "debug" || request_body_ == "restudio") {
-      return {std::string(kRestudioHtml), soia::service::ResponseType::kOkHtml};
+      return {std::string(kRestudioHtml), skir::service::ResponseType::kOkHtml};
     }
 
     if (const absl::Status status = request_body_parsed_.Parse(request_body_);
         !status.ok()) {
       return {
           absl::StrCat("bad request: ", status.message()),
-          soia::service::ResponseType::kBadRequest,
+          skir::service::ResponseType::kBadRequest,
       };
     }
 
@@ -2589,19 +2640,19 @@ class HandleRequestOp {
         absl::StrCat(
             "bad request: method not found: ", request_body_parsed_.method_name,
             "; number: ", request_body_parsed_.method_number.value_or(-1)),
-        soia::service::ResponseType::kBadRequest};
+        skir::service::ResponseType::kBadRequest};
   }
 
  private:
   ServiceImpl& service_impl_;
   const absl::string_view request_body_;
-  const soia::UnrecognizedFieldsPolicy unrecognized_fields_;
+  const skir::UnrecognizedFieldsPolicy unrecognized_fields_;
   const RequestMeta& request_meta_;
   ResponseMeta& response_meta_;
 
   RequestBody request_body_parsed_;
 
-  absl::optional<soia::service::RawResponse> raw_response_;
+  absl::optional<skir::service::RawResponse> raw_response_;
 
   template <typename Method>
   void MaybeInvokeMethod(Method method) {
@@ -2620,12 +2671,12 @@ class HandleRequestOp {
       return;
     }
     raw_response_.emplace();
-    absl::StatusOr<RequestType> request = soia::Parse<RequestType>(
+    absl::StatusOr<RequestType> request = skir::Parse<RequestType>(
         request_body_parsed_.request_data, unrecognized_fields_);
     if (!request.ok()) {
       raw_response_->data =
           absl::StrCat("bad request: ", request.status().message());
-      raw_response_->type = soia::service::ResponseType::kBadRequest;
+      raw_response_->type = skir::service::ResponseType::kBadRequest;
       return;
     }
     absl::StatusOr<ResponseType> output = service_impl_(
@@ -2633,37 +2684,37 @@ class HandleRequestOp {
     if (!output.ok()) {
       raw_response_->data =
           absl::StrCat("server error: ", output.status().message());
-      raw_response_->type = soia::service::ResponseType::kServerError;
+      raw_response_->type = skir::service::ResponseType::kServerError;
       return;
     }
     if (request_body_parsed_.readable) {
-      raw_response_->data = soia::ToReadableJson(*output);
-      raw_response_->type = soia::service::ResponseType::kOkJson;
+      raw_response_->data = skir::ToReadableJson(*output);
+      raw_response_->type = skir::service::ResponseType::kOkJson;
     } else {
-      raw_response_->data = soia::ToDenseJson(*output);
-      raw_response_->type = soia::service::ResponseType::kOkJson;
+      raw_response_->data = skir::ToDenseJson(*output);
+      raw_response_->type = skir::service::ResponseType::kOkJson;
     }
   }
 };
 
 template <typename HttplibClientPtr>
-class HttplibClient : public soia::service::Client {
+class HttplibClient : public skir::service::Client {
  public:
   HttplibClient(HttplibClientPtr client, std::string query_path)
       : client_(std::move(ABSL_DIE_IF_NULL(client))), query_path_(query_path) {}
 
   absl::StatusOr<std::string> operator()(
       absl::string_view request_data,
-      const soia::service::HttpHeaders& request_headers,
-      soia::service::HttpHeaders& response_headers) const {
+      const skir::service::HttpHeaders& request_headers,
+      skir::service::HttpHeaders& response_headers) const {
     auto headers =
         decltype(std::declval<HttplibClientPtr>()->Get("")->headers)();
-    SoiaToHttplibHeaders(request_headers, headers);
+    SkirToHttplibHeaders(request_headers, headers);
     auto result =
         client_->Post(query_path_, headers, request_data.data(),
                       request_data.length(), "text/plain; charset=utf-8");
     if (result) {
-      response_headers = HttplibToSoiaHeaders(result->headers);
+      response_headers = HttplibToSkirHeaders(result->headers);
       const int status_code = result->status;
       if (200 <= status_code && status_code <= 299) {
         // OK status.
@@ -2693,9 +2744,9 @@ class HttplibClient : public soia::service::Client {
   const std::string query_path_;
 };
 
-}  // namespace soia_internal
+}  // namespace skir_internal
 
-namespace soia {
+namespace skir {
 namespace service {
 
 // On the server side, parses the content of a user request and invokes the
@@ -2716,20 +2767,20 @@ namespace service {
 //   class MyServiceImpl {
 //    public:
 //     using methods = std::tuple<
-//          soiagen_methods::ListUsers,
-//          soiagen_methods::GetUser>;
+//          skirout_methods::ListUsers,
+//          skirout_methods::GetUser>;
 //
-//     absl::StatusOr<soiagen_methods::ListUsersResponse> operator()(
-//         soiagen_methods::ListUsers,
-//         soiagen_methods::ListUsersRequest request,
+//     absl::StatusOr<skirout_methods::ListUsersResponse> operator()(
+//         skirout_methods::ListUsers,
+//         skirout_methods::ListUsersRequest request,
 //         const HttpHeaders& request_headers,
 //         HttpHeaders& response_headers) const {
 //       ...
 //     }
 //
-//     absl::StatusOr<soiagen_methods::GetUserResponse> operator()(
-//         soiagen_methods::GetUser,
-//         soiagen_methods::GetUserRequest request,
+//     absl::StatusOr<skirout_methods::GetUserResponse> operator()(
+//         skirout_methods::GetUser,
+//         skirout_methods::GetUserRequest request,
 //         const HttpHeaders& request_headers,
 //         HttpHeaders& response_headers) const {
 //       ...
@@ -2739,7 +2790,7 @@ namespace service {
 // If you are using cpp-httplib (https://github.com/yhirose/cpp-httplib) as
 // your server library, you don't need to call HandleRequest, you can simply
 // call InstallServiceOnHttplibServer. If you are using another server library,
-// call HandleRequest in the logic for installing a soia service on your
+// call HandleRequest in the logic for installing a skir service on your
 // server.
 //
 // If the request is a GET request, pass in the decoded query string as the
@@ -2755,8 +2806,8 @@ RawResponse HandleRequest(ServiceImpl& service_impl,
                           HttpHeaders& response_headers,
                           UnrecognizedFieldsPolicy unrecognized_fields =
                               UnrecognizedFieldsPolicy::kDrop) {
-  soia_internal::assert_unique_method_numbers<typename ServiceImpl::methods>();
-  return soia_internal::HandleRequestOp(&service_impl, request_body,
+  skir_internal::assert_unique_method_numbers<typename ServiceImpl::methods>();
+  return skir_internal::HandleRequestOp(&service_impl, request_body,
                                         unrecognized_fields, &request_headers,
                                         &response_headers)
       .Run();
@@ -2768,9 +2819,9 @@ RawResponse HandleRequest(ServiceImpl& service_impl,
 absl::StatusOr<std::string> DecodeUrlQueryString(
     absl::string_view encoded_query_string);
 
-// Installs a soia service on the given httplib::Server at the given query
+// Installs a skir service on the given httplib::Server at the given query
 // path. The httplib::Server type is referred to as a template parameter so as
-// not to make cpp-httplib a dependency of soia.
+// not to make cpp-httplib a dependency of skir.
 //
 // ServiceImpl must satisfy the requirements outlined in the documentation for
 // HandleRequest.
@@ -2787,7 +2838,7 @@ void InstallServiceOnHttplibServer(
   const typename HttplibServer::Handler handler =  //
       [service_impl, unrecognized_fields](const auto& req, auto& resp) {
         const HttpHeaders request_headers =
-            soia_internal::HttplibToSoiaHeaders(req.headers);
+            skir_internal::HttplibToSkirHeaders(req.headers);
         HttpHeaders response_headers;
         absl::string_view request_body;
         std::string decoded_query_string;
@@ -2807,7 +2858,7 @@ void InstallServiceOnHttplibServer(
         RawResponse raw_response =
             HandleRequest(*service_impl, request_body, request_headers,
                           response_headers, unrecognized_fields);
-        soia_internal::SoiaToHttplibHeaders(response_headers, resp.headers);
+        skir_internal::SkirToHttplibHeaders(response_headers, resp.headers);
 
         resp.set_content(std::move(raw_response.data),
                          std::string(raw_response.content_type()));
@@ -2841,24 +2892,24 @@ absl::StatusOr<typename Method::response_type> InvokeRemote(
                                                UnrecognizedFieldsPolicy::kKeep);
 }
 
-// Returns a client for sending RPCs to a soia service via the given
+// Returns a client for sending RPCs to a skir service via the given
 // httplib::Client.
 // The httplib::Client type is referred to as a template parameter so as not to
-// make cpp-httplib a dependency of soia.
+// make cpp-httplib a dependency of skir.
 //
 // If you are not using cpp-httplib, you can write your own Client
 // implementation.
 template <typename HttplibClient>
 std::unique_ptr<Client> MakeHttplibClient(HttplibClient* absl_nonnull client,
                                           absl::string_view query_path) {
-  return std::make_unique<soia_internal::HttplibClient<HttplibClient*>>(
+  return std::make_unique<skir_internal::HttplibClient<HttplibClient*>>(
       client, std::string(query_path));
 };
 
-// Returns a client for sending RPCs to a soia service via the given
+// Returns a client for sending RPCs to a skir service via the given
 // httplib::Client.
 // The httplib::Client type is referred to as a template parameter so as not to
-// make cpp-httplib a dependency of soia.
+// make cpp-httplib a dependency of skir.
 //
 // If you are not using cpp-httplib, you can write your own Client
 // implementation.
@@ -2866,11 +2917,11 @@ template <typename HttplibClient>
 std::unique_ptr<Client> MakeHttplibClient(std::unique_ptr<HttplibClient> client,
                                           absl::string_view query_path) {
   return std::make_unique<
-      soia_internal::HttplibClient<std::unique_ptr<HttplibClient>>>(
+      skir_internal::HttplibClient<std::unique_ptr<HttplibClient>>>(
       std::move(client), std::string(query_path));
 };
 
 }  // namespace service
-}  // namespace soia
+}  // namespace skir
 
 #endif

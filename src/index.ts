@@ -1,3 +1,9 @@
+// TODO: field->variant
+// TODO: add doc to generated code
+// TODO: address warning (const int something)
+//   out/methods.h:189:34: warning: implicit conversion from 'long' to 'const int' changes value from 2192885963 to -2102081333 [-Wconstant-conversion]
+// TODO: smart indent like in Typescript generator
+
 import {
   type CodeGenerator,
   type Constant,
@@ -9,7 +15,7 @@ import {
   convertCase,
   encodeInt32,
   simpleHash,
-} from "soiac";
+} from "skir-internal";
 import { z } from "zod";
 import { EnumField, getEnumFields } from "./enum_field.js";
 import { CC_KEYWORDS } from "./keywords.js";
@@ -38,16 +44,16 @@ class CcCodeGenerator implements CodeGenerator<Config> {
     for (const module of input.modules) {
       const generator = new CcLibFilesGenerator(module, recordMap);
       outputFiles.push({
-        path: module.path.replace(/\.soia$/, ".h"),
+        path: module.path.replace(/\.skir$/, ".h"),
         code: generator.getCode(".h"),
       });
       outputFiles.push({
-        path: module.path.replace(/\.soia$/, ".cc"),
+        path: module.path.replace(/\.skir$/, ".cc"),
         code: generator.getCode(".cc"),
       });
       if (config.writeGoogleTestHeaders) {
         outputFiles.push({
-          path: module.path.replace(/\.soia$/, ".testing.h"),
+          path: module.path.replace(/\.skir$/, ".testing.h"),
           code: generator.getCode(".testing.h"),
         });
       }
@@ -68,7 +74,7 @@ class CcLibFilesGenerator {
   ) {
     this.typeSpeller = new TypeSpeller(recordMap, inModule, this.includes);
     this.recursivityResolver = RecursvityResolver.resolve(recordMap, inModule);
-    this.includes.add('"soia.h"');
+    this.includes.add('"skir.h"');
     this.namespace = modulePathToNamespace(inModule.path);
     this.generate();
   }
@@ -137,26 +143,26 @@ class CcLibFilesGenerator {
       const fieldName = field.name.text;
       const escapedFieldName = maybeEscapeLowerCaseName(fieldName);
       const structName = `get_${fieldName}`;
-      if (!this.addSoiagenSymbol(structName)) continue;
-      header.soiagen.push(`#ifndef SOIAGEN_${structName}`);
-      header.soiagen.push(`#define SOIAGEN_${structName}`);
-      header.soiagen.push("template <typename other = ::soia::identity>");
-      header.soiagen.push(`struct ${structName} {`);
-      header.soiagen.push("  using other_type = other;");
-      header.soiagen.push("");
-      header.soiagen.push(
+      if (!this.addskiroutSymbol(structName)) continue;
+      header.skirout.push(`#ifndef skirout_${structName}`);
+      header.skirout.push(`#define skirout_${structName}`);
+      header.skirout.push("template <typename other = ::skir::identity>");
+      header.skirout.push(`struct ${structName} {`);
+      header.skirout.push("  using other_type = other;");
+      header.skirout.push("");
+      header.skirout.push(
         `  static constexpr absl::string_view kFieldName = "${fieldName}";`,
       );
-      header.soiagen.push("");
-      header.soiagen.push("  template <typename T>");
-      header.soiagen.push(`  auto& operator()(T& input) const {`);
-      header.soiagen.push(
-        `    return soia_internal::get(other()(input).${escapedFieldName});`,
+      header.skirout.push("");
+      header.skirout.push("  template <typename T>");
+      header.skirout.push(`  auto& operator()(T& input) const {`);
+      header.skirout.push(
+        `    return skir_internal::get(other()(input).${escapedFieldName});`,
       );
-      header.soiagen.push("  }");
-      header.soiagen.push("};");
-      header.soiagen.push("#endif");
-      header.soiagen.push("");
+      header.skirout.push("  }");
+      header.skirout.push("};");
+      header.skirout.push("#endif");
+      header.skirout.push("");
     }
 
     header.mainMiddle.push(`struct ${className} {`);
@@ -184,9 +190,9 @@ class CcLibFilesGenerator {
       header.mainMiddle.push(`  ${ccType} ${fieldName}${assignment};`);
     }
     header.mainMiddle.push("");
-    header.mainMiddle.push("  ::soia_internal::UnrecognizedFields<");
+    header.mainMiddle.push("  ::skir_internal::UnrecognizedFields<");
     header.mainMiddle.push(
-      `      ::soia_internal::${this.namespace}::${adapterName}>`,
+      `      ::skir_internal::${this.namespace}::${adapterName}>`,
     );
     header.mainMiddle.push("      _unrecognized;");
     header.mainMiddle.push("");
@@ -208,7 +214,7 @@ class CcLibFilesGenerator {
         fieldIsRecursive: fieldIsRecursive,
       });
       const fieldName = maybeEscapeLowerCaseName(field.name.text);
-      header.mainMiddle.push(`    ::soia::must_init<${ccType}> ${fieldName};`);
+      header.mainMiddle.push(`    ::skir::must_init<${ccType}> ${fieldName};`);
     }
     header.mainMiddle.push("");
     header.mainMiddle.push(`    operator ${className}();`);
@@ -229,7 +235,7 @@ class CcLibFilesGenerator {
     header.mainBottom.push("    std::ostream& os,");
     header.mainBottom.push(`    ${constRefType} input) {`);
     header.mainBottom.push(
-      "  return os << ::soia_internal::ToDebugString(input);",
+      "  return os << ::skir_internal::ToDebugString(input);",
     );
     header.mainBottom.push("}");
     header.mainBottom.push("");
@@ -249,8 +255,8 @@ class CcLibFilesGenerator {
     // - APPEND CODE IN THE .testing.h FILE -
     // --------------------------------------
 
-    testingHeader.soiagen.push("template <>");
-    testingHeader.soiagen.push(`struct StructIs<${qualifiedName}> {`);
+    testingHeader.skirout.push("template <>");
+    testingHeader.skirout.push(`struct StructIs<${qualifiedName}> {`);
     // Declare fields in alphabetical order. It helps users who want to
     // initialize a struct using the designated initializer syntax. See:
     // https://abseil.io/tips/172
@@ -263,27 +269,27 @@ class CcLibFilesGenerator {
         const ccType = typeSpeller.getCcType(type, { forceNamespace: true });
         const recordType = recordMap.get(type.key)!.record.recordType;
         if (!fieldIsRecursive && recordType === "struct") {
-          testingHeader.soiagen.push(`  StructIs<${ccType}> ${fieldName};`);
+          testingHeader.skirout.push(`  StructIs<${ccType}> ${fieldName};`);
         } else {
-          testingHeader.soiagen.push(`  Matcher<${ccType}> ${fieldName} = _;`);
+          testingHeader.skirout.push(`  Matcher<${ccType}> ${fieldName} = _;`);
         }
       } else {
         const ccType = typeSpeller.getCcType(type, {
           fieldIsRecursive: fieldIsRecursive,
           forceNamespace: true,
         });
-        testingHeader.soiagen.push(`  Matcher<${ccType}> ${fieldName} = _;`);
+        testingHeader.skirout.push(`  Matcher<${ccType}> ${fieldName} = _;`);
       }
     }
-    testingHeader.soiagen.push("");
-    testingHeader.soiagen.push(
+    testingHeader.skirout.push("");
+    testingHeader.skirout.push(
       `  Matcher<${qualifiedName}> ToMatcher() const {`,
     );
     if (fields.length <= 0) {
-      testingHeader.soiagen.push("    return _;");
+      testingHeader.skirout.push("    return _;");
     } else {
-      testingHeader.soiagen.push(
-        `    return ::testing::soia_internal::StructIs<${qualifiedName}>(`,
+      testingHeader.skirout.push(
+        `    return ::testing::skir_internal::StructIs<${qualifiedName}>(`,
       );
       for (const field of fieldsByName) {
         const type = field.type!;
@@ -297,23 +303,23 @@ class CcLibFilesGenerator {
           }
         }
         const end = field === fieldsByName.at(-1) ? ");" : ",";
-        const getterExpr = `::soiagen::get_${fieldName}()`;
-        testingHeader.soiagen.push(
+        const getterExpr = `::skirout::get_${fieldName}()`;
+        testingHeader.skirout.push(
           `        std::make_pair(${getterExpr}, ${matcherExpr})${end}`,
         );
       }
     }
-    testingHeader.soiagen.push("  }");
-    testingHeader.soiagen.push("");
-    testingHeader.soiagen.push("  template <typename T>");
-    testingHeader.soiagen.push("  operator Matcher<T>() const {");
-    testingHeader.soiagen.push(
+    testingHeader.skirout.push("  }");
+    testingHeader.skirout.push("");
+    testingHeader.skirout.push("  template <typename T>");
+    testingHeader.skirout.push("  operator Matcher<T>() const {");
+    testingHeader.skirout.push(
       "    return ::testing::SafeMatcherCast<T>(ToMatcher());",
     );
-    testingHeader.soiagen.push("  }");
-    testingHeader.soiagen.push("");
-    testingHeader.soiagen.push("};");
-    testingHeader.soiagen.push("");
+    testingHeader.skirout.push("  }");
+    testingHeader.skirout.push("");
+    testingHeader.skirout.push("};");
+    testingHeader.skirout.push("");
 
     // -------------------------------
     // - APPEND CODE IN THE .cc FILE -
@@ -324,16 +330,16 @@ class CcLibFilesGenerator {
       source.anonymous.push("inline ::int32_t _GetArrayLength(");
       source.anonymous.push(`    ${constRefType} input,`);
       source.anonymous.push(
-        "    const std::shared_ptr<soia_internal::UnrecognizedFieldsData>& u,",
+        "    const std::shared_ptr<skir_internal::UnrecognizedFieldsData>& u,",
       );
-      source.anonymous.push("    soia_internal::UnrecognizedFormat format) {");
+      source.anonymous.push("    skir_internal::UnrecognizedFormat format) {");
       source.anonymous.push("  if (u != nullptr && u->format == format)");
       source.anonymous.push("    return u->array_len;");
       for (const field of [...fieldsByNumber].reverse()) {
         const { number, name } = field;
         const fieldExpr = `input.${maybeEscapeLowerCaseName(name.text)}`;
         source.anonymous.push(
-          `  if (!::soia_internal::IsDefault(${fieldExpr}))`,
+          `  if (!::skir_internal::IsDefault(${fieldExpr}))`,
         );
         source.anonymous.push(`    return ${number + 1};`);
       }
@@ -351,7 +357,7 @@ class CcLibFilesGenerator {
         ? fields
             .map((f) => {
               const fieldName = maybeEscapeLowerCaseName(f.name.text);
-              return `::soia_internal::IsDefault(input.${fieldName})`;
+              return `::skir_internal::IsDefault(input.${fieldName})`;
             })
             .join("\n      && ")
         : "true";
@@ -369,7 +375,7 @@ class CcLibFilesGenerator {
         "  const auto& unrecognized = input._unrecognized.data;",
       );
       source.internalMain.push(
-        "  const auto array_len = _GetArrayLength(input, unrecognized, soia_internal::UnrecognizedFormat::kDenseJson);",
+        "  const auto array_len = _GetArrayLength(input, unrecognized, skir_internal::UnrecognizedFormat::kDenseJson);",
       );
       source.internalMain.push("  if (array_len == 0) {");
       source.internalMain.push("    out.out += {'[', ']'};");
@@ -389,7 +395,7 @@ class CcLibFilesGenerator {
         charLiterals = [];
         const fieldExpr = `input.${maybeEscapeLowerCaseName(name.text)}`;
         source.internalMain.push(
-          `  ::soia_internal::Append(${fieldExpr}, out);`,
+          `  ::skir_internal::Append(${fieldExpr}, out);`,
         );
         source.internalMain.push(`  if (array_len == ${number + 1}) return;`);
         lastFieldNumber = number;
@@ -460,7 +466,7 @@ class CcLibFilesGenerator {
         "  const auto& unrecognized = input._unrecognized.data;",
       );
       source.internalMain.push(
-        "  const auto array_len = _GetArrayLength(input, unrecognized, soia_internal::UnrecognizedFormat::kBytes);",
+        "  const auto array_len = _GetArrayLength(input, unrecognized, skir_internal::UnrecognizedFormat::kBytes);",
       );
       source.internalMain.push("  if (array_len == 0) {");
       source.internalMain.push("    out.Push(246);");
@@ -478,7 +484,7 @@ class CcLibFilesGenerator {
         }
         const fieldExpr = `input.${maybeEscapeLowerCaseName(name.text)}`;
         source.internalMain.push(
-          `  ::soia_internal::Append(${fieldExpr}, out);`,
+          `  ::skir_internal::Append(${fieldExpr}, out);`,
         );
         if (!isLastField) {
           source.internalMain.push(`  if (array_len == ${number + 1}) return;`);
@@ -523,7 +529,7 @@ class CcLibFilesGenerator {
           );
         }
         source.internalMain.push(
-          `      ::soia_internal::Parse(tokenizer, out.${ccFieldName});`,
+          `      ::skir_internal::Parse(tokenizer, out.${ccFieldName});`,
         );
         lastNumber = field.number;
       }
@@ -538,7 +544,7 @@ class CcLibFilesGenerator {
         "unrecognized",
       ].join(", ");
       source.internalMain.push(
-        `      ::soia_internal::ParseUnrecognizedFields(${args});`,
+        `      ::skir_internal::ParseUnrecognizedFields(${args});`,
       );
       source.internalMain.push("      break;");
       source.internalMain.push("    }");
@@ -587,7 +593,7 @@ class CcLibFilesGenerator {
         }
         source.internalMain.push(`  if (array_len == ${field.number}) return;`);
         source.internalMain.push(
-          `  ::soia_internal::Parse(source, out.${ccFieldName});`,
+          `  ::skir_internal::Parse(source, out.${ccFieldName});`,
         );
         lastNumber = field.number;
       }
@@ -603,41 +609,41 @@ class CcLibFilesGenerator {
         "unrecognized",
       ].join(", ");
       source.internalMain.push(
-        `  ::soia_internal::ParseUnrecognizedFields(${args});`,
+        `  ::skir_internal::ParseUnrecognizedFields(${args});`,
       );
       source.internalMain.push("}");
       source.internalMain.push("");
     }
 
     {
-      // GetType(soia_type<T>)
+      // GetType(skir_type<T>)
       source.internalMain.push(
-        `soia::reflection::Type ${adapterName}::GetType(soia_type<type>) {`,
+        `skir::reflection::Type ${adapterName}::GetType(skir_type<type>) {`,
       );
       const recordId = getRecordId(struct);
       source.internalMain.push(
-        `  return soia::reflection::RecordType({"${recordId}"});`,
+        `  return skir::reflection::RecordType({"${recordId}"});`,
       );
       source.internalMain.push("}");
       source.internalMain.push("");
     }
 
     {
-      // RegisterRecords(soia_type<T>, RecordRegistry&)
+      // RegisterRecords(skir_type<T>, RecordRegistry&)
       const recordId = getRecordId(struct);
       source.internalMain.push(`void ${adapterName}::RegisterRecords(`);
-      source.internalMain.push("    soia_type<type>,");
+      source.internalMain.push("    skir_type<type>,");
       source.internalMain.push(
-        "    soia::reflection::RecordRegistry& registry) {",
+        "    skir::reflection::RecordRegistry& registry) {",
       );
       source.internalMain.push("  const bool already_present =");
       source.internalMain.push(
         `      registry.find_or_null("${recordId}") != nullptr;`,
       );
       source.internalMain.push("  if (already_present) return;");
-      source.internalMain.push("  soia::reflection::Record record = {");
-      source.internalMain.push("      soia::reflection::RecordKind::kStruct,");
+      source.internalMain.push("  skir::reflection::Struct record = {");
       source.internalMain.push(`      "${recordId}",`);
+      source.internalMain.push(`      ${JSON.stringify(struct.record.doc.text)},`);
       source.internalMain.push("      {");
       for (const field of fields) {
         const ccType = typeSpeller.getCcType(field.type!, {
@@ -647,8 +653,9 @@ class CcLibFilesGenerator {
         source.internalMain.push(`              "${field.name.text}",`);
         source.internalMain.push(`              ${field.number},`);
         source.internalMain.push(
-          `              soia_internal::GetType<${ccType}>(),`,
+          `              skir_internal::GetType<${ccType}>(),`,
         );
+        source.internalMain.push(`              ${JSON.stringify(field.doc.text)},`);
         source.internalMain.push("          },");
       }
       source.internalMain.push("      },");
@@ -661,7 +668,7 @@ class CcLibFilesGenerator {
           forceNamespace: true,
         });
         source.internalMain.push(
-          `  soia_internal::RegisterRecords<${ccType}>(registry);`,
+          `  skir_internal::RegisterRecords<${ccType}>(registry);`,
         );
       }
       source.internalMain.push("}");
@@ -726,7 +733,7 @@ class CcLibFilesGenerator {
     header.mainMiddle.push(`class ${className} {`);
     header.mainMiddle.push(" public:");
     for (const field of wrapperFields) {
-      const type = `::soiagen::${field.structType}<${field.valueType}>`;
+      const type = `::skirout::${field.structType}<${field.valueType}>`;
       header.mainMiddle.push(`  using ${field.typeAlias} = ${type};`);
     }
     header.mainMiddle.push("");
@@ -760,12 +767,12 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("");
     for (const field of constFields) {
       const { isUnknownField, kindEnumerator, structType } = field;
-      header.mainMiddle.push(`  ${className}(::soiagen::${structType});`);
+      header.mainMiddle.push(`  ${className}(::skirout::${structType});`);
       const body = isUnknownField
         ? "{\n  value_._unrecognized = nullptr;\n}"
         : "{}";
       source.mainMiddle.push(
-        `${className}::${className}(::soiagen::${
+        `${className}::${className}(::skirout::${
           structType
         }) : kind_(kind_type::${kindEnumerator}) ${body}`,
       );
@@ -808,7 +815,7 @@ class CcLibFilesGenerator {
     for (const field of constFields) {
       const { identifier } = field;
       header.mainMiddle.push(
-        `  static constexpr auto ${identifier} = ::soiagen::${identifier};`,
+        `  static constexpr auto ${identifier} = ::skirout::${identifier};`,
       );
     }
     header.mainMiddle.push("");
@@ -821,7 +828,7 @@ class CcLibFilesGenerator {
         `${className} ${className}::${identifier}(${valueType} value) {`,
       );
       const maybeMoveValue = usePointer ? "std::move(value)" : "value";
-      const returnValue = `${className}(::soiagen::${identifier}(${maybeMoveValue}))`;
+      const returnValue = `${className}(::skirout::${identifier}(${maybeMoveValue}))`;
       source.mainMiddle.push(`  return ${returnValue};`);
       source.mainMiddle.push("}");
       source.mainMiddle.push("");
@@ -908,10 +915,10 @@ class CcLibFilesGenerator {
     for (const field of constFields) {
       const { isUnknownField, kindEnumerator, structType } = field;
       header.mainMiddle.push(
-        `  ${className}& operator=(::soiagen::${structType});`,
+        `  ${className}& operator=(::skirout::${structType});`,
       );
       source.mainMiddle.push(
-        `${className}& ${className}::operator=(::soiagen::${structType}) {`,
+        `${className}& ${className}::operator=(::skirout::${structType}) {`,
       );
       source.mainMiddle.push("  free_value();");
       source.mainMiddle.push(`  kind_ = kind_type::${kindEnumerator};`);
@@ -990,7 +997,7 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("");
     header.mainMiddle.push(" private:");
     header.mainMiddle.push(
-      "  using unrecognized_enum = ::soia_internal::UnrecognizedEnum;",
+      "  using unrecognized_enum = ::skir_internal::UnrecognizedEnum;",
     );
     header.mainMiddle.push("");
     header.mainMiddle.push(`  ${className}(unrecognized_enum);`);
@@ -1074,7 +1081,7 @@ class CcLibFilesGenerator {
       const { kindEnumerator, structType } = field;
       header.mainMiddle.push(`      case kind_type::${kindEnumerator}:`);
       header.mainMiddle.push(
-        `        return std::forward<Visitor>(visitor)(::soiagen::${
+        `        return std::forward<Visitor>(visitor)(::skirout::${
           structType
         }());`,
       );
@@ -1094,7 +1101,7 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("  }");
     header.mainMiddle.push("");
     header.mainMiddle.push(
-      `  friend class ::soia_internal::${this.namespace}::${adapterName};`,
+      `  friend class ::skir_internal::${this.namespace}::${adapterName};`,
     );
     header.mainMiddle.push("};");
     header.mainMiddle.push("");
@@ -1103,7 +1110,7 @@ class CcLibFilesGenerator {
       const { kindEnumerator, structType } = field;
       header.mainBottom.push("inline bool operator==(");
       header.mainBottom.push(`    ${constRefType} a,`);
-      header.mainBottom.push(`    ::soiagen::${structType}) {`);
+      header.mainBottom.push(`    ::skirout::${structType}) {`);
       header.mainBottom.push(
         `  return a.kind() == ${qualifiedName}::kind_type::${kindEnumerator};`,
       );
@@ -1111,12 +1118,12 @@ class CcLibFilesGenerator {
       header.mainBottom.push("");
       header.mainBottom.push("inline bool operator!=(");
       header.mainBottom.push(`    ${constRefType} a,`);
-      header.mainBottom.push(`    ::soiagen::${structType} b) {`);
+      header.mainBottom.push(`    ::skirout::${structType} b) {`);
       header.mainBottom.push("  return !(a == b);");
       header.mainBottom.push("}");
       header.mainBottom.push("");
       header.mainBottom.push("inline bool operator==(");
-      header.mainBottom.push(`    ::soiagen::${field.structType},`);
+      header.mainBottom.push(`    ::skirout::${field.structType},`);
       header.mainBottom.push(`    ${constRefType} b) {`);
       header.mainBottom.push(
         `  return ${qualifiedName}::kind_type::${kindEnumerator} == b.kind();`,
@@ -1124,7 +1131,7 @@ class CcLibFilesGenerator {
       header.mainBottom.push("}");
       header.mainBottom.push("");
       header.mainBottom.push("inline bool operator!=(");
-      header.mainBottom.push(`    ::soiagen::${field.structType} a,`);
+      header.mainBottom.push(`    ::skirout::${field.structType} a,`);
       header.mainBottom.push(`    ${constRefType} b) {`);
       header.mainBottom.push("  return !(a == b);");
       header.mainBottom.push("}");
@@ -1136,7 +1143,7 @@ class CcLibFilesGenerator {
     header.mainBottom.push("    H h;");
     for (const field of constFields) {
       const { fieldName, structType } = field;
-      header.mainBottom.push(`    H operator()(::soiagen::${structType}) {`);
+      header.mainBottom.push(`    H operator()(::skirout::${structType}) {`);
       const hash = simpleHash(fieldName);
       header.mainBottom.push(`      return H::combine(std::move(h), ${hash});`);
       header.mainBottom.push("    }");
@@ -1160,7 +1167,7 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("    std::ostream& os,");
     header.mainMiddle.push(`    ${constRefType} input) {`);
     header.mainMiddle.push(
-      "  return os << ::soia_internal::ToDebugString(input);",
+      "  return os << ::skir_internal::ToDebugString(input);",
     );
     header.mainMiddle.push("}");
     header.mainMiddle.push("");
@@ -1170,7 +1177,7 @@ class CcLibFilesGenerator {
       source.internalMain.push(
         `bool ${adapterName}::IsDefault(const type& input) {`,
       );
-      source.internalMain.push("  return input == ::soiagen::kUnknown;");
+      source.internalMain.push("  return input == ::skirout::kUnknown;");
       source.internalMain.push("}");
       source.internalMain.push("");
     }
@@ -1208,7 +1215,7 @@ class CcLibFilesGenerator {
           `      out.out += {'[', ${numberToCharLiterals(fieldNumber)}, ','};`,
         );
         source.internalMain.push(
-          `      ::soia_internal::Append(input.value_.${fieldName}_${
+          `      ::skir_internal::Append(input.value_.${fieldName}_${
             dotOrArrow
           }value, out);`,
         );
@@ -1231,7 +1238,7 @@ class CcLibFilesGenerator {
       for (const field of constFields) {
         const { fieldName, structType } = field;
         source.internalMain.push(
-          `    void operator()(::soiagen::${structType}) {`,
+          `    void operator()(::skirout::${structType}) {`,
         );
         source.internalMain.push(`      out.out += "\\"${fieldName}\\"";`);
         source.internalMain.push("    }");
@@ -1249,7 +1256,7 @@ class CcLibFilesGenerator {
           '                      *out.new_line, "\\"value\\": ");',
         );
         source.internalMain.push(
-          "      ::soia_internal::Append(w.value, out);",
+          "      ::skir_internal::Append(w.value, out);",
         );
         source.internalMain.push(
           '      absl::StrAppend(&out.out, out.new_line.Dedent(), "}");',
@@ -1272,9 +1279,9 @@ class CcLibFilesGenerator {
       for (const field of constFields) {
         const { identifier, structType } = field;
         source.internalMain.push(
-          `    void operator()(::soiagen::${structType}) {`,
+          `    void operator()(::skirout::${structType}) {`,
         );
-        source.internalMain.push(`      out.out += "soiagen::${identifier}";`);
+        source.internalMain.push(`      out.out += "skirout::${identifier}";`);
         source.internalMain.push("    }");
       }
       for (const field of wrapperFields) {
@@ -1283,10 +1290,10 @@ class CcLibFilesGenerator {
           `    void operator()(const ${qualifiedName}::${typeAlias}& w) {`,
         );
         source.internalMain.push(
-          `      out.out += "::soiagen::${identifier}(";`,
+          `      out.out += "::skirout::${identifier}(";`,
         );
         source.internalMain.push(
-          "      ::soia_internal::Append(w.value, out);",
+          "      ::skir_internal::Append(w.value, out);",
         );
         source.internalMain.push("      out.out += ')';");
         source.internalMain.push("    }");
@@ -1332,7 +1339,7 @@ class CcLibFilesGenerator {
         );
         source.internalMain.push(`      out.Push(${intLiterals});`);
         source.internalMain.push(
-          `      ::soia_internal::Append(input.value_.${fieldName}_${
+          `      ::skir_internal::Append(input.value_.${fieldName}_${
             dotOrArrow
           }value, out);`,
         );
@@ -1362,7 +1369,7 @@ class CcLibFilesGenerator {
         const { fieldNumber, identifier } = field;
         if (field.fieldNumber <= 0) continue;
         source.internalMain.push(`        case ${fieldNumber}:`);
-        source.internalMain.push(`          out = ::soiagen::${identifier};`);
+        source.internalMain.push(`          out = ::skirout::${identifier};`);
         source.internalMain.push("          break;");
       }
       source.internalMain.push("        default:");
@@ -1370,7 +1377,7 @@ class CcLibFilesGenerator {
         "          if (tokenizer.keep_unrecognized_fields()) {",
       );
       source.internalMain.push(
-        "            out = type(UnrecognizedEnum{::soia_internal::UnrecognizedFormat::kDenseJson, i});",
+        "            out = type(UnrecognizedEnum{::skir_internal::UnrecognizedFormat::kDenseJson, i});",
       );
       source.internalMain.push("          }");
       source.internalMain.push("      }");
@@ -1409,7 +1416,7 @@ class CcLibFilesGenerator {
         source.internalMain.push(`        case ${fieldNumber}: {`);
         source.internalMain.push(`          type::${typeAlias} wrapper;`);
         source.internalMain.push(
-          "          ::soia_internal::Parse(tokenizer, wrapper.value);",
+          "          ::skir_internal::Parse(tokenizer, wrapper.value);",
         );
         source.internalMain.push("          out = std::move(wrapper);");
         source.internalMain.push("          break;");
@@ -1420,7 +1427,7 @@ class CcLibFilesGenerator {
         "          if (tokenizer.keep_unrecognized_fields()) {",
       );
       source.internalMain.push(
-        "            UnrecognizedEnum unrecognized{::soia_internal::UnrecognizedFormat::kDenseJson, number};",
+        "            UnrecognizedEnum unrecognized{::skir_internal::UnrecognizedFormat::kDenseJson, number};",
       );
       source.internalMain.push(
         "            unrecognized.emplace_value().ParseFrom(tokenizer);",
@@ -1476,7 +1483,7 @@ class CcLibFilesGenerator {
         source.internalMain.push(`      case ${fieldNumber}: {`);
         source.internalMain.push(`        type::${typeAlias} wrapper;`);
         source.internalMain.push(
-          "        ::soia_internal::Parse(source, wrapper.value);",
+          "        ::skir_internal::Parse(source, wrapper.value);",
         );
         source.internalMain.push("        out = std::move(wrapper);");
         source.internalMain.push("        break;");
@@ -1487,7 +1494,7 @@ class CcLibFilesGenerator {
         "        if (source.keep_unrecognized_fields) {",
       );
       source.internalMain.push(
-        "          UnrecognizedEnum unrecognized{::soia_internal::UnrecognizedFormat::kBytes, number};",
+        "          UnrecognizedEnum unrecognized{::skir_internal::UnrecognizedFormat::kBytes, number};",
       );
       source.internalMain.push(
         "          unrecognized.emplace_value().ParseFrom(source);",
@@ -1508,7 +1515,7 @@ class CcLibFilesGenerator {
         const { fieldNumber, identifier } = field;
         if (field.fieldNumber === 0) continue;
         source.internalMain.push(`      case ${fieldNumber}:`);
-        source.internalMain.push(`        out = ::soiagen::${identifier};`);
+        source.internalMain.push(`        out = ::skirout::${identifier};`);
         source.internalMain.push("        break;");
       }
       source.internalMain.push("      default: {");
@@ -1516,7 +1523,7 @@ class CcLibFilesGenerator {
         "        if (source.keep_unrecognized_fields) {",
       );
       source.internalMain.push(
-        "          out = type(UnrecognizedEnum{::soia_internal::UnrecognizedFormat::kBytes, number});",
+        "          out = type(UnrecognizedEnum{::skir_internal::UnrecognizedFormat::kBytes, number});",
       );
       source.internalMain.push("        }");
       source.internalMain.push("      }");
@@ -1527,34 +1534,34 @@ class CcLibFilesGenerator {
     }
 
     {
-      // GetType(soia_type<T>)
+      // GetType(skir_type<T>)
       source.internalMain.push(
-        `soia::reflection::Type ${adapterName}::GetType(soia_type<type>) {`,
+        `skir::reflection::Type ${adapterName}::GetType(skir_type<type>) {`,
       );
       const recordId = getRecordId(record);
       source.internalMain.push(
-        `  return soia::reflection::RecordType({"${recordId}"});`,
+        `  return skir::reflection::RecordType({"${recordId}"});`,
       );
       source.internalMain.push("}");
       source.internalMain.push("");
     }
 
     {
-      // RegisterRecords(soia_type<T>, RecordRegistry&)
+      // RegisterRecords(skir_type<T>, RecordRegistry&)
       const recordId = getRecordId(record);
       source.internalMain.push(`void ${adapterName}::RegisterRecords(`);
-      source.internalMain.push("    soia_type<type>,");
+      source.internalMain.push("    skir_type<type>,");
       source.internalMain.push(
-        "    soia::reflection::RecordRegistry& registry) {",
+        "    skir::reflection::RecordRegistry& registry) {",
       );
       source.internalMain.push("  const bool already_present =");
       source.internalMain.push(
         `      registry.find_or_null("${recordId}") != nullptr;`,
       );
       source.internalMain.push("  if (already_present) return;");
-      source.internalMain.push("  soia::reflection::Record record = {");
-      source.internalMain.push("      soia::reflection::RecordKind::kEnum,");
+      source.internalMain.push("  skir::reflection::Enum record = {");
       source.internalMain.push(`      "${recordId}",`);
+      source.internalMain.push(`      ${JSON.stringify(record.record.doc.text)},`);
       source.internalMain.push("      {");
       for (const field of constFields) {
         if (field.isUnknownField) {
@@ -1564,6 +1571,7 @@ class CcLibFilesGenerator {
         source.internalMain.push(`              "${field.fieldName}",`);
         source.internalMain.push(`              ${field.fieldNumber},`);
         source.internalMain.push(`              absl::nullopt,`);
+        source.internalMain.push(`              ${JSON.stringify(field.doc.text)},`);
         source.internalMain.push("          },");
       }
       for (const field of wrapperFields) {
@@ -1572,7 +1580,7 @@ class CcLibFilesGenerator {
         source.internalMain.push(`              "${fieldName}",`);
         source.internalMain.push(`              ${fieldNumber},`);
         source.internalMain.push(
-          `              soia_internal::GetType<${valueTypeWithNamespace}>(),`,
+          `              skir_internal::GetType<${valueTypeWithNamespace}>(),`,
         );
         source.internalMain.push("          },");
       }
@@ -1584,7 +1592,7 @@ class CcLibFilesGenerator {
       for (const field of wrapperFields) {
         const { valueTypeWithNamespace } = field;
         source.internalMain.push(
-          `  soia_internal::RegisterRecords<${
+          `  skir_internal::RegisterRecords<${
             valueTypeWithNamespace
           }>(registry);`,
         );
@@ -1610,18 +1618,18 @@ class CcLibFilesGenerator {
       const fieldToReflectionType = (f: Field): string => {
         const fieldName = f.name.text;
         if (recordType === "struct") {
-          return `struct_field<type, soiagen::get_${fieldName}<>>`;
+          return `struct_field<type, skirout::get_${fieldName}<>>`;
         } else if (f.type) {
-          return `enum_wrapper_field<type, soiagen::reflection::${fieldName}_option>`;
+          return `enum_wrapper_field<type, skirout::reflection::${fieldName}_option>`;
         } else {
-          return `soia::reflection::enum_const_field<soiagen::k_${fieldName.toLowerCase()}>`;
+          return `skir::reflection::enum_const_field<skirout::k_${fieldName.toLowerCase()}>`;
         }
       };
       const reflectionTypes = fields
         .map(fieldToReflectionType)
         .concat(
           recordType === "enum"
-            ? ["soia::reflection::enum_const_field<soiagen::k_unknown>"]
+            ? ["skir::reflection::enum_const_field<skirout::k_unknown>"]
             : [],
         )
         .join(",\n      ");
@@ -1644,11 +1652,11 @@ class CcLibFilesGenerator {
     header.internalMain.push("  static void Parse(JsonTokenizer&, type&);");
     header.internalMain.push("  static void Parse(ByteSource&, type&);");
     header.internalMain.push(
-      "  static soia::reflection::Type GetType(soia_type<type>);",
+      "  static skir::reflection::Type GetType(skir_type<type>);",
     );
     header.internalMain.push("  static void RegisterRecords(");
-    header.internalMain.push("      soia_type<type>,");
-    header.internalMain.push("      soia::reflection::RecordRegistry&);");
+    header.internalMain.push("      skir_type<type>,");
+    header.internalMain.push("      skir::reflection::RecordRegistry&);");
     header.internalMain.push(
       `  static constexpr bool IsStruct() { return ${
         recordType === "struct"
@@ -1660,92 +1668,92 @@ class CcLibFilesGenerator {
     header.internalMain.push("};");
     header.internalMain.push("");
     header.internal.push(
-      `inline ::soia_internal::${this.namespace}::${adapterName} GetAdapter(`,
+      `inline ::skir_internal::${this.namespace}::${adapterName} GetAdapter(`,
     );
-    header.internal.push(`    ::soia_internal::soia_type<${qualifiedName}>);`);
+    header.internal.push(`    ::skir_internal::skir_type<${qualifiedName}>);`);
     header.internal.push("");
   }
 
   private writeCodeForConstantField(field: EnumField): void {
-    if (!this.addSoiagenSymbol(field.structType)) return;
-    const { soiagen } = this.header;
-    soiagen.push(`#ifndef SOIAGEN_${field.structType}`);
-    soiagen.push(`#define SOIAGEN_${field.structType}`);
-    soiagen.push(`struct ${field.structType} {`);
-    soiagen.push(
+    if (!this.addskiroutSymbol(field.structType)) return;
+    const { skirout } = this.header;
+    skirout.push(`#ifndef skirout_${field.structType}`);
+    skirout.push(`#define skirout_${field.structType}`);
+    skirout.push(`struct ${field.structType} {`);
+    skirout.push(
       `  static constexpr absl::string_view kFieldName = "${field.fieldName}";`,
     );
-    soiagen.push("};");
-    soiagen.push("");
-    soiagen.push(`constexpr auto ${field.identifier} = ${field.structType}();`);
-    soiagen.push("#endif");
-    soiagen.push("");
+    skirout.push("};");
+    skirout.push("");
+    skirout.push(`constexpr auto ${field.identifier} = ${field.structType}();`);
+    skirout.push("#endif");
+    skirout.push("");
   }
 
   private writeCodeForWrapperField(field: EnumField): void {
     const { fieldName, structType } = field;
-    if (!this.addSoiagenSymbol(structType)) return;
+    if (!this.addskiroutSymbol(structType)) return;
     const optionType = `${fieldName}_option`;
     {
-      const { soiagen } = this.header;
-      soiagen.push(`#ifndef SOIAGEN_${structType}`);
-      soiagen.push(`#define SOIAGEN_${structType}`);
-      soiagen.push("template <typename T>");
-      soiagen.push(`struct ${structType};`);
-      soiagen.push("");
-      soiagen.push("namespace reflection {");
-      soiagen.push(`struct ${optionType} {`);
-      soiagen.push(
+      const { skirout } = this.header;
+      skirout.push(`#ifndef skirout_${structType}`);
+      skirout.push(`#define skirout_${structType}`);
+      skirout.push("template <typename T>");
+      skirout.push(`struct ${structType};`);
+      skirout.push("");
+      skirout.push("namespace reflection {");
+      skirout.push(`struct ${optionType} {`);
+      skirout.push(
         `  static constexpr absl::string_view kFieldName = "${fieldName}";`,
       );
-      soiagen.push("");
-      soiagen.push("  template <typename T>");
-      soiagen.push(`  static ${structType}<T> wrap(T input) {`);
-      soiagen.push(`    return ${structType}(std::move(input));`);
-      soiagen.push("  }");
-      soiagen.push("");
-      soiagen.push("  template <typename Enum>");
-      soiagen.push("  static auto* get_or_null(Enum& e) {");
-      soiagen.push(
+      skirout.push("");
+      skirout.push("  template <typename T>");
+      skirout.push(`  static ${structType}<T> wrap(T input) {`);
+      skirout.push(`    return ${structType}(std::move(input));`);
+      skirout.push("  }");
+      skirout.push("");
+      skirout.push("  template <typename Enum>");
+      skirout.push("  static auto* get_or_null(Enum& e) {");
+      skirout.push(
         `    return e.is_${fieldName}() ? &e.as_${fieldName}() : nullptr;`,
       );
-      soiagen.push("  }");
-      soiagen.push("};");
-      soiagen.push("}  // namespace reflection");
-      soiagen.push("");
-      soiagen.push("template <typename T>");
-      soiagen.push(`struct ${structType} {`);
-      soiagen.push("  using value_type = T;");
-      soiagen.push(
-        `  using option_type = ::soiagen::reflection::${optionType};`,
+      skirout.push("  }");
+      skirout.push("};");
+      skirout.push("}  // namespace reflection");
+      skirout.push("");
+      skirout.push("template <typename T>");
+      skirout.push(`struct ${structType} {`);
+      skirout.push("  using value_type = T;");
+      skirout.push(
+        `  using option_type = ::skirout::reflection::${optionType};`,
       );
-      soiagen.push("");
-      soiagen.push("  T value{};");
-      soiagen.push("");
-      soiagen.push(`  ${structType}() = default;`);
-      soiagen.push(
+      skirout.push("");
+      skirout.push("  T value{};");
+      skirout.push("");
+      skirout.push(`  ${structType}() = default;`);
+      skirout.push(
         `  explicit ${structType}(T value): value(std::move(value)) {}`,
       );
-      soiagen.push("};");
-      soiagen.push("#endif");
-      soiagen.push("");
+      skirout.push("};");
+      skirout.push("#endif");
+      skirout.push("");
     }
     {
-      const { soiagen } = this.testingHeader;
-      soiagen.push(`#ifndef TESTING_SOIAGEN_${structType}`);
-      soiagen.push(`#define TESTING_SOIAGEN_${structType}`);
-      soiagen.push("template <typename ValueMatcher = decltype(_)>");
+      const { skirout } = this.testingHeader;
+      skirout.push(`#ifndef TESTING_skirout_${structType}`);
+      skirout.push(`#define TESTING_skirout_${structType}`);
+      skirout.push("template <typename ValueMatcher = decltype(_)>");
       const functionName =
-        "Is" + convertCase(fieldName, "lower_underscore", "UpperCamel");
-      soiagen.push(`auto ${functionName}(ValueMatcher matcher = _) {`);
-      soiagen.push("  using ::testing::soia_internal::EnumValueIsMatcher;");
-      soiagen.push(`  using Option = ::soiagen::reflection::${optionType};`);
-      soiagen.push(
+        "Is" + convertCase(fieldName, "UpperCamel");
+      skirout.push(`auto ${functionName}(ValueMatcher matcher = _) {`);
+      skirout.push("  using ::testing::skir_internal::EnumValueIsMatcher;");
+      skirout.push(`  using Option = ::skirout::reflection::${optionType};`);
+      skirout.push(
         "  return EnumValueIsMatcher<Option, ValueMatcher>(std::move(matcher));",
       );
-      soiagen.push("}");
-      soiagen.push("#endif");
-      soiagen.push("");
+      skirout.push("}");
+      skirout.push("#endif");
+      skirout.push("");
     }
   }
 
@@ -1755,13 +1763,15 @@ class CcLibFilesGenerator {
     const methodName = method.name.text;
     const requestType = typeSpeller.getCcType(method.requestType!);
     const responseType = typeSpeller.getCcType(method.responseType!);
+    const doc = method.doc.text;
     mainMiddle.push(`struct ${methodName} {`);
     mainMiddle.push(`  using request_type = ${requestType};`);
     mainMiddle.push(`  using response_type = ${responseType};`);
     mainMiddle.push(
       `  static constexpr absl::string_view kMethodName = "${methodName}";`,
     );
-    mainMiddle.push(`  static constexpr int kNumber = ${method.number};`);
+    mainMiddle.push(`  static constexpr uint32_t kNumber = ${method.number};`);
+    mainMiddle.push(`  static constexpr absl::string_view kDoc = ${JSON.stringify(doc)};`);
     mainMiddle.push("};");
     mainMiddle.push("");
   }
@@ -1777,7 +1787,7 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("");
     source.mainMiddle.push(`const ${type}& ${name}() {`);
     source.mainMiddle.push(`  static const auto* kResult = new ${type}(`);
-    source.mainMiddle.push(`      ::soia::Parse<${type}>(`);
+    source.mainMiddle.push(`      ::skir::Parse<${type}>(`);
     source.mainMiddle.push(`          ${ccStringLiteral})`);
     source.mainMiddle.push("          .value());");
     source.mainMiddle.push("  return *kResult;");
@@ -1789,7 +1799,7 @@ class CcLibFilesGenerator {
     const { header, source, testingHeader } = this;
     {
       const headerPath =
-        "soiagen/" + this.inModule.path.replace(/\.soia$/, ".h");
+        "skirout/" + this.inModule.path.replace(/\.skir$/, ".h");
       source.includes.push(`#include "${headerPath}"`);
       testingHeader.includes.push(`#include "${headerPath}"`);
     }
@@ -1801,9 +1811,9 @@ class CcLibFilesGenerator {
     }
   }
 
-  private addSoiagenSymbol(symbol: string): boolean {
-    if (this.seenSoiagenSymbols.has(symbol)) return false;
-    this.seenSoiagenSymbols.add(symbol);
+  private addskiroutSymbol(symbol: string): boolean {
+    if (this.seenskiroutSymbols.has(symbol)) return false;
+    this.seenskiroutSymbols.add(symbol);
     return true;
   }
 
@@ -1811,7 +1821,7 @@ class CcLibFilesGenerator {
   private readonly typeSpeller: TypeSpeller;
   private readonly recursivityResolver: RecursvityResolver;
   private readonly namespace: string;
-  private readonly seenSoiagenSymbols = new Set<string>();
+  private readonly seenskiroutSymbols = new Set<string>();
 
   readonly header: FileContents = new FileContents(".h");
   readonly source: FileContents = new FileContents(".cc");
@@ -1824,24 +1834,24 @@ class FileContents {
   namespace: string = "";
 
   readonly includes: string[] = [];
-  /** Group within the ::soiagen namespace. */
-  readonly soiagen: string[] = [];
-  /** First group within the ::soiagen_my_module namespace. */
+  /** Group within the ::skirout namespace. */
+  readonly skirout: string[] = [];
+  /** First group within the ::skirout_my_module namespace. */
   readonly mainTop: string[] = [];
-  /** Second group within the ::soiagen_my_module namespace. */
+  /** Second group within the ::skirout_my_module namespace. */
   readonly mainMiddle: string[] = [];
-  /** Third group within the ::soiagen_my_module namespace. */
+  /** Third group within the ::skirout_my_module namespace. */
   readonly mainBottom: string[] = [];
   /** Group within the anonymous namespace. Only in the .cc. */
   readonly anonymous: string[] = [];
-  /** Group within the ::soia_internal namespace. */
+  /** Group within the ::skir_internal namespace. */
   readonly internal: string[] = [];
   /**
-   * First group within the ::soia_internal_my_module namespace. Only in the
+   * First group within the ::skir_internal_my_module namespace. Only in the
    * .h.
    */
   readonly internalMainTop: string[] = [];
-  /** Group within the ::soia_internal::my::module namespace. */
+  /** Group within the ::skir_internal::my::module namespace. */
   readonly internalMain: string[] = [];
 }
 
@@ -1866,11 +1876,11 @@ function fileContentsToCode(fileContents: FileContents): string {
   fileContents.includes.forEach((l) => lines.push(l));
   lines.push("");
   if (extension === ".h") {
-    lines.push("namespace soia_internal {");
+    lines.push("namespace skir_internal {");
     lines.push(`namespace ${namespace} {`);
     fileContents.internalMainTop.forEach((l) => lines.push(l));
     lines.push(`}  // namespace ${namespace}`);
-    lines.push("}  // namespace soia_internal");
+    lines.push("}  // namespace skir_internal");
     lines.push("");
   } else if (extension === ".cc") {
     lines.push("namespace {");
@@ -1883,9 +1893,9 @@ function fileContentsToCode(fileContents: FileContents): string {
   if (extension === ".testing.h") {
     lines.push("namespace testing {");
   }
-  lines.push("namespace soiagen {");
-  fileContents.soiagen.forEach((l) => lines.push(l));
-  lines.push("}  // namespace soiagen");
+  lines.push("namespace skirout {");
+  fileContents.skirout.forEach((l) => lines.push(l));
+  lines.push("}  // namespace skirout");
   if (extension === ".h" || extension === ".cc") {
     lines.push("");
     lines.push(`namespace ${namespace} {`);
@@ -1896,7 +1906,7 @@ function fileContentsToCode(fileContents: FileContents): string {
     fileContents.mainBottom.forEach((l) => lines.push(l));
     lines.push("");
     lines.push(`}  // namespace ${namespace}`);
-    lines.push("namespace soia_internal {");
+    lines.push("namespace skir_internal {");
     lines.push(`namespace ${namespace} {`);
     lines.push("");
     fileContents.internalMain.forEach((l) => lines.push(l));
@@ -1905,7 +1915,7 @@ function fileContentsToCode(fileContents: FileContents): string {
     lines.push("");
     fileContents.internal.forEach((l) => lines.push(l));
     lines.push("");
-    lines.push("}  // namespace soia_internal");
+    lines.push("}  // namespace skir_internal");
     lines.push("");
   } else {
     lines.push("}  // namespace testing");

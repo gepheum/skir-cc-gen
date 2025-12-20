@@ -12,9 +12,9 @@ cc_library(
 )
 
 cc_library(
-    name = "soia",
-    srcs = ["soia.cc"],
-    hdrs = ["soia.h"],
+    name = "skir",
+    srcs = ["skir.cc"],
+    hdrs = ["skir.h"],
     # When changing the dependencies, make sure to modify client/BUILD.bazel
     deps = [
         "@abseil-cpp//absl/base",
@@ -32,11 +32,11 @@ cc_library(
 )
 
 cc_test(
-    name = "soia.test",
+    name = "skir.test",
     size = "small",
-    srcs = ["soia.test.cc"],
+    srcs = ["skir.test.cc"],
     deps = [
-        ":soia",
+        ":skir",
         ":reserializer.testing",
         "@abseil-cpp//absl/container:flat_hash_set",
         "@abseil-cpp//absl/status",
@@ -49,13 +49,13 @@ cc_test(
 )
 
 cc_library(
-    name = "soia.testing",
+    name = "skir.testing",
     testonly = True,
     srcs = [],
-    hdrs = ["soia.testing.h"],
+    hdrs = ["skir.testing.h"],
     # When changing the dependencies, make sure to modify client/BUILD.bazel
     deps = [
-        ":soia",
+        ":skir",
         "@abseil-cpp//absl/base",
         "@abseil-cpp//absl/log:die_if_null",
         "@googletest//:gtest",
@@ -63,13 +63,13 @@ cc_library(
 )
 
 cc_test(
-    name = "soia_service.test",
+    name = "skir_service.test",
     size = "small",
-    srcs = ["soia_service.test.cc"],
+    srcs = ["skir_service.test.cc"],
     deps = [
-        ":soia",
-        ":soia.testing",
-        ":soiagen",
+        ":skir",
+        ":skir.testing",
+        ":skirout",
         "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/status:statusor",
@@ -81,23 +81,23 @@ cc_test(
 )
 
 cc_library(
-    name = "soiagen",
-    srcs = glob(["soiagen/**/*.cc"]),
-    hdrs = glob(["soiagen/**/*.h"]),
+    name = "skirout",
+    srcs = glob(["skirout/**/*.cc"]),
+    hdrs = glob(["skirout/**/*.h"]),
     deps = [
-        ":soia",
+        ":skir",
     ],
 )
 
 cc_test(
-    name = "soiagen.test",
+    name = "skirout.test",
     size = "small",
-    srcs = ["soiagen.test.cc"],
+    srcs = ["skirout.test.cc"],
     deps = [
         ":reserializer.testing",
-        ":soia.testing",
-        ":soia",
-        ":soiagen",
+        ":skir.testing",
+        ":skir",
+        ":skirout",
         "@abseil-cpp//absl/container:flat_hash_set",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:status_matchers",
@@ -109,12 +109,12 @@ cc_test(
 )
 
 cc_test(
-    name = "soia_goldens.test",
+    name = "skir_goldens.test",
     size = "small",
-    srcs = ["soia_goldens.test.cc"],
+    srcs = ["skir_goldens.test.cc"],
     deps = [
-        ":soia",
-        ":soiagen",
+        ":skir",
+        ":skirout",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",

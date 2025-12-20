@@ -1,5 +1,5 @@
-import JsonValue from "./enums.soia";
-import Point from "./structs.soia";
+import JsonValue from "./enums.skir";
+import Point from "./structs.skir";
 
 method MyProcedure(Point): JsonValue;
 

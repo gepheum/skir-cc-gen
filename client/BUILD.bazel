@@ -1,7 +1,7 @@
 cc_library(
-    name = "soia",
-    srcs = ["soia.cc"],
-    hdrs = ["soia.h"],
+    name = "skir",
+    srcs = ["skir.cc"],
+    hdrs = ["skir.h"],
     deps = [
         "@abseil-cpp//absl/base",
         "@abseil-cpp//absl/container:flat_hash_map",
@@ -19,12 +19,12 @@ cc_library(
 )
 
 cc_library(
-    name = "soia.testing",
+    name = "skir.testing",
     testonly = True,
     srcs = [],
-    hdrs = ["soia.testing.h"],
+    hdrs = ["skir.testing.h"],
     deps = [
-        ":soia",
+        ":skir",
         "@abseil-cpp//absl/base",
         "@abseil-cpp//absl/log:die_if_null",
         "@googletest//:gtest",

@@ -14,33 +14,33 @@
 #include "absl/strings/str_cat.h"
 #include "gmock/gmock.h"
 #include "httplib.h"
-#include "soia.h"
-#include "soiagen/methods.h"
-#include "soiagen/methods.testing.h"
+#include "skir.h"
+#include "skirout/methods.h"
+#include "skirout/methods.testing.h"
 
 namespace {
 using ::absl_testing::IsOkAndHolds;
-using ::soia::service::HttpHeaders;
-using ::soia::service::InstallServiceOnHttplibServer;
-using ::soia::service::InvokeRemote;
-using ::soia::service::MakeHttplibClient;
-using ::soiagen_methods::ListUsers;
-using ::soiagen_methods::ListUsersRequest;
-using ::soiagen_methods::ListUsersResponse;
-using ::soiagen_methods::User;
+using ::skir::service::HttpHeaders;
+using ::skir::service::InstallServiceOnHttplibServer;
+using ::skir::service::InvokeRemote;
+using ::skir::service::MakeHttplibClient;
+using ::skirout_methods::ListUsers;
+using ::skirout_methods::ListUsersRequest;
+using ::skirout_methods::ListUsersResponse;
+using ::skirout_methods::User;
 using ::testing::Contains;
 using ::testing::ElementsAre;
 using ::testing::Pair;
-using ::testing::soiagen::StructIs;
+using ::testing::skirout::StructIs;
 
 class ServiceImpl {
  public:
-  using methods = std::tuple<soiagen_methods::ListUsers>;
+  using methods = std::tuple<skirout_methods::ListUsers>;
 
   absl::StatusOr<ListUsersResponse> operator()(
       ListUsers, ListUsersRequest request,
-      const soia::service::HttpHeaders& request_headers,
-      soia::service::HttpHeaders& response_headers) const {
+      const skir::service::HttpHeaders& request_headers,
+      skir::service::HttpHeaders& response_headers) const {
     if (request.country.empty()) {
       response_headers.Insert("X-foo", "bar");
       return absl::UnknownError("no country specified");
@@ -69,7 +69,7 @@ class ServiceImplNoMethod {
   using methods = std::tuple<>;
 };
 
-TEST(SoiaServiceTest, TestServerAndClient) {
+TEST(SkirServiceTest, TestServerAndClient) {
   constexpr int kPort = 8787;
 
   httplib::Server server;
@@ -89,7 +89,7 @@ TEST(SoiaServiceTest, TestServerAndClient) {
   server.wait_until_ready();
 
   httplib::Client client("localhost", kPort);
-  std::unique_ptr<soia::service::Client> soia_client =
+  std::unique_ptr<skir::service::Client> skir_client =
       MakeHttplibClient(&client, "/myapi");
 
   HttpHeaders request_headers;
@@ -97,7 +97,7 @@ TEST(SoiaServiceTest, TestServerAndClient) {
   HttpHeaders response_headers;
   response_headers.Insert("zoo", "rab");
   absl::StatusOr<ListUsersResponse> response =
-      InvokeRemote(*soia_client, ListUsers(), ListUsersRequest{.country = "AU"},
+      InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{.country = "AU"},
                    request_headers, &response_headers);
 
   EXPECT_THAT(response, IsOkAndHolds(StructIs<ListUsersResponse>{
@@ -109,7 +109,7 @@ TEST(SoiaServiceTest, TestServerAndClient) {
               Contains(Pair("foo", ElementsAre("bar"))));
 
   EXPECT_THAT(
-      InvokeRemote(*soia_client, ListUsers(), ListUsersRequest{},
+      InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{},
                    request_headers, &response_headers)
           .status(),
       absl::UnknownError(
@@ -119,9 +119,9 @@ TEST(SoiaServiceTest, TestServerAndClient) {
               Contains(Pair("x-foo", ElementsAre("bar"))));
 
   EXPECT_THAT(
-      InvokeRemote(*soia_client, soiagen_methods::True(), "", {}).status(),
+      InvokeRemote(*skir_client, skirout_methods::True(), "", {}).status(),
       absl::UnknownError("HTTP response status 400: bad request: method not "
-                         "found: True; number: 2615726"));
+                         "found: True; number: 2192885963"));
 
   // Send GET requests.
 
@@ -151,29 +151,29 @@ TEST(SoiaServiceTest, TestServerAndClient) {
     EXPECT_EQ(
         result->body,
         "{\n  \"methods\": [\n    {\n      \"method\": \"ListUsers\",\n      "
-        "\"number\": 770621418,\n      \"request\": {\n        \"type\": {\n   "
+        "\"number\": 487705325,\n      \"request\": {\n        \"type\": {\n   "
         "       \"kind\": \"record\",\n          \"value\": "
-        "\"methods.soia:ListUsersRequest\"\n        },\n        \"records\": "
+        "\"methods.skir:ListUsersRequest\"\n        },\n        \"records\": "
         "[\n          {\n            \"kind\": \"struct\",\n            "
-        "\"id\": \"methods.soia:ListUsersRequest\",\n            \"fields\": "
+        "\"id\": \"methods.skir:ListUsersRequest\",\n            \"fields\": "
         "[\n              {\n                \"name\": \"country\",\n          "
         "      \"number\": 0,\n                \"type\": {\n                  "
         "\"kind\": \"primitive\",\n                  \"value\": \"string\"\n   "
         "             }\n              }\n            ]\n          }\n        "
         "]\n      },\n      \"response\": {\n        \"type\": {\n          "
         "\"kind\": \"record\",\n          \"value\": "
-        "\"methods.soia:ListUsersResponse\"\n        },\n        \"records\": "
+        "\"methods.skir:ListUsersResponse\"\n        },\n        \"records\": "
         "[\n          {\n            \"kind\": \"struct\",\n            "
-        "\"id\": \"methods.soia:ListUsersResponse\",\n            \"fields\": "
+        "\"id\": \"methods.skir:ListUsersResponse\",\n            \"fields\": "
         "[\n              {\n                \"name\": \"users\",\n            "
         "    \"number\": 0,\n                \"type\": {\n                  "
         "\"kind\": \"array\",\n                  \"value\": {\n                "
         "    \"item\": {\n                      \"kind\": \"record\",\n        "
-        "              \"value\": \"methods.soia:User\"\n                    "
+        "              \"value\": \"methods.skir:User\"\n                    "
         "},\n                    \"key_extractor\": \"id\"\n                  "
         "}\n                }\n              }\n            ]\n          },\n  "
         "        {\n            \"kind\": \"struct\",\n            \"id\": "
-        "\"methods.soia:User\",\n            \"fields\": [\n              {\n  "
+        "\"methods.skir:User\",\n            \"fields\": [\n              {\n  "
         "              \"name\": \"id\",\n                \"number\": 0,\n     "
         "           \"type\": {\n                  \"kind\": \"primitive\",\n  "
         "                \"value\": \"uint64\"\n                }\n            "
@@ -195,7 +195,7 @@ TEST(SoiaServiceTest, TestServerAndClient) {
   server_thread.join();
 }
 
-TEST(SoiaServiceTest, NoMethod) {
+TEST(SkirServiceTest, NoMethod) {
   constexpr int kPort = 8787;
 
   httplib::Server server;

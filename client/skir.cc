@@ -1,4 +1,4 @@
-#include "soia.h"
+#include "skir.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -17,12 +17,11 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
-#include "absl/strings/str_replace.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 
-namespace soia_internal {
+namespace skir_internal {
 namespace {
 
 inline const char* cast(const uint8_t* ptr) { return (const char*)ptr; }
@@ -806,7 +805,7 @@ inline void AppendLengthPrefix(size_t length, ByteSink& out) {
     out.PushUnsafe(kWire, 233, length & 0xFF, length >> 8, length >> 16,
                    length >> 24);
   } else {
-    LOG(FATAL) << "overflow error while encoding soia value; length: "
+    LOG(FATAL) << "overflow error while encoding skir value; length: "
                << length;
   }
 }
@@ -959,6 +958,39 @@ inline void SkipValues(ByteSource& source, size_t n) {
     if (source.error) return;
     SkipValue(source);
   }
+}
+
+struct ReflectionStructOrEnum {
+  std::string kind;
+  std::string id;
+  std::string doc;
+  skir::keyed_items<::skir::reflection::Field, ::skir::reflection::get_name> fields;
+  skir::keyed_items<::skir::reflection::Variant, ::skir::reflection::get_name> variants;
+  std::vector<int> removed_numbers;
+};
+
+template <typename FieldOrVariant>
+void AppendFieldOrVariant(const FieldOrVariant& input, ReadableJson& out) {
+  JsonObjectWriter(&out)
+      .Write("name", input.name)
+      .WriteEvenIfDefault("number", input.number)
+      .Write("type", input.type)
+      .Write("doc", input.doc);
+}
+
+template <typename FieldOrVariant>
+void ParseFieldOrVariant(JsonTokenizer& tokenizer, FieldOrVariant& out) {
+  if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
+    static const auto* kParser =
+        (new StructJsonObjectParser<FieldOrVariant>())
+            ->AddField("name", &FieldOrVariant::name)
+            ->AddField("number", &FieldOrVariant::number)
+            ->AddField("type", &FieldOrVariant::type)
+            ->AddField("doc", &FieldOrVariant::doc);
+    kParser->Parse(tokenizer, out);
+    return;
+  }
+  tokenizer.mutable_state().PushUnexpectedTokenError("'{'");
 }
 }  // namespace
 
@@ -1457,7 +1489,7 @@ void StringAdapter::AppendJson(const std::string& input, std::string& out) {
     return;
   }
   out += '"';
-  soia_internal::EscapeJsonString(input, out);
+  skir_internal::EscapeJsonString(input, out);
   out += '"';
 }
 
@@ -1513,7 +1545,7 @@ void StringAdapter::Append(const std::string& input, ByteSink& out) {
       data[prefix_end_offset - 2] = encoded_length >> 16;
       data[prefix_end_offset - 1] = encoded_length >> 24;
     } else {
-      LOG(FATAL) << "overflow error while encoding soia value; length: "
+      LOG(FATAL) << "overflow error while encoding skir value; length: "
                  << input.length();
     }
   }
@@ -1549,30 +1581,30 @@ void StringAdapter::Parse(ByteSource& source, std::string& out) {
   }
 }
 
-void BytesAdapter::Append(const soia::ByteString& input, DenseJson& out) {
+void BytesAdapter::Append(const skir::ByteString& input, DenseJson& out) {
   absl::StrAppend(&out.out, "\"", absl::Base64Escape(input.as_string()), "\"");
 }
 
-void BytesAdapter::Append(const soia::ByteString& input, ReadableJson& out) {
+void BytesAdapter::Append(const skir::ByteString& input, ReadableJson& out) {
   absl::StrAppend(&out.out, "\"hex:", absl::BytesToHexString(input.as_string()),
                   "\"");
 }
 
-void BytesAdapter::Append(const soia::ByteString& input, DebugString& out) {
-  out.out += "soia::ByteString({";
+void BytesAdapter::Append(const skir::ByteString& input, DebugString& out) {
+  out.out += "skir::ByteString({";
   const absl::string_view bytes = input.as_string();
   for (size_t i = 0; i < bytes.length(); ++i) {
     if (i != 0) {
       out.out += {',', ' '};
     }
     const uint8_t byte = static_cast<uint8_t>(bytes[i]);
-    out.out += {'0', 'x', soia_internal::kHexDigits[byte >> 4],
-                soia_internal::kHexDigits[byte & 0xf]};
+    out.out += {'0', 'x', skir_internal::kHexDigits[byte >> 4],
+                skir_internal::kHexDigits[byte & 0xf]};
   }
   out.out += "})";
 }
 
-void BytesAdapter::Append(const soia::ByteString& input, ByteSink& out) {
+void BytesAdapter::Append(const skir::ByteString& input, ByteSink& out) {
   if (input.empty()) {
     out.Push(244);
   } else {
@@ -1581,7 +1613,7 @@ void BytesAdapter::Append(const soia::ByteString& input, ByteSink& out) {
   }
 }
 
-void BytesAdapter::Parse(JsonTokenizer& tokenizer, soia::ByteString& out) {
+void BytesAdapter::Parse(JsonTokenizer& tokenizer, skir::ByteString& out) {
   switch (tokenizer.state().token_type) {
     case JsonTokenType::kString: {
       const std::string& string_value = tokenizer.state().string_value;
@@ -1609,7 +1641,7 @@ void BytesAdapter::Parse(JsonTokenizer& tokenizer, soia::ByteString& out) {
   }
 }
 
-void BytesAdapter::Parse(ByteSource& source, soia::ByteString& out) {
+void BytesAdapter::Parse(ByteSource& source, skir::ByteString& out) {
   const uint8_t wire = source.ReadWire();
   switch (wire) {
     case 0:
@@ -1636,30 +1668,30 @@ void BytesAdapter::Parse(ByteSource& source, soia::ByteString& out) {
 // BEGIN serialization of type descriptors
 // =============================================================================
 
-void ReflectionTypeAdapter::Append(const soia::reflection::Type& input,
+void ReflectionTypeAdapter::Append(const skir::reflection::Type& input,
                                    ReadableJson& out) {
   absl::StrAppend(&out.out, "{", out.new_line.Indent());
   struct visitor {
     ReadableJson& out;
-    void operator()(soia::reflection::PrimitiveType primitive) {
+    void operator()(skir::reflection::PrimitiveType primitive) {
       absl::StrAppend(&out.out, "\"kind\": \"primitive\",", *out.new_line,
                       "\"value\": ");
-      soia_internal::Append(primitive, out);
+      skir_internal::Append(primitive, out);
     }
-    void operator()(const soia::reflection::OptionalType& optional) {
+    void operator()(const skir::reflection::OptionalType& optional) {
       absl::StrAppend(&out.out, "\"kind\": \"optional\",", *out.new_line,
                       "\"value\": ");
-      soia_internal::Append(optional, out);
+      skir_internal::Append(optional, out);
     }
-    void operator()(const soia::reflection::ArrayType& array) {
+    void operator()(const skir::reflection::ArrayType& array) {
       absl::StrAppend(&out.out, "\"kind\": \"array\",", *out.new_line,
                       "\"value\": ");
-      soia_internal::Append(array, out);
+      skir_internal::Append(array, out);
     }
-    void operator()(const soia::reflection::RecordType& record) {
+    void operator()(const skir::reflection::RecordType& record) {
       absl::StrAppend(&out.out, "\"kind\": \"record\",", *out.new_line,
                       "\"value\": ");
-      soia_internal::Append(record, out);
+      skir_internal::Append(record, out);
     }
   };
   std::visit(visitor{out}, input);
@@ -1667,14 +1699,14 @@ void ReflectionTypeAdapter::Append(const soia::reflection::Type& input,
 }
 
 void ReflectionTypeAdapter::Parse(JsonTokenizer& tokenizer,
-                                  soia::reflection::Type& out) {
+                                  skir::reflection::Type& out) {
   if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
     static const auto* kParser =
-        (new EnumJsonObjectParser<soia::reflection::Type>())
-            ->AddVariantField<soia::reflection::PrimitiveType>("primitive")
-            ->AddVariantField<soia::reflection::OptionalType>("optional")
-            ->AddVariantField<soia::reflection::ArrayType>("array")
-            ->AddVariantField<soia::reflection::RecordType>("record");
+        (new EnumJsonObjectParser<skir::reflection::Type>())
+            ->AddVariantField<skir::reflection::PrimitiveType>("primitive")
+            ->AddVariantField<skir::reflection::OptionalType>("optional")
+            ->AddVariantField<skir::reflection::ArrayType>("array")
+            ->AddVariantField<skir::reflection::RecordType>("record");
     kParser->Parse(tokenizer, out);
   } else {
     tokenizer.mutable_state().PushUnexpectedTokenError("'}'");
@@ -1682,41 +1714,41 @@ void ReflectionTypeAdapter::Parse(JsonTokenizer& tokenizer,
 }
 
 void ReflectionPrimitiveTypeAdapter::Append(
-    soia::reflection::PrimitiveType input, ReadableJson& out) {
+    skir::reflection::PrimitiveType input, ReadableJson& out) {
   switch (input) {
-    case soia::reflection::PrimitiveType::kBool: {
+    case skir::reflection::PrimitiveType::kBool: {
       out.out += "\"bool\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kInt32: {
+    case skir::reflection::PrimitiveType::kInt32: {
       out.out += "\"int32\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kInt64: {
+    case skir::reflection::PrimitiveType::kInt64: {
       out.out += "\"int64\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kUint64: {
+    case skir::reflection::PrimitiveType::kUint64: {
       out.out += "\"uint64\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kFloat32: {
+    case skir::reflection::PrimitiveType::kFloat32: {
       out.out += "\"float32\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kFloat64: {
+    case skir::reflection::PrimitiveType::kFloat64: {
       out.out += "\"float64\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kTimestamp: {
+    case skir::reflection::PrimitiveType::kTimestamp: {
       out.out += "\"timestamp\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kString: {
+    case skir::reflection::PrimitiveType::kString: {
       out.out += "\"string\"";
       break;
     }
-    case soia::reflection::PrimitiveType::kBytes: {
+    case skir::reflection::PrimitiveType::kBytes: {
       out.out += "\"bytes\"";
       break;
     }
@@ -1724,18 +1756,18 @@ void ReflectionPrimitiveTypeAdapter::Append(
 }
 
 void ReflectionPrimitiveTypeAdapter::Parse(
-    JsonTokenizer& tokenizer, soia::reflection::PrimitiveType& out) {
+    JsonTokenizer& tokenizer, skir::reflection::PrimitiveType& out) {
   static const auto* kMap =
-      new ::absl::flat_hash_map<std::string, soia::reflection::PrimitiveType>({
-          {"bool", soia::reflection::PrimitiveType::kBool},
-          {"int32", soia::reflection::PrimitiveType::kInt32},
-          {"int64", soia::reflection::PrimitiveType::kInt64},
-          {"uint64", soia::reflection::PrimitiveType::kUint64},
-          {"float32", soia::reflection::PrimitiveType::kFloat32},
-          {"float64", soia::reflection::PrimitiveType::kFloat64},
-          {"timestamp", soia::reflection::PrimitiveType::kTimestamp},
-          {"string", soia::reflection::PrimitiveType::kString},
-          {"bytes", soia::reflection::PrimitiveType::kBytes},
+      new ::absl::flat_hash_map<std::string, skir::reflection::PrimitiveType>({
+          {"bool", skir::reflection::PrimitiveType::kBool},
+          {"int32", skir::reflection::PrimitiveType::kInt32},
+          {"int64", skir::reflection::PrimitiveType::kInt64},
+          {"uint64", skir::reflection::PrimitiveType::kUint64},
+          {"float32", skir::reflection::PrimitiveType::kFloat32},
+          {"float64", skir::reflection::PrimitiveType::kFloat64},
+          {"timestamp", skir::reflection::PrimitiveType::kTimestamp},
+          {"string", skir::reflection::PrimitiveType::kString},
+          {"bytes", skir::reflection::PrimitiveType::kBytes},
       });
   if (tokenizer.state().token_type == JsonTokenType::kString) {
     const auto it = kMap->find(tokenizer.state().string_value);
@@ -1757,139 +1789,140 @@ void ReflectionPrimitiveTypeAdapter::Parse(
 }
 
 void ReflectionOptionalTypeAdapter::Append(
-    const soia::reflection::OptionalType& input, ReadableJson& out) {
-  TypeAdapter<soia::reflection::Type>::Append(*input.other, out);
+    const skir::reflection::OptionalType& input, ReadableJson& out) {
+  TypeAdapter<skir::reflection::Type>::Append(*input.other, out);
 }
 
 void ReflectionOptionalTypeAdapter::Parse(JsonTokenizer& tokenizer,
-                                          soia::reflection::OptionalType& out) {
-  TypeAdapter<soia::reflection::Type>::Parse(tokenizer, *out.other);
+                                          skir::reflection::OptionalType& out) {
+  TypeAdapter<skir::reflection::Type>::Parse(tokenizer, *out.other);
 }
 
 void ReflectionRecordTypeAdapter::Append(
-    const soia::reflection::RecordType& input, ReadableJson& out) {
+    const skir::reflection::RecordType& input, ReadableJson& out) {
   TypeAdapter<std::string>::Append(input.record_id, out);
 }
 
 void ReflectionRecordTypeAdapter::Parse(JsonTokenizer& tokenizer,
-                                        soia::reflection::RecordType& out) {
+                                        skir::reflection::RecordType& out) {
   TypeAdapter<std::string>::Parse(tokenizer, out.record_id);
 }
 
 void ReflectionArrayTypeAdapter::Append(
-    const soia::reflection::ArrayType& input, ReadableJson& out) {
+    const skir::reflection::ArrayType& input, ReadableJson& out) {
   JsonObjectWriter(&out)
       .Write("item", input.item)
       .Write("key_extractor", input.key_extractor);
 }
 
 void ReflectionArrayTypeAdapter::Parse(JsonTokenizer& tokenizer,
-                                       soia::reflection::ArrayType& out) {
+                                       skir::reflection::ArrayType& out) {
   if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
     static const auto* kParser =
-        (new StructJsonObjectParser<soia::reflection::ArrayType>())
-            ->AddField("item", &soia::reflection::ArrayType::item)
+        (new StructJsonObjectParser<skir::reflection::ArrayType>())
+            ->AddField("item", &skir::reflection::ArrayType::item)
             ->AddField("key_extractor",
-                       &soia::reflection::ArrayType::key_extractor);
+                       &skir::reflection::ArrayType::key_extractor);
     kParser->Parse(tokenizer, out);
     return;
   }
   tokenizer.mutable_state().PushUnexpectedTokenError("'{'");
 }
 
-void ReflectionRecordKindAdapter::Append(
-    const soia::reflection::RecordKind& input, ReadableJson& out) {
-  switch (input) {
-    case soia::reflection::RecordKind::kStruct: {
-      out.out += "\"struct\"";
-      break;
-    }
-    case soia::reflection::RecordKind::kEnum: {
-      out.out += "\"enum\"";
-      break;
-    }
-  }
+void ReflectionFieldOrVariantAdapter::Append(
+    const skir::reflection::Field& input, ReadableJson& out) {
+  AppendFieldOrVariant(input, out);
 }
 
-void ReflectionRecordKindAdapter::Parse(JsonTokenizer& tokenizer,
-                                        soia::reflection::RecordKind& out) {
-  if (tokenizer.state().token_type == JsonTokenType::kString) {
-    const std::string& string_value = tokenizer.state().string_value;
-    if (string_value == "struct") {
-      out = soia::reflection::RecordKind::kStruct;
-      tokenizer.Next();
-      return;
-    } else if (string_value == "enum") {
-      out = soia::reflection::RecordKind::kEnum;
-      tokenizer.Next();
-      return;
-    }
-  }
-  tokenizer.mutable_state().PushUnexpectedTokenError(
-      absl::StrCat("one of: [\"struct\", \"enum\"]"));
+void ReflectionFieldOrVariantAdapter::Append(
+    const skir::reflection::Variant& input, ReadableJson& out) {
+  AppendFieldOrVariant(input, out);
 }
 
-void ReflectionFieldAdapter::Append(const soia::reflection::Field& input,
-                                    ReadableJson& out) {
-  JsonObjectWriter(&out)
-      .Write("name", input.name)
-      .WriteEvenIfDefault("number", input.number)
-      .Write("type", input.type);
+void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer, skir::reflection::Field& out) {
+  ParseFieldOrVariant(tokenizer, out);
 }
 
-void ReflectionFieldAdapter::Parse(JsonTokenizer& tokenizer,
-                                   soia::reflection::Field& out) {
-  if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
-    static const auto* kParser =
-        (new StructJsonObjectParser<soia::reflection::Field>())
-            ->AddField("name", &soia::reflection::Field::name)
-            ->AddField("number", &soia::reflection::Field::number)
-            ->AddField("type", &soia::reflection::Field::type);
-    kParser->Parse(tokenizer, out);
-    return;
-  }
-  tokenizer.mutable_state().PushUnexpectedTokenError("'{'");
+void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer, skir::reflection::Variant& out) {
+  ParseFieldOrVariant(tokenizer, out);
 }
 
-void ReflectionRecordAdapter::Append(const soia::reflection::Record& input,
+void ReflectionRecordAdapter::Append(const skir::reflection::Record& input,
                                      ReadableJson& out) {
-  JsonObjectWriter(&out)
-      .Write("kind", input.kind)
-      .Write("id", input.id)
-      .Write("fields", input.fields)
-      .Write("removed_numbers", input.removed_numbers);
+  struct visitor {
+    ReadableJson& out;
+
+    void operator()(const skir::reflection::Struct& record) const {
+      static const std::string* kKindStr = new std::string("struct");
+      JsonObjectWriter(&out)
+          .Write("kind", *kKindStr)
+          .Write("id", record.id)
+          .Write("doc", record.doc)
+          .Write("fields", record.fields)
+          .Write("removed_numbers", record.removed_numbers);
+    }
+
+    void operator()(const skir::reflection::Enum& record) const {
+      static const std::string* kKindStr = new std::string("enum");
+      JsonObjectWriter(&out)
+          .Write("kind", *kKindStr)
+          .Write("id", record.id)
+          .Write("doc", record.doc)
+          .Write("variants", record.variants)
+          .Write("removed_numbers", record.removed_numbers);
+    }
+  };
+  std::visit(visitor{out}, input);
 }
 
 void ReflectionRecordAdapter::Parse(JsonTokenizer& tokenizer,
-                                    soia::reflection::Record& out) {
+                                    skir::reflection::Record& out) {
   if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
     static const auto* kParser =
-        (new StructJsonObjectParser<soia::reflection::Record>())
-            ->AddField("kind", &soia::reflection::Record::kind)
-            ->AddField("id", &soia::reflection::Record::id)
-            ->AddField("fields", &soia::reflection::Record::fields)
+        (new StructJsonObjectParser<::skir_internal::ReflectionStructOrEnum>())
+            ->AddField("kind", &::skir_internal::ReflectionStructOrEnum::kind)
+            ->AddField("id", &::skir_internal::ReflectionStructOrEnum::id)
+            ->AddField("doc", &::skir_internal::ReflectionStructOrEnum::doc)
+            ->AddField("fields", &::skir_internal::ReflectionStructOrEnum::fields)
+            ->AddField("variants", &::skir_internal::ReflectionStructOrEnum::variants)
             ->AddField("removed_numbers",
-                       &soia::reflection::Record::removed_numbers);
-    kParser->Parse(tokenizer, out);
+                       &::skir_internal::ReflectionStructOrEnum::removed_numbers);
+    ::skir_internal::ReflectionStructOrEnum struct_or_enum;
+    kParser->Parse(tokenizer, struct_or_enum);
+    if (struct_or_enum.kind == "struct") {
+      skir::reflection::Struct record;
+      record.id = std::move(struct_or_enum.id);
+      record.doc = std::move(struct_or_enum.doc);
+      record.fields = std::move(struct_or_enum.fields);
+      record.removed_numbers = std::move(struct_or_enum.removed_numbers);
+      out = std::move(record);
+    } else {
+      skir::reflection::Enum record;
+      record.id = std::move(struct_or_enum.id);
+      record.doc = std::move(struct_or_enum.doc);
+      record.variants = std::move(struct_or_enum.variants);
+      record.removed_numbers = std::move(struct_or_enum.removed_numbers);
+      out = std::move(record);
+    }
     return;
   }
   tokenizer.mutable_state().PushUnexpectedTokenError("'{'");
 }
 
 void ReflectionTypeDescriptorAdapter::Append(
-    const soia::reflection::TypeDescriptor& input, ReadableJson& out) {
+    const skir::reflection::TypeDescriptor& input, ReadableJson& out) {
   JsonObjectWriter(&out)
       .Write("type", input.type)
       .WriteEvenIfDefault("records", input.records);
 }
 
 void ReflectionTypeDescriptorAdapter::Parse(
-    JsonTokenizer& tokenizer, soia::reflection::TypeDescriptor& out) {
+    JsonTokenizer& tokenizer, skir::reflection::TypeDescriptor& out) {
   if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
     static const auto* kParser =
-        (new StructJsonObjectParser<soia::reflection::TypeDescriptor>())
-            ->AddField("type", &soia::reflection::TypeDescriptor::type)
-            ->AddField("records", &soia::reflection::TypeDescriptor::records);
+        (new StructJsonObjectParser<skir::reflection::TypeDescriptor>())
+            ->AddField("type", &skir::reflection::TypeDescriptor::type)
+            ->AddField("records", &skir::reflection::TypeDescriptor::records);
     kParser->Parse(tokenizer, out);
     return;
   }
@@ -1927,7 +1960,7 @@ void EnumJsonObjectParserImpl::Parse(JsonTokenizer& tokenizer,
     if (!kind_seen && object_reader.name() == "kind") {
       kind_seen = true;
       std::string kind;
-      ::soia_internal::Parse(tokenizer, kind);
+      ::skir_internal::Parse(tokenizer, kind);
       const auto it = fields_.find(kind);
       if (it == fields_.end()) {
         continue;
@@ -2482,7 +2515,7 @@ absl::Status RequestBody::Parse(absl::string_view request_body) {
       first_char == '\r' || first_char == '\n') {
     // A JSON object
     JsonTokenizer tokenizer(request_body.begin(), request_body.end(),
-                            soia::UnrecognizedFieldsPolicy::kDrop);
+                            skir::UnrecognizedFieldsPolicy::kDrop);
     if (tokenizer.Next() != JsonTokenType::kLeftCurlyBracket) {
       return absl::InvalidArgumentError("expected: JSON object");
     }
@@ -2535,43 +2568,39 @@ absl::Status RequestBody::Parse(absl::string_view request_body) {
   }
 }
 
-std::string MethodListToJson(const std::vector<MethodDescriptor>& methods) {
-  std::string result = "{\n  \"methods\": [";
-  for (size_t i = 0; i < methods.size(); ++i) {
-    const MethodDescriptor& method = methods[i];
-    absl::StrAppend(&result, (i == 0 ? "" : ","),
-                    "\n    {\n      \"method\": \"", method.name,
-                    "\",\n      \"number\": ", method.number,
-                    ",\n      \"request\": ",
-                    absl::StrReplaceAll(method.request_descriptor_json,
-                                        {{"\n", "\n      "}}),
-                    ",\n      \"response\": ",
-                    absl::StrReplaceAll(method.response_descriptor_json,
-                                        {{"\n", "\n      "}}),
-                    "\n    }");
-  }
-  return result += methods.empty() ? "]\n}" : "\n  ]\n}";
+void MethodDescriptorAdapter::Append(const MethodDescriptor& input, ReadableJson& out) {
+  JsonObjectWriter(&out)
+      .Write("method", std::string(input.name))
+      .WriteEvenIfDefault("number", input.number)
+      .Write("request", input.request_descriptor_json)
+      .Write("response", input.response_descriptor_json)
+      .Write("doc", input.doc);
 }
 
-}  // namespace soia_internal
+void MethodListAdapter::Append(const MethodList& input, ReadableJson& out) {
+  JsonObjectWriter(&out)
+      .WriteEvenIfDefault("methods", input.methods);
+}
 
-namespace soia {
+}  // namespace skir_internal
+
+namespace skir {
 namespace reflection {
 
 std::string TypeDescriptor::AsJson() const {
-  soia_internal::ReadableJson json;
-  soia_internal::Append(*this, json);
+  skir_internal::ReadableJson json;
+  skir_internal::Append(*this, json);
   return std::move(json).out;
 }
 
 absl::StatusOr<TypeDescriptor> TypeDescriptor::FromJson(
     absl::string_view json) {
-  soia_internal::JsonTokenizer tokenizer(json.begin(), json.end(),
+  skir_internal::JsonTokenizer tokenizer(json.begin(), json.end(),
                                          UnrecognizedFieldsPolicy::kDrop);
   tokenizer.Next();
   TypeDescriptor result;
-  soia_internal::Parse(tokenizer, result);
-  if (tokenizer.state().token_type != soia_internal::JsonTokenType::kStrEnd) {
+  skir_internal::Parse(tokenizer, result);
+  if (tokenizer.state().token_type != skir_internal::JsonTokenType::kStrEnd) {
     tokenizer.mutable_state().PushUnexpectedTokenError("end");
   }
   const absl::Status status = tokenizer.state().status;
@@ -2619,9 +2648,9 @@ absl::StatusOr<std::string> DecodeUrlQueryString(
           goto invalid_escape_sequence;
         }
         const int hi =
-            soia_internal::HexDigitToInt(encoded_query_string[i + 1]);
+            skir_internal::HexDigitToInt(encoded_query_string[i + 1]);
         const int lo =
-            soia_internal::HexDigitToInt(encoded_query_string[i + 2]);
+            skir_internal::HexDigitToInt(encoded_query_string[i + 2]);
         if (hi < 0 || lo < 0) {
           goto invalid_escape_sequence;
         }
@@ -2646,4 +2675,4 @@ invalid_escape_sequence:
 }
 
 }  // namespace service
-}  // namespace soia
+}  // namespace skir

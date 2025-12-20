@@ -1,4 +1,4 @@
-import JsonValue from "./enums.soia";
+import JsonValue from "./enums.skir";
 
 const ONE_CONSTANT: JsonValue = {
   kind: "array",

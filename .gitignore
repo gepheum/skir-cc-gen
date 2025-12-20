@@ -5,5 +5,5 @@ bazel-*
 dist
 e2e-test/external
 node_modules
-soiagen
+skirout
 tsconfig.tsbuildinfo
