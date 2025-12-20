@@ -964,8 +964,10 @@ struct ReflectionStructOrEnum {
   std::string kind;
   std::string id;
   std::string doc;
-  skir::keyed_items<::skir::reflection::Field, ::skir::reflection::get_name> fields;
-  skir::keyed_items<::skir::reflection::Variant, ::skir::reflection::get_name> variants;
+  skir::keyed_items<::skir::reflection::Field, ::skir::reflection::get_name>
+      fields;
+  skir::keyed_items<::skir::reflection::Variant, ::skir::reflection::get_name>
+      variants;
   std::vector<int> removed_numbers;
 };
 
@@ -1839,11 +1841,13 @@ void ReflectionFieldOrVariantAdapter::Append(
   AppendFieldOrVariant(input, out);
 }
 
-void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer, skir::reflection::Field& out) {
+void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer,
+                                            skir::reflection::Field& out) {
   ParseFieldOrVariant(tokenizer, out);
 }
 
-void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer, skir::reflection::Variant& out) {
+void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer,
+                                            skir::reflection::Variant& out) {
   ParseFieldOrVariant(tokenizer, out);
 }
 
@@ -1883,10 +1887,13 @@ void ReflectionRecordAdapter::Parse(JsonTokenizer& tokenizer,
             ->AddField("kind", &::skir_internal::ReflectionStructOrEnum::kind)
             ->AddField("id", &::skir_internal::ReflectionStructOrEnum::id)
             ->AddField("doc", &::skir_internal::ReflectionStructOrEnum::doc)
-            ->AddField("fields", &::skir_internal::ReflectionStructOrEnum::fields)
-            ->AddField("variants", &::skir_internal::ReflectionStructOrEnum::variants)
-            ->AddField("removed_numbers",
-                       &::skir_internal::ReflectionStructOrEnum::removed_numbers);
+            ->AddField("fields",
+                       &::skir_internal::ReflectionStructOrEnum::fields)
+            ->AddField("variants",
+                       &::skir_internal::ReflectionStructOrEnum::variants)
+            ->AddField(
+                "removed_numbers",
+                &::skir_internal::ReflectionStructOrEnum::removed_numbers);
     ::skir_internal::ReflectionStructOrEnum struct_or_enum;
     kParser->Parse(tokenizer, struct_or_enum);
     if (struct_or_enum.kind == "struct") {
@@ -2568,7 +2575,8 @@ absl::Status RequestBody::Parse(absl::string_view request_body) {
   }
 }
 
-void MethodDescriptorAdapter::Append(const MethodDescriptor& input, ReadableJson& out) {
+void MethodDescriptorAdapter::Append(const MethodDescriptor& input,
+                                     ReadableJson& out) {
   JsonObjectWriter(&out)
       .Write("method", std::string(input.name))
       .WriteEvenIfDefault("number", input.number)
@@ -2578,8 +2586,7 @@ void MethodDescriptorAdapter::Append(const MethodDescriptor& input, ReadableJson
 }
 
 void MethodListAdapter::Append(const MethodList& input, ReadableJson& out) {
-  JsonObjectWriter(&out)
-      .WriteEvenIfDefault("methods", input.methods);
+  JsonObjectWriter(&out).WriteEvenIfDefault("methods", input.methods);
 }
 
 }  // namespace skir_internal

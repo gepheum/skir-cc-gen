@@ -1,4 +1,9 @@
-import type { Module, RecordKey, RecordLocation, ResolvedType } from "skir-internal";
+import type {
+  Module,
+  RecordKey,
+  RecordLocation,
+  ResolvedType,
+} from "skir-internal";
 
 /**
  * Transforms a type found in a `.skir` file into a C++ type.

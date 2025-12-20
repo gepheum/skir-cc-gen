@@ -1,4 +1,10 @@
-import { Field, Module, RecordKey, RecordLocation, ResolvedType } from "skir-internal";
+import {
+  Field,
+  Module,
+  RecordKey,
+  RecordLocation,
+  ResolvedType,
+} from "skir-internal";
 
 /**
  * In C++, a struct type can not refer to itself directly. The only way to create a

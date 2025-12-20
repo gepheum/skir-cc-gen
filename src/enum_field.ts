@@ -67,10 +67,7 @@ function makeUnknownField(): MutableEnumField {
 }
 
 function makeConstantField(fieldName: string, doc: Doc): MutableEnumField {
-  const lowerUnderscore = convertCase(
-    fieldName,
-    "lower_underscore",
-  );
+  const lowerUnderscore = convertCase(fieldName, "lower_underscore");
   const upperCamel = convertCase(fieldName, "UpperCamel");
   return {
     fieldName: fieldName,

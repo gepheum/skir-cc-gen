@@ -809,7 +809,9 @@ struct Variant {
 
 struct get_name {
   template <typename FieldOrVariant>
-  const std::string& operator()(const FieldOrVariant& f) { return f.name; }
+  const std::string& operator()(const FieldOrVariant& f) {
+    return f.name;
+  }
 };
 
 // Definition of a skir struct.
@@ -832,8 +834,8 @@ using Record = std::variant<Struct, Enum>;
 
 struct get_id {
   const std::string& operator()(const Record& record) const {
-    return std::visit(
-        [](const auto& r) -> const std::string& { return r.id; }, record);
+    return std::visit([](const auto& r) -> const std::string& { return r.id; },
+                      record);
   }
 };
 
@@ -1656,7 +1658,9 @@ struct ReflectionRecordTypeAdapter {
 
 struct ReflectionFieldOrVariantAdapter {
   template <typename FieldOrVariant>
-  static bool IsDefault(const FieldOrVariant& input) { return false; }
+  static bool IsDefault(const FieldOrVariant& input) {
+    return false;
+  }
 
   static void Append(const skir::reflection::Field& input, ReadableJson& out);
   static void Append(const skir::reflection::Variant& input, ReadableJson& out);
@@ -1690,8 +1694,10 @@ inline ReflectionArrayTypeAdapter GetAdapter(
     skir_type<skir::reflection::ArrayType>);
 inline ReflectionRecordTypeAdapter GetAdapter(
     skir_type<skir::reflection::RecordType>);
-inline ReflectionFieldOrVariantAdapter GetAdapter(skir_type<skir::reflection::Field>);
-inline ReflectionFieldOrVariantAdapter GetAdapter(skir_type<skir::reflection::Variant>);
+inline ReflectionFieldOrVariantAdapter GetAdapter(
+    skir_type<skir::reflection::Field>);
+inline ReflectionFieldOrVariantAdapter GetAdapter(
+    skir_type<skir::reflection::Variant>);
 inline ReflectionRecordAdapter GetAdapter(skir_type<skir::reflection::Record>);
 inline ReflectionTypeDescriptorAdapter GetAdapter(
     skir_type<skir::reflection::TypeDescriptor>);
@@ -2083,7 +2089,8 @@ class JsonObjectWriter {
     return WriteImpl(field_name, value_writer{value});
   }
 
-  JsonObjectWriter& Write(const char* absl_nonnull field_name, const ReadableJson& value) {
+  JsonObjectWriter& Write(const char* absl_nonnull field_name,
+                          const ReadableJson& value) {
     struct value_writer {
       const ReadableJson& value_;
 
@@ -2095,7 +2102,8 @@ class JsonObjectWriter {
   }
 
   template <typename value_writer_t>
-  JsonObjectWriter& WriteImpl(const char* absl_nonnull field_name, value_writer_t value_writer) {
+  JsonObjectWriter& WriteImpl(const char* absl_nonnull field_name,
+                              value_writer_t value_writer) {
     if (has_content_) {
       out_.out += ',';
       out_.out += *out_.new_line;

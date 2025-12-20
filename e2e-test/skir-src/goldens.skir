@@ -2260,7 +2260,7 @@ const UNIT_TESTS: [UnitTest] = [
             value: {
               kind: "e",
               value: "FOO",
-            }
+            },
           },
         },
         expected_dense_json: [

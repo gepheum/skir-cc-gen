@@ -1,7 +1,5 @@
 // TODO: field->variant
 // TODO: add doc to generated code
-// TODO: address warning (const int something)
-//   out/methods.h:189:34: warning: implicit conversion from 'long' to 'const int' changes value from 2192885963 to -2102081333 [-Wconstant-conversion]
 // TODO: smart indent like in Typescript generator
 
 import {
@@ -643,7 +641,9 @@ class CcLibFilesGenerator {
       source.internalMain.push("  if (already_present) return;");
       source.internalMain.push("  skir::reflection::Struct record = {");
       source.internalMain.push(`      "${recordId}",`);
-      source.internalMain.push(`      ${JSON.stringify(struct.record.doc.text)},`);
+      source.internalMain.push(
+        `      ${JSON.stringify(struct.record.doc.text)},`,
+      );
       source.internalMain.push("      {");
       for (const field of fields) {
         const ccType = typeSpeller.getCcType(field.type!, {
@@ -655,7 +655,9 @@ class CcLibFilesGenerator {
         source.internalMain.push(
           `              skir_internal::GetType<${ccType}>(),`,
         );
-        source.internalMain.push(`              ${JSON.stringify(field.doc.text)},`);
+        source.internalMain.push(
+          `              ${JSON.stringify(field.doc.text)},`,
+        );
         source.internalMain.push("          },");
       }
       source.internalMain.push("      },");
@@ -1561,7 +1563,9 @@ class CcLibFilesGenerator {
       source.internalMain.push("  if (already_present) return;");
       source.internalMain.push("  skir::reflection::Enum record = {");
       source.internalMain.push(`      "${recordId}",`);
-      source.internalMain.push(`      ${JSON.stringify(record.record.doc.text)},`);
+      source.internalMain.push(
+        `      ${JSON.stringify(record.record.doc.text)},`,
+      );
       source.internalMain.push("      {");
       for (const field of constFields) {
         if (field.isUnknownField) {
@@ -1571,7 +1575,9 @@ class CcLibFilesGenerator {
         source.internalMain.push(`              "${field.fieldName}",`);
         source.internalMain.push(`              ${field.fieldNumber},`);
         source.internalMain.push(`              absl::nullopt,`);
-        source.internalMain.push(`              ${JSON.stringify(field.doc.text)},`);
+        source.internalMain.push(
+          `              ${JSON.stringify(field.doc.text)},`,
+        );
         source.internalMain.push("          },");
       }
       for (const field of wrapperFields) {
@@ -1743,8 +1749,7 @@ class CcLibFilesGenerator {
       skirout.push(`#ifndef TESTING_skirout_${structType}`);
       skirout.push(`#define TESTING_skirout_${structType}`);
       skirout.push("template <typename ValueMatcher = decltype(_)>");
-      const functionName =
-        "Is" + convertCase(fieldName, "UpperCamel");
+      const functionName = "Is" + convertCase(fieldName, "UpperCamel");
       skirout.push(`auto ${functionName}(ValueMatcher matcher = _) {`);
       skirout.push("  using ::testing::skir_internal::EnumValueIsMatcher;");
       skirout.push(`  using Option = ::skirout::reflection::${optionType};`);
@@ -1771,7 +1776,9 @@ class CcLibFilesGenerator {
       `  static constexpr absl::string_view kMethodName = "${methodName}";`,
     );
     mainMiddle.push(`  static constexpr uint32_t kNumber = ${method.number};`);
-    mainMiddle.push(`  static constexpr absl::string_view kDoc = ${JSON.stringify(doc)};`);
+    mainMiddle.push(
+      `  static constexpr absl::string_view kDoc = ${JSON.stringify(doc)};`,
+    );
     mainMiddle.push("};");
     mainMiddle.push("");
   }
