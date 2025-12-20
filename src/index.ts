@@ -799,10 +799,10 @@ class CcLibFilesGenerator {
       source.mainMiddle.push(
         `${className}::${
           className
-        }(unrecognized_enum u) : kind_(kind_type::kUnknown) {`,
+        }(unrecognized_variant u) : kind_(kind_type::kUnknown) {`,
       );
       source.mainMiddle.push(
-        "  value_._unrecognized = new unrecognized_enum(std::move(u));",
+        "  value_._unrecognized = new unrecognized_variant(std::move(u));",
       );
       source.mainMiddle.push("}");
       source.mainMiddle.push("");
@@ -999,16 +999,16 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("");
     header.mainMiddle.push(" private:");
     header.mainMiddle.push(
-      "  using unrecognized_enum = ::skir_internal::UnrecognizedEnum;",
+      "  using unrecognized_variant = ::skir_internal::UnrecognizedVariant;",
     );
     header.mainMiddle.push("");
-    header.mainMiddle.push(`  ${className}(unrecognized_enum);`);
+    header.mainMiddle.push(`  ${className}(unrecognized_variant);`);
     header.mainMiddle.push("");
     header.mainMiddle.push("  kind_type kind_;");
     header.mainMiddle.push("");
     header.mainMiddle.push("  union value_wrapper {");
     header.mainMiddle.push("    value_wrapper() {}");
-    header.mainMiddle.push("    unrecognized_enum* _unrecognized;");
+    header.mainMiddle.push("    unrecognized_variant* _unrecognized;");
     for (const field of wrapperFields) {
       const { fieldName, typeAlias } = field;
       const maybeStar = field.usePointer ? "*" : "";
@@ -1026,10 +1026,10 @@ class CcLibFilesGenerator {
     source.mainMiddle.push("  switch (other.kind_) {");
     source.mainMiddle.push("    case kind_type::kUnknown: {");
     source.mainMiddle.push(
-      "      const unrecognized_enum* u = other.value_._unrecognized;",
+      "      const unrecognized_variant* u = other.value_._unrecognized;",
     );
     source.mainMiddle.push(
-      "      value_._unrecognized = u != nullptr ? new unrecognized_enum(*u) : nullptr;",
+      "      value_._unrecognized = u != nullptr ? new unrecognized_variant(*u) : nullptr;",
     );
     source.mainMiddle.push("      break;");
     source.mainMiddle.push("    }");
@@ -1057,7 +1057,7 @@ class CcLibFilesGenerator {
     source.mainMiddle.push("  switch (kind_) {");
     source.mainMiddle.push("    case kind_type::kUnknown:");
     source.mainMiddle.push(
-      "      ::std::unique_ptr<unrecognized_enum>(value_._unrecognized);",
+      "      ::std::unique_ptr<unrecognized_variant>(value_._unrecognized);",
     );
     source.mainMiddle.push("      break;");
     for (const field of pointerFields) {
@@ -1197,7 +1197,7 @@ class CcLibFilesGenerator {
         );
         if (isUnknownField) {
           source.internalMain.push(
-            "      AppendUnrecognizedEnum(input.value_._unrecognized, out);",
+            "      AppendUnrecognizedVariant(input.value_._unrecognized, out);",
           );
         } else {
           source.internalMain.push(
@@ -1319,7 +1319,7 @@ class CcLibFilesGenerator {
         );
         if (isUnknownField) {
           source.internalMain.push(
-            "      AppendUnrecognizedEnum(input.value_._unrecognized, out);",
+            "      AppendUnrecognizedVariant(input.value_._unrecognized, out);",
           );
         } else {
           const intLiterals = bytesToIntLiterals([...encodeInt32(fieldNumber)]);
@@ -1379,7 +1379,7 @@ class CcLibFilesGenerator {
         "          if (tokenizer.keep_unrecognized_values()) {",
       );
       source.internalMain.push(
-        "            out = type(UnrecognizedEnum{::skir_internal::UnrecognizedFormat::kDenseJson, i});",
+        "            out = type(UnrecognizedVariant{::skir_internal::UnrecognizedFormat::kDenseJson, i});",
       );
       source.internalMain.push("          }");
       source.internalMain.push("      }");
@@ -1429,7 +1429,7 @@ class CcLibFilesGenerator {
         "          if (tokenizer.keep_unrecognized_values()) {",
       );
       source.internalMain.push(
-        "            UnrecognizedEnum unrecognized{::skir_internal::UnrecognizedFormat::kDenseJson, number};",
+        "            UnrecognizedVariant unrecognized{::skir_internal::UnrecognizedFormat::kDenseJson, number};",
       );
       source.internalMain.push(
         "            unrecognized.emplace_value().ParseFrom(tokenizer);",
@@ -1452,7 +1452,7 @@ class CcLibFilesGenerator {
           .map((field) => {
             const { fieldName, typeAlias } = field;
             const indent = "              ";
-            return `\n${indent}->AddField<type::${typeAlias}>("${fieldName}")`;
+            return `\n${indent}->AddVariant<type::${typeAlias}>("${fieldName}")`;
           })
           .join("");
       source.internalMain.push("      static const auto* kParser =");
@@ -1496,7 +1496,7 @@ class CcLibFilesGenerator {
         "        if (source.keep_unrecognized_values) {",
       );
       source.internalMain.push(
-        "          UnrecognizedEnum unrecognized{::skir_internal::UnrecognizedFormat::kBytes, number};",
+        "          UnrecognizedVariant unrecognized{::skir_internal::UnrecognizedFormat::kBytes, number};",
       );
       source.internalMain.push(
         "          unrecognized.emplace_value().ParseFrom(source);",
@@ -1525,7 +1525,7 @@ class CcLibFilesGenerator {
         "        if (source.keep_unrecognized_values) {",
       );
       source.internalMain.push(
-        "          out = type(UnrecognizedEnum{::skir_internal::UnrecognizedFormat::kBytes, number});",
+        "          out = type(UnrecognizedVariant{::skir_internal::UnrecognizedFormat::kBytes, number});",
       );
       source.internalMain.push("        }");
       source.internalMain.push("      }");
@@ -1620,30 +1620,32 @@ class CcLibFilesGenerator {
     header.internalMain.push(`class ${adapterName} {`);
     header.internalMain.push(" public:");
     header.internalMain.push(`  using type = ${qualifiedName};`);
+    const tupleName =
+      recordType === "struct" ? "fields_tuple" : "variants_tuple";
     if (fields.length || recordType === "enum") {
       const fieldToReflectionType = (f: Field): string => {
         const fieldName = f.name.text;
         if (recordType === "struct") {
           return `struct_field<type, skirout::get_${fieldName}<>>`;
         } else if (f.type) {
-          return `enum_wrapper_field<type, skirout::reflection::${fieldName}_option>`;
+          return `enum_wrapper_variant<type, skirout::reflection::${fieldName}_option>`;
         } else {
-          return `skir::reflection::enum_const_field<skirout::k_${fieldName.toLowerCase()}>`;
+          return `skir::reflection::enum_const_variant<skirout::k_${fieldName.toLowerCase()}>`;
         }
       };
       const reflectionTypes = fields
         .map(fieldToReflectionType)
         .concat(
           recordType === "enum"
-            ? ["skir::reflection::enum_const_field<skirout::k_unknown>"]
+            ? ["skir::reflection::enum_const_variant<skirout::k_unknown>"]
             : [],
         )
         .join(",\n      ");
       header.internalMain.push(
-        `  using fields_tuple = std::tuple<\n      ${reflectionTypes}>;`,
+        `  using ${tupleName} = std::tuple<\n      ${reflectionTypes}>;`,
       );
     } else {
-      header.internalMain.push("  using fields_tuple = std::tuple<>;");
+      header.internalMain.push(`  using ${tupleName} = std::tuple<>;`);
     }
     header.internalMain.push("");
     header.internalMain.push("  static bool IsDefault(const type&);");

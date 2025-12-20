@@ -586,12 +586,12 @@ struct FieldNameCollector {
   }
 
   template <typename Const>
-  void operator()(skir::reflection::enum_const_field<Const>) {
+  void operator()(skir::reflection::enum_const_variant<Const>) {
     field_names.insert(Const::kFieldName);
   }
 
   template <typename Option, typename Value>
-  void operator()(skir::reflection::enum_wrapper_field<Option, Value>) {
+  void operator()(skir::reflection::enum_wrapper_variant<Option, Value>) {
     field_names.insert(Option::kFieldName);
   }
 };
@@ -606,13 +606,13 @@ TEST(skiroutTest, IsRecord) {
   static_assert(!skir::reflection::IsRecord<std::string>());
 }
 
-TEST(skiroutTest, ForEachFieldOfEnum) {
+TEST(skiroutTest, ForEachVariantOfEnum) {
   FieldNameCollector collector;
-  skir::reflection::ForEachField<StatusEnum>(collector);
+  skir::reflection::ForEachVariant<StatusEnum>(collector);
   EXPECT_THAT(collector.field_names, UnorderedElementsAre("?", "OK", "error"));
 
   // Just to make sure we can pass an rvalue.
-  skir::reflection::ForEachField<StatusEnum>(FieldNameCollector());
+  skir::reflection::ForEachVariant<StatusEnum>(FieldNameCollector());
 }
 
 TEST(skiroutTest, ForEachFieldOfStruct) {

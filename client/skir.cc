@@ -1705,10 +1705,10 @@ void ReflectionTypeAdapter::Parse(JsonTokenizer& tokenizer,
   if (tokenizer.state().token_type == JsonTokenType::kLeftCurlyBracket) {
     static const auto* kParser =
         (new EnumJsonObjectParser<skir::reflection::Type>())
-            ->AddVariantField<skir::reflection::PrimitiveType>("primitive")
-            ->AddVariantField<skir::reflection::OptionalType>("optional")
-            ->AddVariantField<skir::reflection::ArrayType>("array")
-            ->AddVariantField<skir::reflection::RecordType>("record");
+            ->AddVariantAsVariant<skir::reflection::PrimitiveType>("primitive")
+            ->AddVariantAsVariant<skir::reflection::OptionalType>("optional")
+            ->AddVariantAsVariant<skir::reflection::ArrayType>("array")
+            ->AddVariantAsVariant<skir::reflection::RecordType>("record");
     kParser->Parse(tokenizer, out);
   } else {
     tokenizer.mutable_state().PushUnexpectedTokenError("'}'");
@@ -1831,23 +1831,23 @@ void ReflectionArrayTypeAdapter::Parse(JsonTokenizer& tokenizer,
   tokenizer.mutable_state().PushUnexpectedTokenError("'{'");
 }
 
-void ReflectionFieldOrVariantAdapter::Append(
-    const skir::reflection::Field& input, ReadableJson& out) {
+void ReflectionFieldAdapter::Append(const skir::reflection::Field& input,
+                                    ReadableJson& out) {
   AppendFieldOrVariant(input, out);
 }
 
-void ReflectionFieldOrVariantAdapter::Append(
-    const skir::reflection::Variant& input, ReadableJson& out) {
-  AppendFieldOrVariant(input, out);
-}
-
-void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer,
-                                            skir::reflection::Field& out) {
+void ReflectionFieldAdapter::Parse(JsonTokenizer& tokenizer,
+                                   skir::reflection::Field& out) {
   ParseFieldOrVariant(tokenizer, out);
 }
 
-void ReflectionFieldOrVariantAdapter::Parse(JsonTokenizer& tokenizer,
-                                            skir::reflection::Variant& out) {
+void ReflectionVariantAdapter::Append(const skir::reflection::Variant& input,
+                                      ReadableJson& out) {
+  AppendFieldOrVariant(input, out);
+}
+
+void ReflectionVariantAdapter::Parse(JsonTokenizer& tokenizer,
+                                     skir::reflection::Variant& out) {
   ParseFieldOrVariant(tokenizer, out);
 }
 
@@ -1959,7 +1959,7 @@ void EnumJsonObjectParserImpl::Parse(JsonTokenizer& tokenizer,
   JsonObjectReader object_reader(&tokenizer);
   bool kind_seen = false;
   bool value_seen = false;
-  const Field* field = nullptr;
+  const Variant* variant = nullptr;
   // In the unlikely event "value" is seen before "kind", we need to rewind the
   // tokenizer to parse the value.
   std::unique_ptr<JsonTokenizer::State> value_state;
@@ -1968,11 +1968,11 @@ void EnumJsonObjectParserImpl::Parse(JsonTokenizer& tokenizer,
       kind_seen = true;
       std::string kind;
       ::skir_internal::Parse(tokenizer, kind);
-      const auto it = fields_.find(kind);
-      if (it == fields_.end()) {
+      const auto it = variants_.find(kind);
+      if (it == variants_.end()) {
         continue;
       }
-      field = it->second.get();
+      variant = it->second.get();
       if (value_state != nullptr) {
         // In this unlikely case, we need to rewind the tokenizer to parse the
         // value.
@@ -1980,7 +1980,7 @@ void EnumJsonObjectParserImpl::Parse(JsonTokenizer& tokenizer,
         JsonTokenizer::State tokenizer_state =
             std::move(tokenizer.mutable_state());
         tokenizer.mutable_state() = *std::move(value_state);
-        field->Parse(tokenizer, out);
+        variant->Parse(tokenizer, out);
         const absl::Status status = std::move(tokenizer.mutable_state().status);
         tokenizer.mutable_state() = std::move(tokenizer_state);
         if (!status.ok()) {
@@ -1989,8 +1989,8 @@ void EnumJsonObjectParserImpl::Parse(JsonTokenizer& tokenizer,
       }
     } else if (!value_seen && object_reader.name() == "value") {
       value_seen = true;
-      if (field != nullptr) {
-        field->Parse(tokenizer, out);
+      if (variant != nullptr) {
+        variant->Parse(tokenizer, out);
       } else {
         if (!kind_seen) {
           value_state =
@@ -2441,7 +2441,8 @@ void UnrecognizedValues::AppendTo(ByteSink& out) const {
   }
 }
 
-void AppendUnrecognizedEnum(const UnrecognizedEnum* input, DenseJson& out) {
+void AppendUnrecognizedVariant(const UnrecognizedVariant* input,
+                               DenseJson& out) {
   if (input == nullptr || input->format != UnrecognizedFormat::kDenseJson) {
     out.out += '0';
   } else if (input->value == nullptr) {
@@ -2453,7 +2454,8 @@ void AppendUnrecognizedEnum(const UnrecognizedEnum* input, DenseJson& out) {
   }
 }
 
-void AppendUnrecognizedEnum(const UnrecognizedEnum* input, ByteSink& out) {
+void AppendUnrecognizedVariant(const UnrecognizedVariant* input,
+                               ByteSink& out) {
   if (input == nullptr || input->format != UnrecognizedFormat::kBytes) {
     out.Push(0);
   } else {

@@ -863,17 +863,17 @@ struct struct_field {
   using value_type = Value;
 };
 
-// For static reflection: represents a constant field of a skir enum.
-// See `skir::reflection::ForEachField`
+// For static reflection: represents a constant variant of a skir enum.
+// See `skir::reflection::ForEachVariant`
 template <typename Const>
-struct enum_const_field {
+struct enum_const_variant {
   using const_type = Const;
 };
 
-// For static reflection: represents a wrapper field of a skir enum.
-// See `skir::reflection::ForEachField`
+// For static reflection: represents a wrapper variant of a skir enum.
+// See `skir::reflection::ForEachVariant`
 template <typename Option, typename Value>
-struct enum_wrapper_field {
+struct enum_wrapper_variant {
   using option_type = Option;
   using value_type = Value;
 };
@@ -1008,7 +1008,7 @@ using struct_field =
     skir::reflection::struct_field<Getter, getter_value_type<Struct, Getter>>;
 
 template <typename Enum, typename Option>
-using enum_wrapper_field = skir::reflection::enum_wrapper_field<
+using enum_wrapper_variant = skir::reflection::enum_wrapper_variant<
     Option, std::remove_const_t<std::remove_pointer_t<
                 decltype(Option::get_or_null(std::declval<Enum&>()))>>>;
 
@@ -1656,16 +1656,15 @@ struct ReflectionRecordTypeAdapter {
                     skir::reflection::RecordType& out);
 };
 
-struct ReflectionFieldOrVariantAdapter {
-  template <typename FieldOrVariant>
-  static bool IsDefault(const FieldOrVariant& input) {
-    return false;
-  }
-
+struct ReflectionFieldAdapter {
+  static bool IsDefault(const skir::reflection::Field&) { return false; }
   static void Append(const skir::reflection::Field& input, ReadableJson& out);
-  static void Append(const skir::reflection::Variant& input, ReadableJson& out);
-
   static void Parse(JsonTokenizer& tokenizer, skir::reflection::Field& out);
+};
+
+struct ReflectionVariantAdapter {
+  static bool IsDefault(const skir::reflection::Variant&) { return false; }
+  static void Append(const skir::reflection::Variant& input, ReadableJson& out);
   static void Parse(JsonTokenizer& tokenizer, skir::reflection::Variant& out);
 };
 
@@ -1694,9 +1693,8 @@ inline ReflectionArrayTypeAdapter GetAdapter(
     skir_type<skir::reflection::ArrayType>);
 inline ReflectionRecordTypeAdapter GetAdapter(
     skir_type<skir::reflection::RecordType>);
-inline ReflectionFieldOrVariantAdapter GetAdapter(
-    skir_type<skir::reflection::Field>);
-inline ReflectionFieldOrVariantAdapter GetAdapter(
+inline ReflectionFieldAdapter GetAdapter(skir_type<skir::reflection::Field>);
+inline ReflectionVariantAdapter GetAdapter(
     skir_type<skir::reflection::Variant>);
 inline ReflectionRecordAdapter GetAdapter(skir_type<skir::reflection::Record>);
 inline ReflectionTypeDescriptorAdapter GetAdapter(
@@ -2175,27 +2173,27 @@ class StructJsonObjectParser {
 class EnumJsonObjectParserImpl {
  public:
   template <typename T, typename WrapperType>
-  void AddField(const std::string& name) {
-    fields_[name] = std::make_unique<FieldImpl<T, WrapperType>>();
+  void AddVariant(const std::string& name) {
+    variants_[name] = std::make_unique<VariantImpl<T, WrapperType>>();
   }
 
   template <typename T, typename ValueType>
-  void AddVariantField(const std::string& name) {
-    fields_[name] = std::make_unique<VariantFieldImpl<T, ValueType>>();
+  void AddVariantAsVariant(const std::string& name) {
+    variants_[name] = std::make_unique<VariantAsVariantImpl<T, ValueType>>();
   }
 
   void Parse(JsonTokenizer& tokenizer, void* absl_nonnull out) const;
 
  private:
-  struct Field {
-    virtual ~Field() = default;
+  struct Variant {
+    virtual ~Variant() = default;
     virtual void Parse(JsonTokenizer& tokenizer,
                        void* absl_nonnull out) const = 0;
   };
-  absl::flat_hash_map<std::string, std::unique_ptr<Field>> fields_;
+  absl::flat_hash_map<std::string, std::unique_ptr<Variant>> variants_;
 
   template <typename T, typename WrapperType>
-  struct FieldImpl : public Field {
+  struct VariantImpl : public Variant {
     void Parse(JsonTokenizer& tokenizer,
                void* absl_nonnull out) const override {
       WrapperType wrapper;
@@ -2205,7 +2203,7 @@ class EnumJsonObjectParserImpl {
   };
 
   template <typename T, typename ValueType>
-  struct VariantFieldImpl : public Field {
+  struct VariantAsVariantImpl : public Variant {
     void Parse(JsonTokenizer& tokenizer,
                void* absl_nonnull out) const override {
       ValueType value;
@@ -2219,14 +2217,15 @@ template <typename T>
 class EnumJsonObjectParser {
  public:
   template <typename WrapperType>
-  EnumJsonObjectParser* absl_nonnull AddField(const std::string& name) {
-    impl_.AddField<T, WrapperType>(name);
+  EnumJsonObjectParser* absl_nonnull AddVariant(const std::string& name) {
+    impl_.AddVariant<T, WrapperType>(name);
     return this;
   }
 
   template <typename ValueType>
-  EnumJsonObjectParser* absl_nonnull AddVariantField(const std::string& name) {
-    impl_.AddVariantField<T, ValueType>(name);
+  EnumJsonObjectParser* absl_nonnull
+  AddVariantAsVariant(const std::string& name) {
+    impl_.AddVariantAsVariant<T, ValueType>(name);
     return this;
   }
 
@@ -2320,7 +2319,7 @@ struct UnrecognizedFields {
   friend Adapter;
 };
 
-struct UnrecognizedEnum {
+struct UnrecognizedVariant {
   UnrecognizedFormat format = UnrecognizedFormat::kUnknown;
   int32_t number = 0;
   // Null if just a number with no value.
@@ -2331,10 +2330,10 @@ struct UnrecognizedEnum {
   }
 };
 
-void AppendUnrecognizedEnum(const UnrecognizedEnum* absl_nullable input,
-                            DenseJson& out);
-void AppendUnrecognizedEnum(const UnrecognizedEnum* absl_nullable input,
-                            ByteSink& out);
+void AppendUnrecognizedVariant(const UnrecognizedVariant* absl_nullable input,
+                               DenseJson& out);
+void AppendUnrecognizedVariant(const UnrecognizedVariant* absl_nullable input,
+                               ByteSink& out);
 
 void ParseUnrecognizedFields(JsonArrayReader& array_reader, size_t num_slots,
                              size_t num_slots_incl_removed,
@@ -2516,16 +2515,28 @@ constexpr bool IsRecord() {
 }
 
 // Calls f(field) for each field in the skir-generated datatype.
-// The type of the single argument passed to f is one of: struct_field,
-// enum_const_field, enum_wrapper_field.
+// The type of the single argument passed to f is struct_field.
 template <typename Record, typename F>
 void ForEachField(F&& f) {
-  static_assert(IsStruct<Record>() || IsEnum<Record>());
+  static_assert(IsStruct<Record>());
   std::apply(
       [&f](auto&&... x) {
         (static_cast<void>(f(std::forward<decltype(x)>(x))), ...);
       },
       typename skir_internal::TypeAdapter<Record>::fields_tuple());
+}
+
+// Calls f(variant) for each variant in the skir-generated datatype.
+// The type of the single argument passed to f is either enum_const_variant
+// or enum_wrapper_variant.
+template <typename Record, typename F>
+void ForEachVariant(F&& f) {
+  static_assert(IsEnum<Record>());
+  std::apply(
+      [&f](auto&&... x) {
+        (static_cast<void>(f(std::forward<decltype(x)>(x))), ...);
+      },
+      typename skir_internal::TypeAdapter<Record>::variants_tuple());
 }
 
 }  // namespace reflection
