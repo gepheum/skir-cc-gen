@@ -47,8 +47,8 @@ using getter_value_type = std::remove_const_t<
 
 namespace skir {
 
-// What to do with unrecognized fields when parsing a skir value from JSON or
-// binary data.
+// What to do with unrecognized fields and variants when parsing a skir value
+// from JSON or binary data.
 // Pick kKeep if the input JSON or binary string comes from a trusted program
 // which might have been built from more recent source files.
 // Always pick kDrop if the input JSON or binary string might come from a
