@@ -587,12 +587,12 @@ struct FieldNameCollector {
 
   template <typename Const>
   void operator()(skir::reflection::enum_const_variant<Const>) {
-    field_names.insert(Const::kFieldName);
+    field_names.insert(Const::kVariantName);
   }
 
   template <typename Option, typename Value>
   void operator()(skir::reflection::enum_wrapper_variant<Option, Value>) {
-    field_names.insert(Option::kFieldName);
+    field_names.insert(Option::kVariantName);
   }
 };
 

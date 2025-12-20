@@ -125,12 +125,12 @@ class DepsCollector {
         if (record.modulePath !== this.modulePath) break;
         if (this.deps.has(recordKey)) break;
         this.deps.add(recordKey);
-        // Wrapper fields of enums are allocated on the heap.
+        // Wrapper variants of enums are allocated on the heap.
         if (record.record.recordType === "enum") break;
-        for (const field of record.record.fields) {
-          if (!field.type) continue;
-          if (this.recursiveFields.has(field)) continue;
-          this.collect(field.type);
+        for (const variant of record.record.fields) {
+          if (!variant.type) continue;
+          if (this.recursiveFields.has(variant)) continue;
+          this.collect(variant.type);
         }
       }
     }

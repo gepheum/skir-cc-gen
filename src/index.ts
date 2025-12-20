@@ -15,7 +15,7 @@ import {
   simpleHash,
 } from "skir-internal";
 import { z } from "zod";
-import { EnumField, getEnumFields } from "./enum_field.js";
+import { EnumVariant, getEnumVariants } from "./enum_variant.js";
 import { CC_KEYWORDS } from "./keywords.js";
 import { RecursvityResolver } from "./recursivity_resolver.js";
 import {
@@ -713,16 +713,16 @@ class CcLibFilesGenerator {
     const { header, recordMap, source, typeSpeller } = this;
 
     const { nestedRecords } = record.record;
-    const fields = getEnumFields(record.record.fields, typeSpeller);
-    const constFields = fields.filter((f) => !f.valueType);
-    const wrapperFields = fields.filter((f) => f.valueType);
-    const pointerFields = wrapperFields.filter((f) => f.usePointer);
+    const variants = getEnumVariants(record.record.fields, typeSpeller);
+    const constVariants = variants.filter((f) => !f.valueType);
+    const wrapperVariants = variants.filter((f) => f.valueType);
+    const pointerVariants = wrapperVariants.filter((f) => f.usePointer);
 
-    for (const field of constFields) {
-      this.writeCodeForConstantField(field);
+    for (const variant of constVariants) {
+      this.writeCodeForConstantVariant(variant);
     }
-    for (const field of wrapperFields) {
-      this.writeCodeForWrapperField(field);
+    for (const variant of wrapperVariants) {
+      this.writeCodeForWrapperVariant(variant);
     }
 
     const className = getClassName(record);
@@ -734,14 +734,14 @@ class CcLibFilesGenerator {
 
     header.mainMiddle.push(`class ${className} {`);
     header.mainMiddle.push(" public:");
-    for (const field of wrapperFields) {
-      const type = `::skirout::${field.structType}<${field.valueType}>`;
-      header.mainMiddle.push(`  using ${field.typeAlias} = ${type};`);
+    for (const variant of wrapperVariants) {
+      const type = `::skirout::${variant.structType}<${variant.valueType}>`;
+      header.mainMiddle.push(`  using ${variant.typeAlias} = ${type};`);
     }
     header.mainMiddle.push("");
     header.mainMiddle.push("  enum class kind_type {");
-    for (const field of fields) {
-      header.mainMiddle.push(`    ${field.kindEnumerator},`);
+    for (const variant of variants) {
+      header.mainMiddle.push(`    ${variant.kindEnumerator},`);
     }
     header.mainMiddle.push("  };");
     header.mainMiddle.push("");
@@ -767,10 +767,10 @@ class CcLibFilesGenerator {
     source.mainMiddle.push("}");
     source.mainMiddle.push("");
     header.mainMiddle.push("");
-    for (const field of constFields) {
-      const { isUnknownField, kindEnumerator, structType } = field;
+    for (const variant of constVariants) {
+      const { isUnknownVariant, kindEnumerator, structType } = variant;
       header.mainMiddle.push(`  ${className}(::skirout::${structType});`);
-      const body = isUnknownField
+      const body = isUnknownVariant
         ? "{\n  value_._unrecognized = nullptr;\n}"
         : "{}";
       source.mainMiddle.push(
@@ -780,17 +780,17 @@ class CcLibFilesGenerator {
       );
     }
     source.mainMiddle.push("");
-    for (const field of wrapperFields) {
-      const { fieldName, kindEnumerator, typeAlias, usePointer } = field;
+    for (const variant of wrapperVariants) {
+      const { variantName, kindEnumerator, typeAlias, usePointer } = variant;
       header.mainMiddle.push(`  ${className}(${typeAlias});`);
       source.mainMiddle.push(`${className}::${className}(${typeAlias} w)`);
       source.mainMiddle.push(`    : kind_(kind_type::${kindEnumerator}) {`);
       if (usePointer) {
         source.mainMiddle.push(
-          `  value_.${fieldName}_ = new ${typeAlias}(std::move(w));`,
+          `  value_.${variantName}_ = new ${typeAlias}(std::move(w));`,
         );
       } else {
-        source.mainMiddle.push(`  value_.${fieldName}_ = w;`);
+        source.mainMiddle.push(`  value_.${variantName}_ = w;`);
       }
       source.mainMiddle.push("}");
       source.mainMiddle.push("");
@@ -814,15 +814,15 @@ class CcLibFilesGenerator {
     source.mainMiddle.push("  free_value();");
     source.mainMiddle.push("}");
     source.mainMiddle.push("");
-    for (const field of constFields) {
-      const { identifier } = field;
+    for (const variant of constVariants) {
+      const { identifier } = variant;
       header.mainMiddle.push(
         `  static constexpr auto ${identifier} = ::skirout::${identifier};`,
       );
     }
     header.mainMiddle.push("");
-    for (const field of wrapperFields) {
-      const { identifier, usePointer, valueType } = field;
+    for (const variant of wrapperVariants) {
+      const { identifier, usePointer, valueType } = variant;
       header.mainMiddle.push(
         `  static ${className} ${identifier}(${valueType} value);`,
       );
@@ -838,16 +838,16 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("");
     header.mainMiddle.push("  kind_type kind() const { return kind_; }");
     header.mainMiddle.push("");
-    for (const field of wrapperFields) {
-      const { fieldName, kindEnumerator, usePointer, valueType } = field;
-      header.mainMiddle.push(`  inline bool is_${fieldName}() const;`);
+    for (const variant of wrapperVariants) {
+      const { variantName, kindEnumerator, usePointer, valueType } = variant;
+      header.mainMiddle.push(`  inline bool is_${variantName}() const;`);
       header.mainMiddle.push(
-        `  inline const ${valueType}& as_${fieldName}() const;`,
+        `  inline const ${valueType}& as_${variantName}() const;`,
       );
-      header.mainMiddle.push(`  inline ${valueType}& as_${fieldName}();`);
+      header.mainMiddle.push(`  inline ${valueType}& as_${variantName}();`);
       header.mainMiddle.push("");
       header.mainBottom.push(
-        `inline bool ${className}::is_${fieldName}() const {`,
+        `inline bool ${className}::is_${variantName}() const {`,
       );
       (header.mainBottom.push(
         `  return kind_ == kind_type::${kindEnumerator};`,
@@ -855,22 +855,22 @@ class CcLibFilesGenerator {
         header.mainBottom.push("}"));
       header.mainBottom.push("");
       header.mainBottom.push(
-        `inline const ${valueType}& ${className}::as_${fieldName}() const {`,
+        `inline const ${valueType}& ${className}::as_${variantName}() const {`,
       );
       header.mainBottom.push(
-        `  return const_cast<${className}*>(this)->as_${fieldName}();`,
+        `  return const_cast<${className}*>(this)->as_${variantName}();`,
       );
       header.mainBottom.push("}");
       header.mainBottom.push("");
       header.mainBottom.push(
-        `inline ${valueType}& ${className}::as_${fieldName}() {`,
+        `inline ${valueType}& ${className}::as_${variantName}() {`,
       );
       header.mainBottom.push(
-        `  ABSL_CHECK(is_${fieldName}()) << "actual: " << *this;`,
+        `  ABSL_CHECK(is_${variantName}()) << "actual: " << *this;`,
       );
       const returnValue = usePointer
-        ? `value_.${fieldName}_->value`
-        : `value_.${fieldName}_.value`;
+        ? `value_.${variantName}_->value`
+        : `value_.${variantName}_.value`;
       header.mainBottom.push(`  return ${returnValue};`);
       header.mainBottom.push("}");
       header.mainBottom.push("");
@@ -914,8 +914,8 @@ class CcLibFilesGenerator {
     source.mainMiddle.push("}");
     source.mainMiddle.push("");
     header.mainMiddle.push("");
-    for (const field of constFields) {
-      const { isUnknownField, kindEnumerator, structType } = field;
+    for (const variant of constVariants) {
+      const { isUnknownVariant, kindEnumerator, structType } = variant;
       header.mainMiddle.push(
         `  ${className}& operator=(::skirout::${structType});`,
       );
@@ -924,15 +924,15 @@ class CcLibFilesGenerator {
       );
       source.mainMiddle.push("  free_value();");
       source.mainMiddle.push(`  kind_ = kind_type::${kindEnumerator};`);
-      if (isUnknownField) {
+      if (isUnknownVariant) {
         source.mainMiddle.push("  value_._unrecognized = nullptr;");
       }
       source.mainMiddle.push("  return *this;");
       source.mainMiddle.push("}");
       source.mainMiddle.push("");
     }
-    for (const field of wrapperFields) {
-      const { fieldName, kindEnumerator, typeAlias, usePointer } = field;
+    for (const variant of wrapperVariants) {
+      const { variantName, kindEnumerator, typeAlias, usePointer } = variant;
       header.mainMiddle.push(`  ${className}& operator=(${typeAlias});`);
       source.mainMiddle.push(
         `${className}& ${className}::operator=(${typeAlias} w) {`,
@@ -941,10 +941,10 @@ class CcLibFilesGenerator {
       source.mainMiddle.push(`  kind_ = kind_type::${kindEnumerator};`);
       if (usePointer) {
         source.mainMiddle.push(
-          `  value_.${fieldName}_ = new ${typeAlias}(std::move(w));`,
+          `  value_.${variantName}_ = new ${typeAlias}(std::move(w));`,
         );
       } else {
-        source.mainMiddle.push(`  value_.${fieldName}_ = w;`);
+        source.mainMiddle.push(`  value_.${variantName}_ = w;`);
       }
       source.mainMiddle.push("  return *this;");
       source.mainMiddle.push("}");
@@ -952,7 +952,7 @@ class CcLibFilesGenerator {
     }
     header.mainMiddle.push("");
 
-    if (wrapperFields.length) {
+    if (wrapperVariants.length) {
       header.mainMiddle.push(`  bool operator==(const ${className}&) const;`);
 
       source.mainMiddle.push(
@@ -960,11 +960,11 @@ class CcLibFilesGenerator {
       );
       source.mainMiddle.push("  if (other.kind_ != kind_) return false;");
       source.mainMiddle.push("  switch (kind_) {");
-      for (const field of wrapperFields) {
-        const { fieldName, kindEnumerator, usePointer } = field;
+      for (const variant of wrapperVariants) {
+        const { variantName, kindEnumerator, usePointer } = variant;
         const dotOrStar = usePointer ? "->" : ".";
-        const a = `value_.${fieldName}_${dotOrStar}value`;
-        const b = `other.value_.${fieldName}_${dotOrStar}value`;
+        const a = `value_.${variantName}_${dotOrStar}value`;
+        const b = `other.value_.${variantName}_${dotOrStar}value`;
         source.mainMiddle.push(`    case kind_type::${kindEnumerator}:`);
         source.mainMiddle.push(`      return ${a} == ${b};`);
       }
@@ -1009,10 +1009,10 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("  union value_wrapper {");
     header.mainMiddle.push("    value_wrapper() {}");
     header.mainMiddle.push("    unrecognized_variant* _unrecognized;");
-    for (const field of wrapperFields) {
-      const { fieldName, typeAlias } = field;
-      const maybeStar = field.usePointer ? "*" : "";
-      header.mainMiddle.push(`    ${typeAlias}${maybeStar} ${fieldName}_;`);
+    for (const variant of wrapperVariants) {
+      const { variantName, typeAlias } = variant;
+      const maybeStar = variant.usePointer ? "*" : "";
+      header.mainMiddle.push(`    ${typeAlias}${maybeStar} ${variantName}_;`);
     }
     header.mainMiddle.push("  };");
     header.mainMiddle.push("  value_wrapper value_;");
@@ -1033,15 +1033,15 @@ class CcLibFilesGenerator {
     );
     source.mainMiddle.push("      break;");
     source.mainMiddle.push("    }");
-    for (const field of wrapperFields) {
-      const { fieldName, kindEnumerator, typeAlias, usePointer } = field;
+    for (const variant of wrapperVariants) {
+      const { variantName, kindEnumerator, typeAlias, usePointer } = variant;
       source.mainMiddle.push(`    case kind_type::${kindEnumerator}:`);
       if (usePointer) {
-        const expr = `new ${typeAlias}(*other.value_.${fieldName}_)`;
-        source.mainMiddle.push(`      value_.${fieldName}_ = ${expr};`);
+        const expr = `new ${typeAlias}(*other.value_.${variantName}_)`;
+        source.mainMiddle.push(`      value_.${variantName}_ = ${expr};`);
       } else {
         source.mainMiddle.push(
-          `      value_.${fieldName}_ = other.value_.${fieldName}_;`,
+          `      value_.${variantName}_ = other.value_.${variantName}_;`,
         );
       }
       source.mainMiddle.push("      break;");
@@ -1060,11 +1060,11 @@ class CcLibFilesGenerator {
       "      ::std::unique_ptr<unrecognized_variant>(value_._unrecognized);",
     );
     source.mainMiddle.push("      break;");
-    for (const field of pointerFields) {
-      const { fieldName, kindEnumerator, typeAlias } = field;
+    for (const variant of pointerVariants) {
+      const { variantName, kindEnumerator, typeAlias } = variant;
       source.mainMiddle.push(`    case kind_type::${kindEnumerator}:`);
       source.mainMiddle.push(
-        `      ::std::unique_ptr<${typeAlias}>(value_.${fieldName}_);`,
+        `      ::std::unique_ptr<${typeAlias}>(value_.${variantName}_);`,
       );
       source.mainMiddle.push("      break;");
     }
@@ -1079,8 +1079,8 @@ class CcLibFilesGenerator {
       "  static decltype(auto) visit_impl(E& e, Visitor&& visitor) {",
     );
     header.mainMiddle.push("    switch (e.kind_) {");
-    for (const field of constFields) {
-      const { kindEnumerator, structType } = field;
+    for (const variant of constVariants) {
+      const { kindEnumerator, structType } = variant;
       header.mainMiddle.push(`      case kind_type::${kindEnumerator}:`);
       header.mainMiddle.push(
         `        return std::forward<Visitor>(visitor)(::skirout::${
@@ -1088,13 +1088,13 @@ class CcLibFilesGenerator {
         }());`,
       );
     }
-    for (const field of wrapperFields) {
-      const { fieldName, kindEnumerator, usePointer } = field;
+    for (const variant of wrapperVariants) {
+      const { variantName, kindEnumerator, usePointer } = variant;
       const maybeStar = usePointer ? "*" : "";
       header.mainMiddle.push(`      case kind_type::${kindEnumerator}:`);
       header.mainMiddle.push(
         `        return std::forward<Visitor>(visitor)(${maybeStar}e.value_.${
-          fieldName
+          variantName
         }_);`,
       );
     }
@@ -1108,8 +1108,8 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("};");
     header.mainMiddle.push("");
 
-    for (const field of constFields) {
-      const { kindEnumerator, structType } = field;
+    for (const variant of constVariants) {
+      const { kindEnumerator, structType } = variant;
       header.mainBottom.push("inline bool operator==(");
       header.mainBottom.push(`    ${constRefType} a,`);
       header.mainBottom.push(`    ::skirout::${structType}) {`);
@@ -1125,7 +1125,7 @@ class CcLibFilesGenerator {
       header.mainBottom.push("}");
       header.mainBottom.push("");
       header.mainBottom.push("inline bool operator==(");
-      header.mainBottom.push(`    ::skirout::${field.structType},`);
+      header.mainBottom.push(`    ::skirout::${variant.structType},`);
       header.mainBottom.push(`    ${constRefType} b) {`);
       header.mainBottom.push(
         `  return ${qualifiedName}::kind_type::${kindEnumerator} == b.kind();`,
@@ -1133,7 +1133,7 @@ class CcLibFilesGenerator {
       header.mainBottom.push("}");
       header.mainBottom.push("");
       header.mainBottom.push("inline bool operator!=(");
-      header.mainBottom.push(`    ::skirout::${field.structType} a,`);
+      header.mainBottom.push(`    ::skirout::${variant.structType} a,`);
       header.mainBottom.push(`    ${constRefType} b) {`);
       header.mainBottom.push("  return !(a == b);");
       header.mainBottom.push("}");
@@ -1143,19 +1143,19 @@ class CcLibFilesGenerator {
     header.mainBottom.push(`H AbslHashValue(H h, ${constRefType} input) {`);
     header.mainBottom.push("  struct visitor {");
     header.mainBottom.push("    H h;");
-    for (const field of constFields) {
-      const { fieldName, structType } = field;
+    for (const variant of constVariants) {
+      const { variantName, structType } = variant;
       header.mainBottom.push(`    H operator()(::skirout::${structType}) {`);
-      const hash = simpleHash(fieldName);
+      const hash = simpleHash(variantName);
       header.mainBottom.push(`      return H::combine(std::move(h), ${hash});`);
       header.mainBottom.push("    }");
     }
-    for (const field of wrapperFields) {
-      const { fieldName, typeAlias } = field;
+    for (const variant of wrapperVariants) {
+      const { variantName, typeAlias } = variant;
       header.mainBottom.push(
         `    H operator()(const ${className}::${typeAlias}& w) {`,
       );
-      const hash = simpleHash(fieldName);
+      const hash = simpleHash(variantName);
       header.mainBottom.push(
         `      return H::combine(std::move(h), ${hash}, w.value);`,
       );
@@ -1190,34 +1190,35 @@ class CcLibFilesGenerator {
         `void ${adapterName}::Append(const type& input, DenseJson& out) {`,
       );
       source.internalMain.push("  switch (input.kind_) {");
-      for (const field of constFields) {
-        const { fieldNumber, kindEnumerator, isUnknownField } = field;
+      for (const variant of constVariants) {
+        const { variantNumber, kindEnumerator, isUnknownVariant } = variant;
         source.internalMain.push(
           `    case type::kind_type::${kindEnumerator}: {`,
         );
-        if (isUnknownField) {
+        if (isUnknownVariant) {
           source.internalMain.push(
             "      AppendUnrecognizedVariant(input.value_._unrecognized, out);",
           );
         } else {
           source.internalMain.push(
-            `      out.out += {${numberToCharLiterals(fieldNumber)}};`,
+            `      out.out += {${numberToCharLiterals(variantNumber)}};`,
           );
         }
         source.internalMain.push("      break;");
         source.internalMain.push("    }");
       }
-      for (const field of wrapperFields) {
-        const { fieldName, fieldNumber, kindEnumerator, usePointer } = field;
+      for (const variant of wrapperVariants) {
+        const { variantName, variantNumber, kindEnumerator, usePointer } =
+          variant;
         const dotOrArrow = usePointer ? "->" : ".";
         source.internalMain.push(
           `    case type::kind_type::${kindEnumerator}: {`,
         );
         source.internalMain.push(
-          `      out.out += {'[', ${numberToCharLiterals(fieldNumber)}, ','};`,
+          `      out.out += {'[', ${numberToCharLiterals(variantNumber)}, ','};`,
         );
         source.internalMain.push(
-          `      ::skir_internal::Append(input.value_.${fieldName}_${
+          `      ::skir_internal::Append(input.value_.${variantName}_${
             dotOrArrow
           }value, out);`,
         );
@@ -1237,22 +1238,22 @@ class CcLibFilesGenerator {
       );
       source.internalMain.push("  struct visitor {");
       source.internalMain.push("    ReadableJson& out;");
-      for (const field of constFields) {
-        const { fieldName, structType } = field;
+      for (const variant of constVariants) {
+        const { variantName, structType } = variant;
         source.internalMain.push(
           `    void operator()(::skirout::${structType}) {`,
         );
-        source.internalMain.push(`      out.out += "\\"${fieldName}\\"";`);
+        source.internalMain.push(`      out.out += "\\"${variantName}\\"";`);
         source.internalMain.push("    }");
       }
-      for (const field of wrapperFields) {
-        const { fieldName, typeAlias } = field;
+      for (const variant of wrapperVariants) {
+        const { variantName, typeAlias } = variant;
         source.internalMain.push(
           `    void operator()(const type::${typeAlias}& w) {`,
         );
         source.internalMain.push("      out.new_line.Indent();");
         source.internalMain.push(
-          `      absl::StrAppend(&out.out, "{", *out.new_line, "\\"kind\\": \\"${fieldName}\\",",`,
+          `      absl::StrAppend(&out.out, "{", *out.new_line, "\\"kind\\": \\"${variantName}\\",",`,
         );
         source.internalMain.push(
           '                      *out.new_line, "\\"value\\": ");',
@@ -1278,16 +1279,16 @@ class CcLibFilesGenerator {
       );
       source.internalMain.push("  struct visitor {");
       source.internalMain.push("    DebugString& out;");
-      for (const field of constFields) {
-        const { identifier, structType } = field;
+      for (const variant of constVariants) {
+        const { identifier, structType } = variant;
         source.internalMain.push(
           `    void operator()(::skirout::${structType}) {`,
         );
         source.internalMain.push(`      out.out += "skirout::${identifier}";`);
         source.internalMain.push("    }");
       }
-      for (const field of wrapperFields) {
-        const { identifier, typeAlias } = field;
+      for (const variant of wrapperVariants) {
+        const { identifier, typeAlias } = variant;
         source.internalMain.push(
           `    void operator()(const ${qualifiedName}::${typeAlias}& w) {`,
         );
@@ -1312,28 +1313,31 @@ class CcLibFilesGenerator {
         `void ${adapterName}::Append(const type& input, ByteSink& out) {`,
       );
       source.internalMain.push("  switch (input.kind_) {");
-      for (const field of constFields) {
-        const { fieldNumber, isUnknownField, kindEnumerator } = field;
+      for (const variant of constVariants) {
+        const { variantNumber, isUnknownVariant, kindEnumerator } = variant;
         source.internalMain.push(
           `    case type::kind_type::${kindEnumerator}: {`,
         );
-        if (isUnknownField) {
+        if (isUnknownVariant) {
           source.internalMain.push(
             "      AppendUnrecognizedVariant(input.value_._unrecognized, out);",
           );
         } else {
-          const intLiterals = bytesToIntLiterals([...encodeInt32(fieldNumber)]);
+          const intLiterals = bytesToIntLiterals([
+            ...encodeInt32(variantNumber),
+          ]);
           source.internalMain.push(`      out.Push(${intLiterals});`);
         }
         source.internalMain.push("      break;");
         source.internalMain.push("    }");
       }
-      for (const field of wrapperFields) {
-        const { fieldName, fieldNumber, kindEnumerator, usePointer } = field;
+      for (const variant of wrapperVariants) {
+        const { variantName, variantNumber, kindEnumerator, usePointer } =
+          variant;
         const intLiterals = bytesToIntLiterals(
-          1 <= fieldNumber && fieldNumber <= 4
-            ? [fieldNumber + 250]
-            : [248, ...encodeInt32(fieldNumber)],
+          1 <= variantNumber && variantNumber <= 4
+            ? [variantNumber + 250]
+            : [248, ...encodeInt32(variantNumber)],
         );
         const dotOrArrow = usePointer ? "->" : ".";
         source.internalMain.push(
@@ -1341,7 +1345,7 @@ class CcLibFilesGenerator {
         );
         source.internalMain.push(`      out.Push(${intLiterals});`);
         source.internalMain.push(
-          `      ::skir_internal::Append(input.value_.${fieldName}_${
+          `      ::skir_internal::Append(input.value_.${variantName}_${
             dotOrArrow
           }value, out);`,
         );
@@ -1367,10 +1371,10 @@ class CcLibFilesGenerator {
         "      const int i = tokenizer.state().uint_value;",
       );
       source.internalMain.push("      switch (i) {");
-      for (const field of constFields) {
-        const { fieldNumber, identifier } = field;
-        if (field.fieldNumber <= 0) continue;
-        source.internalMain.push(`        case ${fieldNumber}:`);
+      for (const variant of constVariants) {
+        const { variantNumber, identifier } = variant;
+        if (variant.variantNumber <= 0) continue;
+        source.internalMain.push(`        case ${variantNumber}:`);
         source.internalMain.push(`          out = ::skirout::${identifier};`);
         source.internalMain.push("          break;");
       }
@@ -1394,10 +1398,10 @@ class CcLibFilesGenerator {
       source.internalMain.push(
         "      static const auto* kMap = new ::absl::flat_hash_map<std::string, type>({",
       );
-      for (const field of constFields) {
-        const { fieldName, identifier } = field;
+      for (const variant of constVariants) {
+        const { variantName, identifier } = variant;
         source.internalMain.push(
-          `          {"${fieldName}", type::${identifier}},`,
+          `          {"${variantName}", type::${identifier}},`,
         );
       }
       source.internalMain.push("      });");
@@ -1413,9 +1417,9 @@ class CcLibFilesGenerator {
       source.internalMain.push("      EnumJsonArrayParser parser(&tokenizer);");
       source.internalMain.push("      const int number = parser.ReadNumber();");
       source.internalMain.push("      switch (number) {");
-      for (const field of wrapperFields) {
-        const { fieldNumber, typeAlias } = field;
-        source.internalMain.push(`        case ${fieldNumber}: {`);
+      for (const variant of wrapperVariants) {
+        const { variantNumber, typeAlias } = variant;
+        source.internalMain.push(`        case ${variantNumber}: {`);
         source.internalMain.push(`          type::${typeAlias} wrapper;`);
         source.internalMain.push(
           "          ::skir_internal::Parse(tokenizer, wrapper.value);",
@@ -1448,11 +1452,11 @@ class CcLibFilesGenerator {
       source.internalMain.push("    case JsonTokenType::kLeftCurlyBracket: {");
       const parserExpr =
         "(new EnumJsonObjectParser<type>())" +
-        wrapperFields
-          .map((field) => {
-            const { fieldName, typeAlias } = field;
+        wrapperVariants
+          .map((variant) => {
+            const { variantName, typeAlias } = variant;
             const indent = "              ";
-            return `\n${indent}->AddVariant<type::${typeAlias}>("${fieldName}")`;
+            return `\n${indent}->AddVariant<type::${typeAlias}>("${variantName}")`;
           })
           .join("");
       source.internalMain.push("      static const auto* kParser =");
@@ -1480,9 +1484,9 @@ class CcLibFilesGenerator {
       );
       source.internalMain.push("  if (has_value) {");
       source.internalMain.push("    switch (number) {");
-      for (const field of wrapperFields) {
-        const { fieldNumber, typeAlias } = field;
-        source.internalMain.push(`      case ${fieldNumber}: {`);
+      for (const variant of wrapperVariants) {
+        const { variantNumber, typeAlias } = variant;
+        source.internalMain.push(`      case ${variantNumber}: {`);
         source.internalMain.push(`        type::${typeAlias} wrapper;`);
         source.internalMain.push(
           "        ::skir_internal::Parse(source, wrapper.value);",
@@ -1513,10 +1517,10 @@ class CcLibFilesGenerator {
       source.internalMain.push("    switch (number) {");
       source.internalMain.push("      case 0:");
       source.internalMain.push("        break;");
-      for (const field of constFields) {
-        const { fieldNumber, identifier } = field;
-        if (field.fieldNumber === 0) continue;
-        source.internalMain.push(`      case ${fieldNumber}:`);
+      for (const variant of constVariants) {
+        const { variantNumber, identifier } = variant;
+        if (variant.variantNumber === 0) continue;
+        source.internalMain.push(`      case ${variantNumber}:`);
         source.internalMain.push(`        out = ::skirout::${identifier};`);
         source.internalMain.push("        break;");
       }
@@ -1567,24 +1571,24 @@ class CcLibFilesGenerator {
         `      ${JSON.stringify(record.record.doc.text)},`,
       );
       source.internalMain.push("      {");
-      for (const field of constFields) {
-        if (field.isUnknownField) {
+      for (const variant of constVariants) {
+        if (variant.isUnknownVariant) {
           continue;
         }
         source.internalMain.push("          {");
-        source.internalMain.push(`              "${field.fieldName}",`);
-        source.internalMain.push(`              ${field.fieldNumber},`);
+        source.internalMain.push(`              "${variant.variantName}",`);
+        source.internalMain.push(`              ${variant.variantNumber},`);
         source.internalMain.push(`              absl::nullopt,`);
         source.internalMain.push(
-          `              ${JSON.stringify(field.doc.text)},`,
+          `              ${JSON.stringify(variant.doc.text)},`,
         );
         source.internalMain.push("          },");
       }
-      for (const field of wrapperFields) {
-        const { fieldName, fieldNumber, valueTypeWithNamespace } = field;
+      for (const variant of wrapperVariants) {
+        const { variantName, variantNumber, valueTypeWithNamespace } = variant;
         source.internalMain.push("          {");
-        source.internalMain.push(`              "${fieldName}",`);
-        source.internalMain.push(`              ${fieldNumber},`);
+        source.internalMain.push(`              "${variantName}",`);
+        source.internalMain.push(`              ${variantNumber},`);
         source.internalMain.push(
           `              skir_internal::GetType<${valueTypeWithNamespace}>(),`,
         );
@@ -1595,8 +1599,8 @@ class CcLibFilesGenerator {
       source.internalMain.push(`      {${removedNumbers}},`);
       source.internalMain.push("  };");
       source.internalMain.push("  registry.push_back(std::move(record));");
-      for (const field of wrapperFields) {
-        const { valueTypeWithNamespace } = field;
+      for (const variant of wrapperVariants) {
+        const { valueTypeWithNamespace } = variant;
         source.internalMain.push(
           `  skir_internal::RegisterRecords<${
             valueTypeWithNamespace
@@ -1682,26 +1686,28 @@ class CcLibFilesGenerator {
     header.internal.push("");
   }
 
-  private writeCodeForConstantField(field: EnumField): void {
-    if (!this.addskiroutSymbol(field.structType)) return;
+  private writeCodeForConstantVariant(variant: EnumVariant): void {
+    if (!this.addskiroutSymbol(variant.structType)) return;
     const { skirout } = this.header;
-    skirout.push(`#ifndef skirout_${field.structType}`);
-    skirout.push(`#define skirout_${field.structType}`);
-    skirout.push(`struct ${field.structType} {`);
+    skirout.push(`#ifndef skirout_${variant.structType}`);
+    skirout.push(`#define skirout_${variant.structType}`);
+    skirout.push(`struct ${variant.structType} {`);
     skirout.push(
-      `  static constexpr absl::string_view kFieldName = "${field.fieldName}";`,
+      `  static constexpr absl::string_view kVariantName = "${variant.variantName}";`,
     );
     skirout.push("};");
     skirout.push("");
-    skirout.push(`constexpr auto ${field.identifier} = ${field.structType}();`);
+    skirout.push(
+      `constexpr auto ${variant.identifier} = ${variant.structType}();`,
+    );
     skirout.push("#endif");
     skirout.push("");
   }
 
-  private writeCodeForWrapperField(field: EnumField): void {
-    const { fieldName, structType } = field;
+  private writeCodeForWrapperVariant(variant: EnumVariant): void {
+    const { variantName, structType } = variant;
     if (!this.addskiroutSymbol(structType)) return;
-    const optionType = `${fieldName}_option`;
+    const optionType = `${variantName}_option`;
     {
       const { skirout } = this.header;
       skirout.push(`#ifndef skirout_${structType}`);
@@ -1712,7 +1718,7 @@ class CcLibFilesGenerator {
       skirout.push("namespace reflection {");
       skirout.push(`struct ${optionType} {`);
       skirout.push(
-        `  static constexpr absl::string_view kFieldName = "${fieldName}";`,
+        `  static constexpr absl::string_view kVariantName = "${variantName}";`,
       );
       skirout.push("");
       skirout.push("  template <typename T>");
@@ -1723,7 +1729,7 @@ class CcLibFilesGenerator {
       skirout.push("  template <typename Enum>");
       skirout.push("  static auto* get_or_null(Enum& e) {");
       skirout.push(
-        `    return e.is_${fieldName}() ? &e.as_${fieldName}() : nullptr;`,
+        `    return e.is_${variantName}() ? &e.as_${variantName}() : nullptr;`,
       );
       skirout.push("  }");
       skirout.push("};");
@@ -1751,7 +1757,7 @@ class CcLibFilesGenerator {
       skirout.push(`#ifndef TESTING_skirout_${structType}`);
       skirout.push(`#define TESTING_skirout_${structType}`);
       skirout.push("template <typename ValueMatcher = decltype(_)>");
-      const functionName = "Is" + convertCase(fieldName, "UpperCamel");
+      const functionName = "Is" + convertCase(variantName, "UpperCamel");
       skirout.push(`auto ${functionName}(ValueMatcher matcher = _) {`);
       skirout.push("  using ::testing::skir_internal::EnumValueIsMatcher;");
       skirout.push(`  using Option = ::skirout::reflection::${optionType};`);

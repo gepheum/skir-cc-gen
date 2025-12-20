@@ -203,7 +203,7 @@ class EnumValueIsMatcher {
         : matcher_(MatcherCast<const value_type&>(matcher)) {}
 
     void DescribeTo(::std::ostream* absl_nonnull os) const override {
-      *os << "is a " << Option::kFieldName;
+      *os << "is a " << Option::kVariantName;
       if (!IsAnythingMatcher(matcher_)) {
         *os << " that ";
         matcher_.DescribeTo(os);
@@ -211,7 +211,7 @@ class EnumValueIsMatcher {
     }
 
     void DescribeNegationTo(::std::ostream* absl_nonnull os) const override {
-      *os << "is not a " << Option::kFieldName;
+      *os << "is not a " << Option::kVariantName;
       if (!IsAnythingMatcher(matcher_)) {
         *os << " that ";
         matcher_.DescribeTo(os);
