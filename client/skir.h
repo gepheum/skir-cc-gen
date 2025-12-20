@@ -55,7 +55,7 @@ namespace skir {
 // malicious user.
 //
 // Default: kDrop
-enum class UnrecognizedFieldsPolicy { kDrop, kKeep };
+enum class UnrecognizedValuesPolicy { kDrop, kKeep };
 
 // A string of bytes.
 //
@@ -1142,7 +1142,7 @@ struct ByteSource {
 
   const uint8_t* absl_nonnull pos;
   const uint8_t* absl_nonnull const end;
-  bool keep_unrecognized_fields = false;
+  bool keep_unrecognized_values = false;
   bool error = false;
 
   size_t num_bytes_left() const { return end - pos; }
@@ -1207,9 +1207,9 @@ class JsonTokenizer {
  public:
   JsonTokenizer(const char* absl_nonnull json_code_begin,
                 const char* absl_nonnull json_code_end,
-                skir::UnrecognizedFieldsPolicy unrecognized_fields)
-      : keep_unrecognized_fields_(unrecognized_fields ==
-                                  skir::UnrecognizedFieldsPolicy::kKeep) {
+                skir::UnrecognizedValuesPolicy unrecognized_values)
+      : keep_unrecognized_values_(unrecognized_values ==
+                                  skir::UnrecognizedValuesPolicy::kKeep) {
     state_.begin = json_code_begin;
     state_.end = json_code_end;
     state_.pos = json_code_begin;
@@ -1248,12 +1248,12 @@ class JsonTokenizer {
   State& mutable_state() { return state_; }
   const State& state() const { return state_; }
 
-  const bool keep_unrecognized_fields() const {
-    return keep_unrecognized_fields_;
+  const bool keep_unrecognized_values() const {
+    return keep_unrecognized_values_;
   }
 
  private:
-  const bool keep_unrecognized_fields_;
+  const bool keep_unrecognized_values_;
   State state_;
 };
 
@@ -2399,8 +2399,8 @@ namespace skir {
 //   - the bytes returned by skir::ToBytes
 template <typename T>
 absl::StatusOr<T> Parse(absl::string_view bytes_or_json,
-                        UnrecognizedFieldsPolicy unrecognized_fields =
-                            UnrecognizedFieldsPolicy::kDrop) {
+                        UnrecognizedValuesPolicy unrecognized_values =
+                            UnrecognizedValuesPolicy::kDrop) {
   T result{};
   if (bytes_or_json.length() >= 4 && bytes_or_json[0] == 's' &&
       bytes_or_json[1] == 'k' && bytes_or_json[2] == 'i' &&
@@ -2408,15 +2408,15 @@ absl::StatusOr<T> Parse(absl::string_view bytes_or_json,
     bytes_or_json = bytes_or_json.substr(4);
     skir_internal::ByteSource byte_source(bytes_or_json.data(),
                                           bytes_or_json.length());
-    byte_source.keep_unrecognized_fields =
-        unrecognized_fields == UnrecognizedFieldsPolicy::kKeep;
+    byte_source.keep_unrecognized_values =
+        unrecognized_values == UnrecognizedValuesPolicy::kKeep;
     skir_internal::Parse(byte_source, result);
     if (byte_source.error || byte_source.pos < byte_source.end) {
       return absl::UnknownError("error while decoding skir value from bytes");
     }
   } else {
     skir_internal::JsonTokenizer tokenizer(
-        bytes_or_json.begin(), bytes_or_json.end(), unrecognized_fields);
+        bytes_or_json.begin(), bytes_or_json.end(), unrecognized_values);
     tokenizer.Next();
     skir_internal::Parse(tokenizer, result);
     if (tokenizer.state().token_type != skir_internal::JsonTokenType::kStrEnd) {
@@ -2601,12 +2601,12 @@ class HandleRequestOp {
  public:
   HandleRequestOp(ServiceImpl* absl_nonnull service_impl,
                   absl::string_view request_body,
-                  skir::UnrecognizedFieldsPolicy unrecognized_fields,
+                  skir::UnrecognizedValuesPolicy unrecognized_values,
                   const RequestMeta* absl_nonnull request_meta,
                   ResponseMeta* absl_nonnull response_meta)
       : service_impl_(*service_impl),
         request_body_(request_body),
-        unrecognized_fields_(unrecognized_fields),
+        unrecognized_values_(unrecognized_values),
         request_meta_(*request_meta),
         response_meta_(*response_meta) {}
 
@@ -2654,7 +2654,7 @@ class HandleRequestOp {
  private:
   ServiceImpl& service_impl_;
   const absl::string_view request_body_;
-  const skir::UnrecognizedFieldsPolicy unrecognized_fields_;
+  const skir::UnrecognizedValuesPolicy unrecognized_values_;
   const RequestMeta& request_meta_;
   ResponseMeta& response_meta_;
 
@@ -2680,7 +2680,7 @@ class HandleRequestOp {
     }
     raw_response_.emplace();
     absl::StatusOr<RequestType> request = skir::Parse<RequestType>(
-        request_body_parsed_.request_data, unrecognized_fields_);
+        request_body_parsed_.request_data, unrecognized_values_);
     if (!request.ok()) {
       raw_response_->data =
           absl::StrCat("bad request: ", request.status().message());
@@ -2805,18 +2805,18 @@ namespace service {
 // request's body. The query string is the part of the URL after '?', and it can
 // be decoded with DecodeUrlQueryString.
 //
-// Pass in UnrecognizedFieldsPolicy::kKeep if the request is guaranteed to come
+// Pass in UnrecognizedValuesPolicy::kKeep if the request is guaranteed to come
 // from a trusted user.
 template <typename ServiceImpl>
 RawResponse HandleRequest(ServiceImpl& service_impl,
                           absl::string_view request_body,
                           const HttpHeaders& request_headers,
                           HttpHeaders& response_headers,
-                          UnrecognizedFieldsPolicy unrecognized_fields =
-                              UnrecognizedFieldsPolicy::kDrop) {
+                          UnrecognizedValuesPolicy unrecognized_values =
+                              UnrecognizedValuesPolicy::kDrop) {
   skir_internal::assert_unique_method_numbers<typename ServiceImpl::methods>();
   return skir_internal::HandleRequestOp(&service_impl, request_body,
-                                        unrecognized_fields, &request_headers,
+                                        unrecognized_values, &request_headers,
                                         &response_headers)
       .Run();
 }
@@ -2834,17 +2834,17 @@ absl::StatusOr<std::string> DecodeUrlQueryString(
 // ServiceImpl must satisfy the requirements outlined in the documentation for
 // HandleRequest.
 //
-// Pass in UnrecognizedFieldsPolicy::kKeep if the request is guaranteed to come
+// Pass in UnrecognizedValuesPolicy::kKeep if the request is guaranteed to come
 // from a trusted user.
 template <typename HttplibServer, typename ServiceImpl>
 void InstallServiceOnHttplibServer(
     HttplibServer& server, absl::string_view query_path,
     std::shared_ptr<ServiceImpl> service_impl,
-    UnrecognizedFieldsPolicy unrecognized_fields =
-        UnrecognizedFieldsPolicy::kDrop) {
+    UnrecognizedValuesPolicy unrecognized_values =
+        UnrecognizedValuesPolicy::kDrop) {
   ABSL_CHECK_NE(service_impl, nullptr);
   const typename HttplibServer::Handler handler =  //
-      [service_impl, unrecognized_fields](const auto& req, auto& resp) {
+      [service_impl, unrecognized_values](const auto& req, auto& resp) {
         const HttpHeaders request_headers =
             skir_internal::HttplibToSkirHeaders(req.headers);
         HttpHeaders response_headers;
@@ -2865,7 +2865,7 @@ void InstallServiceOnHttplibServer(
         }
         RawResponse raw_response =
             HandleRequest(*service_impl, request_body, request_headers,
-                          response_headers, unrecognized_fields);
+                          response_headers, unrecognized_values);
         skir_internal::SkirToHttplibHeaders(response_headers, resp.headers);
 
         resp.set_content(std::move(raw_response.data),
@@ -2897,7 +2897,7 @@ absl::StatusOr<typename Method::response_type> InvokeRemote(
     return std::move(response_data).status();
   }
   return Parse<typename Method::response_type>(*response_data,
-                                               UnrecognizedFieldsPolicy::kKeep);
+                                               UnrecognizedValuesPolicy::kKeep);
 }
 
 // Returns a client for sending RPCs to a skir service via the given

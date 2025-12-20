@@ -401,7 +401,7 @@ std::unique_ptr<JsonTokenizerResult> MakeJsonTokenizer(
   result->tokenizer = std::make_unique<skir_internal::JsonTokenizer>(
       result->json_code.data(),
       result->json_code.data() + result->json_code.size(),
-      skir::UnrecognizedFieldsPolicy::kKeep);
+      skir::UnrecognizedValuesPolicy::kKeep);
   return result;
 }
 

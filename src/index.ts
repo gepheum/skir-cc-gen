@@ -1376,7 +1376,7 @@ class CcLibFilesGenerator {
       }
       source.internalMain.push("        default:");
       source.internalMain.push(
-        "          if (tokenizer.keep_unrecognized_fields()) {",
+        "          if (tokenizer.keep_unrecognized_values()) {",
       );
       source.internalMain.push(
         "            out = type(UnrecognizedEnum{::skir_internal::UnrecognizedFormat::kDenseJson, i});",
@@ -1426,7 +1426,7 @@ class CcLibFilesGenerator {
       }
       source.internalMain.push("        default: {");
       source.internalMain.push(
-        "          if (tokenizer.keep_unrecognized_fields()) {",
+        "          if (tokenizer.keep_unrecognized_values()) {",
       );
       source.internalMain.push(
         "            UnrecognizedEnum unrecognized{::skir_internal::UnrecognizedFormat::kDenseJson, number};",
@@ -1493,7 +1493,7 @@ class CcLibFilesGenerator {
       }
       source.internalMain.push("      default: {");
       source.internalMain.push(
-        "        if (source.keep_unrecognized_fields) {",
+        "        if (source.keep_unrecognized_values) {",
       );
       source.internalMain.push(
         "          UnrecognizedEnum unrecognized{::skir_internal::UnrecognizedFormat::kBytes, number};",
@@ -1522,7 +1522,7 @@ class CcLibFilesGenerator {
       }
       source.internalMain.push("      default: {");
       source.internalMain.push(
-        "        if (source.keep_unrecognized_fields) {",
+        "        if (source.keep_unrecognized_values) {",
       );
       source.internalMain.push(
         "          out = type(UnrecognizedEnum{::skir_internal::UnrecognizedFormat::kBytes, number});",

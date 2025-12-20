@@ -108,7 +108,7 @@ struct ReserializerUtils {
     std::vector<char> dense_json_chars(json.begin(), json.end());
     skir_internal::JsonTokenizer tokenizer(
         json.data(), json.data() + json.length(),
-        skir::UnrecognizedFieldsPolicy::kKeep);
+        skir::UnrecognizedValuesPolicy::kKeep);
 
     tokenizer.Next();
     skir_internal::SkipValue(tokenizer);
@@ -203,7 +203,7 @@ class Reserializer {
     compatible_schema.reencode_json_fn =
         [](const std::string& json) -> absl::StatusOr<std::string> {
       absl::StatusOr<Other> other =
-          skir::Parse<Other>(json, skir::UnrecognizedFieldsPolicy::kKeep);
+          skir::Parse<Other>(json, skir::UnrecognizedValuesPolicy::kKeep);
       if (!other.ok()) return other.status();
       return skir::ToDenseJson(*other);
     };
@@ -211,7 +211,7 @@ class Reserializer {
         [schema_name_str](
             const std::string& bytes) -> absl::StatusOr<std::string> {
       absl::StatusOr<Other> other =
-          skir::Parse<Other>(bytes, skir::UnrecognizedFieldsPolicy::kKeep);
+          skir::Parse<Other>(bytes, skir::UnrecognizedValuesPolicy::kKeep);
       if (!other.ok()) return other.status();
       return skir::ToBytes(*other).as_string();
     };

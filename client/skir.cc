@@ -2476,7 +2476,7 @@ void ParseUnrecognizedFields(JsonArrayReader& array_reader, size_t num_slots,
                              size_t num_slots_incl_removed,
                              std::shared_ptr<UnrecognizedFieldsData>& out) {
   JsonTokenizer& tokenizer = array_reader.tokenizer();
-  if (tokenizer.keep_unrecognized_fields()) {
+  if (tokenizer.keep_unrecognized_values()) {
     const size_t num_trailing_removed = num_slots_incl_removed - num_slots;
     for (size_t i = 0; i < num_trailing_removed; ++i) {
       SkipValue(tokenizer);
@@ -2500,7 +2500,7 @@ void ParseUnrecognizedFields(JsonArrayReader& array_reader, size_t num_slots,
 void ParseUnrecognizedFields(ByteSource& source, size_t array_len,
                              size_t num_slots, size_t num_slots_incl_removed,
                              std::shared_ptr<UnrecognizedFieldsData>& out) {
-  if (array_len > num_slots_incl_removed && source.keep_unrecognized_fields) {
+  if (array_len > num_slots_incl_removed && source.keep_unrecognized_values) {
     const size_t num_trailing_removed = num_slots_incl_removed - num_slots;
     SkipValues(source, num_trailing_removed);
 
@@ -2522,7 +2522,7 @@ absl::Status RequestBody::Parse(absl::string_view request_body) {
       first_char == '\r' || first_char == '\n') {
     // A JSON object
     JsonTokenizer tokenizer(request_body.begin(), request_body.end(),
-                            skir::UnrecognizedFieldsPolicy::kDrop);
+                            skir::UnrecognizedValuesPolicy::kDrop);
     if (tokenizer.Next() != JsonTokenType::kLeftCurlyBracket) {
       return absl::InvalidArgumentError("expected: JSON object");
     }
@@ -2603,7 +2603,7 @@ std::string TypeDescriptor::AsJson() const {
 absl::StatusOr<TypeDescriptor> TypeDescriptor::FromJson(
     absl::string_view json) {
   skir_internal::JsonTokenizer tokenizer(json.begin(), json.end(),
-                                         UnrecognizedFieldsPolicy::kDrop);
+                                         UnrecognizedValuesPolicy::kDrop);
   tokenizer.Next();
   TypeDescriptor result;
   skir_internal::Parse(tokenizer, result);

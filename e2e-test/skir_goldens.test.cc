@@ -186,7 +186,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       const absl::StatusOr<skirout_goldens::Point> point =
           skir::Parse<skirout_goldens::Point>(
-              *string_expression, skir::UnrecognizedFieldsPolicy::kKeep);
+              *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
       if (!point.ok()) {
         return point.status();
       }
@@ -202,7 +202,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       const absl::StatusOr<skirout_goldens::Point> point =
           skir::Parse<skirout_goldens::Point>(
-              *string_expression, skir::UnrecognizedFieldsPolicy::kDrop);
+              *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
       if (!point.ok()) {
         return point.status();
       }
@@ -219,7 +219,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       const absl::StatusOr<skirout_goldens::Point> point =
           skir::Parse<skirout_goldens::Point>(
               bytes_expression->as_string(),
-              skir::UnrecognizedFieldsPolicy::kKeep);
+              skir::UnrecognizedValuesPolicy::kKeep);
       if (!point.ok()) {
         return point.status();
       }
@@ -236,7 +236,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       const absl::StatusOr<skirout_goldens::Point> point =
           skir::Parse<skirout_goldens::Point>(
               bytes_expression->as_string(),
-              skir::UnrecognizedFieldsPolicy::kDrop);
+              skir::UnrecognizedValuesPolicy::kDrop);
       if (!point.ok()) {
         return point.status();
       }
@@ -252,7 +252,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       const absl::StatusOr<skirout_goldens::Color> color =
           skir::Parse<skirout_goldens::Color>(
-              *string_expression, skir::UnrecognizedFieldsPolicy::kKeep);
+              *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
       if (!color.ok()) {
         return color.status();
       }
@@ -268,7 +268,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       const absl::StatusOr<skirout_goldens::Color> color =
           skir::Parse<skirout_goldens::Color>(
-              *string_expression, skir::UnrecognizedFieldsPolicy::kDrop);
+              *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
       if (!color.ok()) {
         return color.status();
       }
@@ -285,7 +285,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       const absl::StatusOr<skirout_goldens::Color> color =
           skir::Parse<skirout_goldens::Color>(
               bytes_expression->as_string(),
-              skir::UnrecognizedFieldsPolicy::kKeep);
+              skir::UnrecognizedValuesPolicy::kKeep);
       if (!color.ok()) {
         return color.status();
       }
@@ -302,7 +302,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       const absl::StatusOr<skirout_goldens::Color> color =
           skir::Parse<skirout_goldens::Color>(
               bytes_expression->as_string(),
-              skir::UnrecognizedFieldsPolicy::kDrop);
+              skir::UnrecognizedValuesPolicy::kDrop);
       if (!color.ok()) {
         return color.status();
       }
@@ -318,7 +318,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
           skir::Parse<skirout_goldens::MyEnum>(
-              *string_expression, skir::UnrecognizedFieldsPolicy::kKeep);
+              *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
@@ -335,7 +335,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
           skir::Parse<skirout_goldens::MyEnum>(
-              *string_expression, skir::UnrecognizedFieldsPolicy::kDrop);
+              *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
@@ -353,7 +353,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
           skir::Parse<skirout_goldens::MyEnum>(
               bytes_expression->as_string(),
-              skir::UnrecognizedFieldsPolicy::kKeep);
+              skir::UnrecognizedValuesPolicy::kKeep);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
@@ -371,7 +371,7 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
           skir::Parse<skirout_goldens::MyEnum>(
               bytes_expression->as_string(),
-              skir::UnrecognizedFieldsPolicy::kDrop);
+              skir::UnrecognizedValuesPolicy::kDrop);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
