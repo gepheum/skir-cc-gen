@@ -222,7 +222,6 @@ class CcLibFilesGenerator {
           commentLines.push(`    .${fieldName} = ...,`);
         }
         commentLines.push("  };");
-        commentLines.push("");
       }
       header.mainMiddle.push(...commentify(commentLines, "  "));
     }
