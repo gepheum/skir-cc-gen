@@ -1,10 +1,7 @@
-// TODO: field->variant
-// TODO: add doc to generated code
-// TODO: smart indent like in Typescript generator
-
 import {
   type CodeGenerator,
   type Constant,
+  Doc,
   Field,
   type Method,
   type Module,
@@ -163,6 +160,7 @@ class CcLibFilesGenerator {
       header.skirout.push("");
     }
 
+    header.mainMiddle.push(...commentify(docToCommentText(struct.record.doc)));
     header.mainMiddle.push(`struct ${className} {`);
     // Declare fields in alphabetical order. It helps users who want to
     // initialize a struct using the designated initializer syntax. See:
@@ -185,6 +183,7 @@ class CcLibFilesGenerator {
           assignment = " = 0.0";
         }
       }
+      header.mainMiddle.push(...commentify(docToCommentText(field.doc), "  "));
       header.mainMiddle.push(`  ${ccType} ${fieldName}${assignment};`);
     }
     header.mainMiddle.push("");
@@ -204,6 +203,29 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("    return !(*this == other);");
     header.mainMiddle.push("  }");
     header.mainMiddle.push("");
+    {
+      const commentLines = [
+        "Use this when you want to make sure you are specifying all the fields of",
+        "the struct.",
+      ];
+      if (fields.length !== 0) {
+        commentLines.push(
+          ...[
+            "",
+            "Example:",
+            "",
+            `  ${className} value = ${className}::whole{`,
+          ],
+        );
+        for (const field of fieldsByName) {
+          const fieldName = maybeEscapeLowerCaseName(field.name.text);
+          commentLines.push(`    .${fieldName} = ...,`);
+        }
+        commentLines.push("  };");
+        commentLines.push("");
+      }
+      header.mainMiddle.push(...commentify(commentLines, "  "));
+    }
     header.mainMiddle.push("  struct whole {");
     for (const field of fieldsByName) {
       const type = field.type!;
@@ -212,6 +234,9 @@ class CcLibFilesGenerator {
         fieldIsRecursive: fieldIsRecursive,
       });
       const fieldName = maybeEscapeLowerCaseName(field.name.text);
+      header.mainMiddle.push(
+        ...commentify(docToCommentText(field.doc), "    "),
+      );
       header.mainMiddle.push(`    ::skir::must_init<${ccType}> ${fieldName};`);
     }
     header.mainMiddle.push("");
@@ -1841,6 +1866,37 @@ class CcLibFilesGenerator {
   readonly header: FileContents = new FileContents(".h");
   readonly source: FileContents = new FileContents(".cc");
   readonly testingHeader: FileContents = new FileContents(".testing.h");
+}
+
+function commentify(
+  textOrLines: string | readonly string[],
+  indent: "" | "  " | "    " = "",
+): readonly string[] {
+  const text = (
+    typeof textOrLines === "string" ? textOrLines : textOrLines.join("\n")
+  )
+    .replace(/^\s*\n+/g, "")
+    .replace(/\n+\s*$/g, "")
+    .replace(/\n{3,}/g, "\n\n");
+
+  if (text.length <= 0) {
+    return [];
+  }
+
+  return text.split("\n").map((line) => `${indent}// ${line}`);
+}
+
+function docToCommentText(doc: Doc): string {
+  return doc.pieces
+    .map((p) => {
+      switch (p.kind) {
+        case "text":
+          return p.text;
+        case "reference":
+          return `'${p.referenceRange.text.slice(1, -1)}'`;
+      }
+    })
+    .join("");
 }
 
 class FileContents {

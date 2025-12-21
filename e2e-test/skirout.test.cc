@@ -101,15 +101,18 @@ TEST(skiroutTest, ReserializeStruct) {
               "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": "
               "\"full_name.skir:FullName\"\n  },\n  \"records\": [\n    {\n    "
               "  \"kind\": \"struct\",\n      \"id\": "
-              "\"full_name.skir:FullName\",\n      \"fields\": [\n        {\n  "
-              "        \"name\": \"first_name\",\n          \"number\": 1,\n   "
-              "       \"type\": {\n            \"kind\": \"primitive\",\n      "
-              "      \"value\": \"string\"\n          }\n        },\n        "
-              "{\n          \"name\": \"last_name\",\n          \"number\": "
-              "4,\n          \"type\": {\n            \"kind\": "
-              "\"primitive\",\n            \"value\": \"string\"\n          "
-              "}\n        }\n      ],\n      \"removed_numbers\": [\n        "
-              "0,\n        2,\n        3,\n        5\n      ]\n    }\n  ]\n}")
+              "\"full_name.skir:FullName\",\n      \"doc\": \"The user's full  "
+              "name\",\n      \"fields\": [\n        {\n          \"name\": "
+              "\"first_name\",\n          \"number\": 1,\n          \"type\": "
+              "{\n            \"kind\": \"primitive\",\n            \"value\": "
+              "\"string\"\n          },\n          \"doc\": \"The first "
+              "name\"\n        },\n        {\n          \"name\": "
+              "\"last_name\",\n          \"number\": 4,\n          \"type\": "
+              "{\n            \"kind\": \"primitive\",\n            \"value\": "
+              "\"string\"\n          },\n          \"doc\": \"The last "
+              "name\"\n        }\n      ],\n      \"removed_numbers\": [\n     "
+              "   0,\n        2,\n        3,\n        5\n      ]\n    }\n  "
+              "]\n}")
           .AddAlternativeBytes("00")
           .AddAlternativeJson("0")
           .Check(),
