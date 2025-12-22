@@ -12,7 +12,7 @@ interface MutableEnumVariant {
   variantNumber: number;
   /** Whether the variant is the special UNKNOWN variant. */
   isUnknownVariant: boolean;
-  /** Examples: "f_variant", "wrap_variant". */
+  /** Examples: "k_variant", "wrap_variant". */
   readonly structType: string;
   /** Example: "wrap_variant_type". Empty if the variant is a constant. */
   readonly typeAlias: string;

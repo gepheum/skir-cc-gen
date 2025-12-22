@@ -480,18 +480,18 @@ TEST(skiroutTest, KeyedItems) {
               "\"type\": {\n            \"kind\": \"primitive\",\n            "
               "\"value\": \"string\"\n          }\n        }\n      ]\n    "
               "},\n    {\n      \"kind\": \"enum\",\n      \"id\": "
-              "\"enums.skir:Weekday\",\n      \"variants\": [\n        {\n     "
-              "  "
-              "   \"name\": \"MONDAY\",\n          \"number\": 1\n        },\n "
-              "       {\n          \"name\": \"TUESDAY\",\n          "
-              "\"number\": 2\n        },\n        {\n          \"name\": "
-              "\"WEDNESDAY\",\n          \"number\": 3\n        },\n        "
-              "{\n          \"name\": \"THURSDAY\",\n          \"number\": 4\n "
-              "       },\n        {\n          \"name\": \"FRIDAY\",\n         "
-              " \"number\": 5\n        },\n        {\n          \"name\": "
-              "\"SATURDAY\",\n          \"number\": 6\n        },\n        {\n "
-              "         \"name\": \"SUNDAY\",\n          \"number\": 7\n       "
-              " }\n      ]\n    }\n  ]\n}")
+              "\"enums.skir:Weekday\",\n      \"doc\": \"A day of the "
+              "week\",\n      \"variants\": [\n        {\n          \"name\": "
+              "\"MONDAY\",\n          \"number\": 1\n        },\n        {\n   "
+              "       \"name\": \"TUESDAY\",\n          \"number\": 2\n        "
+              "},\n        {\n          \"name\": \"WEDNESDAY\",\n          "
+              "\"number\": 3\n        },\n        {\n          \"name\": "
+              "\"THURSDAY\",\n          \"number\": 4\n        },\n        {\n "
+              "         \"name\": \"FRIDAY\",\n          \"number\": 5\n       "
+              " },\n        {\n          \"name\": \"SATURDAY\",\n          "
+              "\"number\": 6\n        },\n        {\n          \"name\": "
+              "\"SUNDAY\",\n          \"number\": 7\n        }\n      ]\n    "
+              "}\n  ]\n}")
           .Check(),
       IsOk());
 }

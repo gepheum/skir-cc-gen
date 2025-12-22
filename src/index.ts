@@ -1,3 +1,6 @@
+// Finish comments (enums, methods, constants)
+// Enum::as_foo() -> Enum::unwrap_foo()? is_foo -> holds_foo?
+
 import {
   type CodeGenerator,
   type Constant,
@@ -221,6 +224,9 @@ class CcLibFilesGenerator {
           const fieldName = maybeEscapeLowerCaseName(field.name.text);
           commentLines.push(`    .${fieldName} = ...,`);
         }
+        commentLines.push(
+          "    // The compiler will error if one field is missing.",
+        );
         commentLines.push("  };");
       }
       header.mainMiddle.push(...commentify(commentLines, "  "));
@@ -756,6 +762,7 @@ class CcLibFilesGenerator {
 
     header.mainTop.push(`class ${className};`);
 
+    header.mainMiddle.push(...commentify(docToCommentText(record.record.doc)));
     header.mainMiddle.push(`class ${className} {`);
     header.mainMiddle.push(" public:");
     for (const variant of wrapperVariants) {
@@ -763,37 +770,28 @@ class CcLibFilesGenerator {
       header.mainMiddle.push(`  using ${variant.typeAlias} = ${type};`);
     }
     header.mainMiddle.push("");
+    header.mainMiddle.push(
+      `  // Identifies the possible variants held by a ${className}.`,
+    );
     header.mainMiddle.push("  enum class kind_type {");
     for (const variant of variants) {
+      header.mainMiddle.push(
+        ...commentify(docToCommentText(variant.doc), "    "),
+      );
       header.mainMiddle.push(`    ${variant.kindEnumerator},`);
     }
     header.mainMiddle.push("  };");
     header.mainMiddle.push("");
-    header.mainMiddle.push(`  ${className}();`);
-    source.mainMiddle.push(
-      `${className}::${className}() : ${className}(kUnknown) {}`,
-    );
-    source.mainMiddle.push("");
-    header.mainMiddle.push(`  ${className}(const ${className}&);`);
-    source.mainMiddle.push(
-      `${className}::${className}(const ${className}& other) {`,
-    );
-    source.mainMiddle.push("  copy(other);");
-    source.mainMiddle.push("}");
-    source.mainMiddle.push("");
-
-    header.mainMiddle.push(`  ${className}(${className}&&);`);
-    source.mainMiddle.push(`${className}::${className}(${className}&& other)`);
-    source.mainMiddle.push(`    : kind_(other.kind_),`);
-    source.mainMiddle.push(`      value_(other.value_) {`);
-    source.mainMiddle.push("  other.kind_ = kind_type::kUnknown;");
-    source.mainMiddle.push("  other.value_._unrecognized = nullptr;");
-    source.mainMiddle.push("}");
-    source.mainMiddle.push("");
-    header.mainMiddle.push("");
     for (const variant of constVariants) {
-      const { isUnknownVariant, kindEnumerator, structType } = variant;
-      header.mainMiddle.push(`  ${className}(::skirout::${structType});`);
+      const { identifier, isUnknownVariant, kindEnumerator, structType } =
+        variant;
+      const assignment = isUnknownVariant ? " = ::skirout::kUnknown" : "";
+      header.mainMiddle.push(
+        `  // For example: FunctionExpecting${className}(skirout::${identifier})`,
+      );
+      header.mainMiddle.push(
+        `  ${className}(::skirout::${structType}${assignment});`,
+      );
       const body = isUnknownVariant
         ? "{\n  value_._unrecognized = nullptr;\n}"
         : "{}";
@@ -805,7 +803,11 @@ class CcLibFilesGenerator {
     }
     source.mainMiddle.push("");
     for (const variant of wrapperVariants) {
-      const { variantName, kindEnumerator, typeAlias, usePointer } = variant;
+      const { identifier, kindEnumerator, typeAlias, usePointer, variantName } =
+        variant;
+      header.mainMiddle.push(
+        `  // For example: FunctionExpecting${className}(skirout::${identifier}(...))`,
+      );
       header.mainMiddle.push(`  ${className}(${typeAlias});`);
       source.mainMiddle.push(`${className}::${className}(${typeAlias} w)`);
       source.mainMiddle.push(`    : kind_(kind_type::${kindEnumerator}) {`);
@@ -819,6 +821,24 @@ class CcLibFilesGenerator {
       source.mainMiddle.push("}");
       source.mainMiddle.push("");
     }
+    header.mainMiddle.push("");
+    header.mainMiddle.push(`  ${className}(const ${className}&);`);
+    source.mainMiddle.push(
+      `${className}::${className}(const ${className}& other) {`,
+    );
+    source.mainMiddle.push("  copy(other);");
+    source.mainMiddle.push("}");
+    source.mainMiddle.push("");
+
+    header.mainMiddle.push(`  ${className}(${className}&&);`);
+    header.mainMiddle.push("");
+    source.mainMiddle.push(`${className}::${className}(${className}&& other)`);
+    source.mainMiddle.push(`    : kind_(other.kind_),`);
+    source.mainMiddle.push(`      value_(other.value_) {`);
+    source.mainMiddle.push("  other.kind_ = kind_type::kUnknown;");
+    source.mainMiddle.push("  other.value_._unrecognized = nullptr;");
+    source.mainMiddle.push("}");
+    source.mainMiddle.push("");
     {
       source.mainMiddle.push(
         `${className}::${
@@ -846,7 +866,7 @@ class CcLibFilesGenerator {
     }
     header.mainMiddle.push("");
     for (const variant of wrapperVariants) {
-      const { identifier, usePointer, valueType } = variant;
+      const { identifier, usePointer, valueType, variantName } = variant;
       header.mainMiddle.push(
         `  static ${className} ${identifier}(${valueType} value);`,
       );
@@ -860,11 +880,20 @@ class CcLibFilesGenerator {
       source.mainMiddle.push("");
     }
     header.mainMiddle.push("");
+    header.mainMiddle.push(
+      `  // Returns the kind of variant held by this ${className}.`,
+    );
     header.mainMiddle.push("  kind_type kind() const { return kind_; }");
     header.mainMiddle.push("");
     for (const variant of wrapperVariants) {
       const { variantName, kindEnumerator, usePointer, valueType } = variant;
+      header.mainMiddle.push(
+        `  // Returns true if this ${className} holds a ${variantName} variant.`,
+      );
       header.mainMiddle.push(`  inline bool is_${variantName}() const;`);
+      header.mainMiddle.push(
+        `  // Assuming this ${className} holds a ${variantName} variant, returns its value.`,
+      );
       header.mainMiddle.push(
         `  inline const ${valueType}& as_${variantName}() const;`,
       );
@@ -900,6 +929,27 @@ class CcLibFilesGenerator {
       header.mainBottom.push("");
     }
 
+    {
+      const commentLines = ["Example:", "", "  struct visitor {"];
+      for (const variant of constVariants) {
+        const { structType } = variant;
+        commentLines.push(
+          `    void operator()(skirout::${structType}) { ... }`,
+        );
+      }
+      for (const variant of wrapperVariants) {
+        const { structType } = variant;
+        commentLines.push(
+          `    void operator()(const ${className}::${structType}& w) {`,
+        );
+        commentLines.push("      const auto& value = w.value;");
+        commentLines.push("      ...");
+        commentLines.push("    }");
+      }
+      commentLines.push("  };");
+      commentLines.push("  e.visit(visitor());");
+      header.mainMiddle.push(...commentify(commentLines, "  "));
+    }
     header.mainMiddle.push("  template <typename Visitor>");
     header.mainMiddle.push("  decltype(auto) visit(Visitor&& visitor) const {");
     header.mainMiddle.push(
@@ -1656,7 +1706,7 @@ class CcLibFilesGenerator {
         if (recordType === "struct") {
           return `struct_field<type, skirout::get_${fieldName}<>>`;
         } else if (f.type) {
-          return `enum_wrapper_variant<type, skirout::reflection::${fieldName}_option>`;
+          return `enum_wrapper_variant<type, skirout::reflection::${fieldName}_variant>`;
         } else {
           return `skir::reflection::enum_const_variant<skirout::k_${fieldName.toLowerCase()}>`;
         }
@@ -1731,7 +1781,7 @@ class CcLibFilesGenerator {
   private writeCodeForWrapperVariant(variant: EnumVariant): void {
     const { variantName, structType } = variant;
     if (!this.addskiroutSymbol(structType)) return;
-    const optionType = `${variantName}_option`;
+    const variantType = `${variantName}_variant`;
     {
       const { skirout } = this.header;
       skirout.push(`#ifndef skirout_${structType}`);
@@ -1740,7 +1790,7 @@ class CcLibFilesGenerator {
       skirout.push(`struct ${structType};`);
       skirout.push("");
       skirout.push("namespace reflection {");
-      skirout.push(`struct ${optionType} {`);
+      skirout.push(`struct ${variantType} {`);
       skirout.push(
         `  static constexpr absl::string_view kVariantName = "${variantName}";`,
       );
@@ -1763,7 +1813,7 @@ class CcLibFilesGenerator {
       skirout.push(`struct ${structType} {`);
       skirout.push("  using value_type = T;");
       skirout.push(
-        `  using option_type = ::skirout::reflection::${optionType};`,
+        `  using variant_type = ::skirout::reflection::${variantType};`,
       );
       skirout.push("");
       skirout.push("  T value{};");
@@ -1784,9 +1834,9 @@ class CcLibFilesGenerator {
       const functionName = "Is" + convertCase(variantName, "UpperCamel");
       skirout.push(`auto ${functionName}(ValueMatcher matcher = _) {`);
       skirout.push("  using ::testing::skir_internal::EnumValueIsMatcher;");
-      skirout.push(`  using Option = ::skirout::reflection::${optionType};`);
+      skirout.push(`  using Variant = ::skirout::reflection::${variantType};`);
       skirout.push(
-        "  return EnumValueIsMatcher<Option, ValueMatcher>(std::move(matcher));",
+        "  return EnumValueIsMatcher<Variant, ValueMatcher>(std::move(matcher));",
       );
       skirout.push("}");
       skirout.push("#endif");
