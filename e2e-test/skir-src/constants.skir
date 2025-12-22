@@ -1,5 +1,6 @@
 import JsonValue from "./enums.skir";
 
+/// One constant
 const ONE_CONSTANT: JsonValue = {
   kind: "array",
   value: [

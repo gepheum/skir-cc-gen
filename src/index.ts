@@ -1,6 +1,3 @@
-// Finish comments (enums, methods, constants)
-// Enum::as_foo() -> Enum::unwrap_foo()? is_foo -> holds_foo?
-
 import {
   type CodeGenerator,
   type Constant,
@@ -209,7 +206,7 @@ class CcLibFilesGenerator {
     {
       const commentLines = [
         "Use this when you want to make sure you are specifying all the fields of",
-        "the struct.",
+        "the struct. The compiler will error if one field is missing.",
       ];
       if (fields.length !== 0) {
         commentLines.push(
@@ -224,9 +221,6 @@ class CcLibFilesGenerator {
           const fieldName = maybeEscapeLowerCaseName(field.name.text);
           commentLines.push(`    .${fieldName} = ...,`);
         }
-        commentLines.push(
-          "    // The compiler will error if one field is missing.",
-        );
         commentLines.push("  };");
       }
       header.mainMiddle.push(...commentify(commentLines, "  "));
@@ -776,7 +770,12 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("  enum class kind_type {");
     for (const variant of variants) {
       header.mainMiddle.push(
-        ...commentify(docToCommentText(variant.doc), "    "),
+        ...commentify(
+          variant.isUnknownVariant
+            ? `Constant indicating an unknown ${className}.\n`
+            : docToCommentText(variant.doc),
+          "    ",
+        ),
       );
       header.mainMiddle.push(`    ${variant.kindEnumerator},`);
     }
@@ -866,7 +865,7 @@ class CcLibFilesGenerator {
     }
     header.mainMiddle.push("");
     for (const variant of wrapperVariants) {
-      const { identifier, usePointer, valueType, variantName } = variant;
+      const { identifier, usePointer, valueType } = variant;
       header.mainMiddle.push(
         `  static ${className} ${identifier}(${valueType} value);`,
       );
@@ -1470,7 +1469,7 @@ class CcLibFilesGenerator {
       source.internalMain.push("    }");
       source.internalMain.push("    case JsonTokenType::kString: {");
       source.internalMain.push(
-        "      static const auto* kMap = new ::absl::flat_hash_map<std::string, type>({",
+        "      static const auto* kMap = new absl::flat_hash_map<std::string, type>({",
       );
       for (const variant of constVariants) {
         const { variantName, identifier } = variant;
@@ -1851,6 +1850,7 @@ class CcLibFilesGenerator {
     const requestType = typeSpeller.getCcType(method.requestType!);
     const responseType = typeSpeller.getCcType(method.responseType!);
     const doc = method.doc.text;
+    mainMiddle.push(...commentify(docToCommentText(method.doc)));
     mainMiddle.push(`struct ${methodName} {`);
     mainMiddle.push(`  using request_type = ${requestType};`);
     mainMiddle.push(`  using response_type = ${responseType};`);
@@ -1872,6 +1872,7 @@ class CcLibFilesGenerator {
     const ccStringLiteral = JSON.stringify(
       JSON.stringify(constant.valueAsDenseJson),
     );
+    header.mainMiddle.push(...commentify(docToCommentText(constant.doc)));
     header.mainMiddle.push(`const ${type}& ${name}();`);
     header.mainMiddle.push("");
     source.mainMiddle.push(`const ${type}& ${name}() {`);

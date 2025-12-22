@@ -1,6 +1,7 @@
 import JsonValue from "./enums.skir";
 import Point from "./structs.skir";
 
+/// My procedure
 method MyProcedure(Point): JsonValue;
 
 method WithExplicitNumber([Point]): JsonValue? = 3;
