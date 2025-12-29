@@ -26,7 +26,7 @@
     "copy-to-client": "cp e2e-test/skir.h client && cp e2e-test/skir.cc client && cp e2e-test/skir.testing.h client",
     "copy-to-client:check": "diff -s e2e-test/skir.h client/skir.h && diff -s e2e-test/skir.cc client/skir.cc && diff -s e2e-test/skir.testing.h client/skir.testing.h",
     "format-skir": "cd e2e-test && skir format && cd ..",
-    "format-skir:check": "cd e2e-test && skir format check && cd ..",
+    "format-skir:check": "cd e2e-test && skir format --ci && cd ..",
     "format-cc": "find e2e-test -not -path 'e2e-test/skirout/*' \\( -iname '*.cc' -o -iname '*.h' \\) | xargs clang-format --Werror -i",
     "format-cc:check": "find e2e-test -not -path 'e2e-test/skirout/*' \\( -iname '*.cc' -o -iname '*.h' \\) | xargs clang-format --dry-run --Werror -i",
     "format": "prettier --write \"**/*.ts\" && npm run format-skir && npm run format-cc",
