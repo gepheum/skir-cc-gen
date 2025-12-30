@@ -2364,7 +2364,7 @@ skir::service::HttpHeaders HttplibToSkirHeaders(const HttplibHeaders& input) {
 
 template <typename MethodsTuple, std::size_t... Indices>
 constexpr bool unique_method_numbers_impl(std::index_sequence<Indices...>) {
-  constexpr std::array<int, sizeof...(Indices)> numbers = {
+  constexpr std::array<int64_t, sizeof...(Indices)> numbers = {
       std::get<Indices>(MethodsTuple()).kNumber...};
   for (std::size_t i = 0; i < sizeof...(Indices); ++i) {
     for (std::size_t j = i + 1; j < sizeof...(Indices); ++j) {
