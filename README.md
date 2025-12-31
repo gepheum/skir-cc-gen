@@ -93,7 +93,7 @@ User::SubscriptionStatus jane_status = skirout::kPremium;
 // Compilation error: MONDAY is not a field of the SubscriptionStatus enum.
 // User::SubscriptionStatus sara_status = skirout::kMonday;
 
-// Use skirout::wrap_${field_name} for data variants.
+// Use skirout::wrap_${field_name} for wrapper variants.
 User::SubscriptionStatus jade_status =
     skirout::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
 
