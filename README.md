@@ -7,20 +7,56 @@ Official plugin for generating C++ code from [.skir](https://github.com/gepheum/
 
 Targets C++17 and higher.
 
-## Installation
-
-From your project's root directory, run `npm i --save-dev skir-cc-gen`.
+## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
 ```yaml
   - mod: skir-cc-gen
+    outDir: path/to/src/skirout
     config:
-      writeGoogleTestHeaders: true
+      writeGoogleTestHeaders: true  # If you  use GoogleTest
 ```
 
-The `npm run skir` command will now generate C++ code within the `skirout` directory.
+## Runtime dependencies
 
-For more information, see this C++ project [example](https://github.com/gepheum/skir-cc-example).
+The generated C++ code depends on the [skir client library](https://github.com/gepheum/skir-cc-gen/tree/main/client), [absl](https://abseil.io/) and optionally [GoogleTest](https://github.com/google/googletest).
+
+### If you use CMake
+
+Add this to your `CMakeLists.txt`:
+
+```
+# Abseil
+FetchContent_Declare(
+  absl
+  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+  GIT_TAG        20250814.0  # Pick the latest tag
+)
+set(ABSL_PROPAGATE_CXX_STD ON)
+set(ABSL_ENABLE_INSTALL OFF)
+
+# OPTIONAL: GoogleTest
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.17.0  # Pick the latest tag
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+# skir-client
+FetchContent_Declare(
+  skir-client
+  GIT_REPOSITORY https://github.com/gepheum/skir-cc-gen.git
+  GIT_TAG        44070ac519ae13bb85ae8f68498a2b633b48fac5  # Pick the latest tag
+  SOURCE_SUBDIR  client
+)
+```
+
+See this [example](https://github.com/gepheum/skir-cc-example/blob/main/CMakeLists.txt).
+
+### If you use Bazel
+
+Refer to this example [BUILD.bazel](https://github.com/gepheum/skir-cc-example/blob/main/BUILD.bazel) file.
 
 ## C++ generated code guide
 
@@ -65,7 +101,7 @@ User jane = {
     .user_id = 43,
 };
 
-// ${StructName}::whole forces you to initialize all the fields of the struct.
+// ${Struct}::whole forces you to initialize all the fields of the struct.
 // You will get a compile-time error if you miss one.
 User lyla = User::whole{
     .name = "Lyla Doe",
@@ -300,8 +336,6 @@ std::cout << tarzan_copy << "\n";
 //   ::skirout::wrap_trial_start_time(absl::FromUnixMillis(1743592409000 /*
 //   2025-04-02T11:13:29+00:00 */)),
 // }
-
-// ...
 ```
 
 ### Writing unit tests with GoogleTest
@@ -338,11 +372,10 @@ SubscriptionStatus john_status = skirout::kFree;
 
 EXPECT_THAT(john_status, testing::Eq(skirout::kFree));
 
-SubscriptionStatus jade_status =
-    skirout::wrap_trial(SubscriptionStatus::Trial({
-        .start_time = absl::FromUnixMillis(1743682787000),
-    }));
+SubscriptionStatus jade_status = SubscriptionStatus::wrap_trial(
+    {.start_time = absl::FromUnixMillis(1743682787000)});
 
 EXPECT_THAT(jade_status, IsTrial());
-EXPECT_THAT(jade_status, IsTrial(testing::Gt(absl::UnixEpoch())));
+EXPECT_THAT(jade_status, IsTrial(StructIs<SubscriptionStatus::Trial>{
+                              .start_time = testing::Gt(absl::UnixEpoch())}));
 ```
