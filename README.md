@@ -36,6 +36,7 @@ replaced with underscores.
 ```c++
 #include "skirout/user.h"
 
+using ::skirout_user::SubscriptionStatus;
 using ::skirout_user::User;
 using ::skirout_user::UserRegistry;
 ```
@@ -86,20 +87,22 @@ User lyla = User::whole{
 
 ```c++
 
-// Use skirout::${kFieldName} for constant variants.
-User::SubscriptionStatus john_status = skirout::kFree;
-User::SubscriptionStatus jane_status = skirout::kPremium;
+// Use skirout::${kFieldName} or ${Enum}::${kFieldName} for constant variants.
+SubscriptionStatus john_status = skirout::kFree;
+SubscriptionStatus jane_status = skirout::kPremium;
+SubscriptionStatus lara_status = SubscriptionStatus::kFree;
 
 // Compilation error: MONDAY is not a field of the SubscriptionStatus enum.
-// User::SubscriptionStatus sara_status = skirout::kMonday;
+// SubscriptionStatus sara_status = skirout::kMonday;
 
-// Use skirout::wrap_${field_name} for wrapper variants.
-User::SubscriptionStatus jade_status =
-    skirout::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
-
-// The ${kFieldName} and wrap_${field_name} symbols are also defined in the
-// generated class.
-User::SubscriptionStatus lara_status = User::SubscriptionStatus::kFree;
+// Use wrap_${field_name} for wrapper variants.
+SubscriptionStatus jade_status =
+    skirout::wrap_trial(SubscriptionStatus::Trial({
+        .start_time = absl::FromUnixMillis(1743682787000),
+    }));
+SubscriptionStatus roni_status = SubscriptionStatus::wrap_trial({
+    .start_time = absl::FromUnixMillis(1743682787000),
+});
 ```
 
 ### Conditions on enums
@@ -109,28 +112,28 @@ if (john_status == skirout::kFree) {
   std::cout << "John, would you like to upgrade to premium?\n";
 }
 
-// Call is_${field_name}() to check if the enum holds a data variant.
-if (jade_status.is_trial_start_time()) {
-  // as_${field_name}() returns the value held by the enum
-  const absl::Time trial_start_time = jade_status.as_trial_start_time();
-  std::cout << "Jade's trial started on " << trial_start_time << "\n";
+// Call is_${field_name}() to check if the enum holds a wrapper variant.
+if (jade_status.is_trial()) {
+  // as_${field_name}() returns the wrapped value
+  const SubscriptionStatus::Trial& trial = jade_status.as_trial();
+  std::cout << "Jade's trial started on " << trial.start_time << "\n";
 }
 
 // One way to do an exhaustive switch on an enum.
 switch (lara_status.kind()) {
-  case User::SubscriptionStatus::kind_type::kUnknown:
+  case SubscriptionStatus::kind_type::kUnknown:
     // UNKNOWN is the default value for an uninitialized SubscriptionStatus.
     // ...
     break;
-  case User::SubscriptionStatus::kind_type::kFreeConst:
+  case SubscriptionStatus::kind_type::kFreeConst:
     // ...
     break;
-  case User::SubscriptionStatus::kind_type::kPremiumConst:
+  case SubscriptionStatus::kind_type::kPremiumConst:
     // ...
     break;
-  case User::SubscriptionStatus::kind_type::kTrialStartTimeWrapper: {
-    const absl::Time& trial_start_time = lara_status.as_trial_start_time();
-    std::cout << "Lara's trial started on " << trial_start_time << "\n";
+  case SubscriptionStatus::kind_type::kTrialWrapper: {
+    const SubscriptionStatus::Trial& trial = lara_status.as_trial();
+    std::cout << "Lara's trial started on " << trial.start_time << "\n";
   }
 }
 
@@ -145,10 +148,9 @@ struct Visitor {
   void operator()(skirout::k_premium) const {
     std::cout << "Lara's subscription status is PREMIUM\n";
   }
-  void operator()(
-      User::SubscriptionStatus::wrap_trial_start_time_type& w) const {
-    const absl::Time& trial_start_time = w.value;
-    std::cout << "Lara's trial started on " << trial_start_time << "\n";
+  void operator()(SubscriptionStatus::wrap_trial_type& w) const {
+    const SubscriptionStatus::Trial& trial = w.value;
+    std::cout << "Lara's trial started on " << trial.start_time << "\n";
   }
 };
 lara_status.visit(Visitor());
@@ -212,6 +214,13 @@ assert(maybe_jane != nullptr && *maybe_jane == jane);
 
 assert(users.find_or_default(44).name == "Lyla Doe");
 assert(users.find_or_default(45).name == "");
+
+// If multiple items have the same key, find_or_null and find_or_default
+// return the last one. Duplicates are allowed but generally discouraged.
+User evil_lyla = lyla;
+evil_lyla.name = "Evil Lyla";
+users.push_back(evil_lyla);
+assert(users.find_or_default(44).name == "Evil Lyla");
 ```
 
 ### Equality and hashing
@@ -265,7 +274,7 @@ assert(reserialized_type_descriptor.ok());
 ### Static reflection
 
 Static reflection allows you to inspect and modify values of generated
-skir types in a typesafe maneer.
+skir types in a typesafe manner.
 
 See [string_capitalizer.h](https://github.com/gepheum/skir-cc-example/blob/main/string_capitalizer.h).
 
@@ -287,7 +296,9 @@ std::cout << tarzan_copy << "\n";
 //       .picture: "🐒",
 //     },
 //   },
-//   .subscription_status: ::skirout::wrap_trial_start_time(absl::FromUnixMillis(1743592409000 /* 2025-04-02T11:13:29+00:00 */)),
+//   .subscription_status:
+//   ::skirout::wrap_trial_start_time(absl::FromUnixMillis(1743592409000 /*
+//   2025-04-02T11:13:29+00:00 */)),
 // }
 
 // ...
@@ -323,13 +334,15 @@ EXPECT_THAT(john, (StructIs<User>{
 #### Enum matchers
 
 ```c++
-User::SubscriptionStatus john_status = skirout::kFree;
+SubscriptionStatus john_status = skirout::kFree;
 
 EXPECT_THAT(john_status, testing::Eq(skirout::kFree));
 
-User::SubscriptionStatus jade_status =
-    skirout::wrap_trial_start_time(absl::FromUnixMillis(1743682787000));
+SubscriptionStatus jade_status =
+    skirout::wrap_trial(SubscriptionStatus::Trial({
+        .start_time = absl::FromUnixMillis(1743682787000),
+    }));
 
-EXPECT_THAT(jade_status, IsTrialStartTime());
-EXPECT_THAT(jade_status, IsTrialStartTime(testing::Gt(absl::UnixEpoch())));
+EXPECT_THAT(jade_status, IsTrial());
+EXPECT_THAT(jade_status, IsTrial(testing::Gt(absl::UnixEpoch())));
 ```
