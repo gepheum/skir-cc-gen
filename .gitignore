@@ -1,6 +1,7 @@
 .DS_Store
 .cache
 MODULE.bazel.lock
+/client/build
 bazel-*
 dist
 e2e-test/external
