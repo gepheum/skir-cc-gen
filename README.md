@@ -25,31 +25,40 @@ The generated C++ code depends on the [skir client library](https://github.com/g
 
 Add this to your `CMakeLists.txt`:
 
-```
-# Abseil
+```cmake
+include(FetchContent)
+
+# Should be ON if writeGoogleTestHeaders is true 
+option(BUILD_TESTING "Build tests" OFF)
+
+# Abseil (required, version 20250814.0+)
 FetchContent_Declare(
   absl
   GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG        20250814.0  # Pick the latest tag
+  GIT_TAG        20250814.1  # Use 20250814.0 or later
 )
 set(ABSL_PROPAGATE_CXX_STD ON)
-set(ABSL_ENABLE_INSTALL OFF)
+FetchContent_MakeAvailable(absl)
 
-# OPTIONAL: GoogleTest
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        v1.17.0  # Pick the latest tag
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+if(BUILD_TESTING)
+  # GoogleTest (optional - only if you use writeGoogleTestHeaders)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG        v1.15.2  # Pick the latest tag
+  )
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+endif()
 
 # skir-client
 FetchContent_Declare(
   skir-client
   GIT_REPOSITORY https://github.com/gepheum/skir-cc-gen.git
-  GIT_TAG        44070ac519ae13bb85ae8f68498a2b633b48fac5  # Pick the latest tag
+  GIT_TAG        main  # Or pick a specific commit/tag
   SOURCE_SUBDIR  client
 )
+FetchContent_MakeAvailable(skir-client)
 ```
 
 See this [example](https://github.com/gepheum/skir-cc-example/blob/main/CMakeLists.txt).
