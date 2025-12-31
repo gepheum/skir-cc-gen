@@ -12,7 +12,7 @@ Targets C++17 and higher.
 In your `skir.yml` file, add the following snippet under `generators`:
 ```yaml
   - mod: skir-cc-gen
-    outDir: path/to/src/skirout
+    outDir: ./src/skirout
     config:
       writeGoogleTestHeaders: true  # If you  use GoogleTest
 ```
