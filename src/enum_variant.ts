@@ -116,7 +116,7 @@ function usePointer(type: ResolvedType): boolean {
     case "bool":
     case "int32":
     case "int64":
-    case "uint64":
+    case "hash64":
     case "float32":
     case "float64":
     case "timestamp":

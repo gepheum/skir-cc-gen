@@ -176,7 +176,7 @@ TEST(SkirServiceTest, TestServerAndClient) {
         "\"methods.skir:User\",\n            \"fields\": [\n              {\n  "
         "              \"name\": \"id\",\n                \"number\": 0,\n     "
         "           \"type\": {\n                  \"kind\": \"primitive\",\n  "
-        "                \"value\": \"uint64\"\n                }\n            "
+        "                \"value\": \"hash64\"\n                }\n            "
         "  },\n              {\n                \"name\": \"first_name\",\n    "
         "            \"number\": 1,\n                \"type\": {\n             "
         "     \"kind\": \"primitive\",\n                  \"value\": "

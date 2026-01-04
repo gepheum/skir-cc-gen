@@ -111,9 +111,9 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       return std::make_unique<TypedValueImpl<int32_t>>(typed_value.as_int32());
     case skirout_goldens::TypedValue::kind_type::kInt64Wrapper:
       return std::make_unique<TypedValueImpl<int64_t>>(typed_value.as_int64());
-    case skirout_goldens::TypedValue::kind_type::kUint64Wrapper:
+    case skirout_goldens::TypedValue::kind_type::kHash64Wrapper:
       return std::make_unique<TypedValueImpl<uint64_t>>(
-          typed_value.as_uint64());
+          typed_value.as_hash64());
     case skirout_goldens::TypedValue::kind_type::kFloat32Wrapper:
       return std::make_unique<TypedValueImpl<float>>(typed_value.as_float32());
     case skirout_goldens::TypedValue::kind_type::kFloat64Wrapper:

@@ -2,7 +2,7 @@ enum PrimitiveType {
   BOOL;
   INT32;
   INT64;
-  UINT64;
+  HASH64;
   FLOAT32;
   FLOAT64;
   TIMESTAMP;

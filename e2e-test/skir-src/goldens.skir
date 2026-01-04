@@ -69,7 +69,7 @@ enum TypedValue {
   bool: bool;
   int32: int32;
   int64: int64;
-  uint64: uint64;
+  hash64: hash64;
   float32: float32;
   float64: float64;
   timestamp: timestamp;
@@ -756,7 +756,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_value",
       value: {|
         value: {
-          kind: "uint64",
+          kind: "hash64",
           value: 255,
         },
         expected_dense_json: [
@@ -774,7 +774,7 @@ const UNIT_TESTS: [UnitTest] = [
         expected_bytes: [
           "hex:736b6972e8ff00",
         ],
-        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"uint64\"\n  },\n  \"records\": []\n}",
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"hash64\"\n  },\n  \"records\": []\n}",
       |},
     },
   },
@@ -784,7 +784,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_value",
       value: {|
         value: {
-          kind: "uint64",
+          kind: "hash64",
           value: 65535,
         },
         expected_dense_json: [
@@ -805,7 +805,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_value",
       value: {|
         value: {
-          kind: "uint64",
+          kind: "hash64",
           value: 4294967295,
         },
         expected_dense_json: [
@@ -826,7 +826,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_value",
       value: {|
         value: {
-          kind: "uint64",
+          kind: "hash64",
           value: 18446744073709551615,
         },
         expected_dense_json: [
@@ -1921,7 +1921,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_value",
       value: {|
         value: {
-          kind: "uint64",
+          kind: "hash64",
           value: 231,
         },
         expected_dense_json: [
@@ -1942,7 +1942,7 @@ const UNIT_TESTS: [UnitTest] = [
       kind: "reserialize_value",
       value: {|
         value: {
-          kind: "uint64",
+          kind: "hash64",
           value: 232,
         },
         expected_dense_json: [

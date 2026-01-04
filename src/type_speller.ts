@@ -73,7 +73,7 @@ export class TypeSpeller {
             return "::int32_t";
           case "int64":
             return "::int64_t";
-          case "uint64":
+          case "hash64":
             return "::uint64_t";
           case "float32":
             return "float";

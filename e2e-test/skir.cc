@@ -1368,7 +1368,7 @@ void Int64Adapter::Parse(ByteSource& source, int64_t& out) {
   ParseNumber(source, out);
 }
 
-void Uint64Adapter::Append(uint64_t input, ByteSink& out) {
+void Hash64Adapter::Append(uint64_t input, ByteSink& out) {
   if (input < 232) {
     out.Push(input);
   } else if (input < 4294967296) {
@@ -1382,11 +1382,11 @@ void Uint64Adapter::Append(uint64_t input, ByteSink& out) {
   }
 }
 
-void Uint64Adapter::Parse(JsonTokenizer& tokenizer, uint64_t& out) {
+void Hash64Adapter::Parse(JsonTokenizer& tokenizer, uint64_t& out) {
   ParseJsonNumber(tokenizer, out);
 }
 
-void Uint64Adapter::Parse(ByteSource& source, uint64_t& out) {
+void Hash64Adapter::Parse(ByteSource& source, uint64_t& out) {
   ParseNumber(source, out);
 }
 
@@ -1730,8 +1730,8 @@ void ReflectionPrimitiveTypeAdapter::Append(
       out.out += "\"int64\"";
       break;
     }
-    case skir::reflection::PrimitiveType::kUint64: {
-      out.out += "\"uint64\"";
+    case skir::reflection::PrimitiveType::kHash64: {
+      out.out += "\"hash64\"";
       break;
     }
     case skir::reflection::PrimitiveType::kFloat32: {
@@ -1764,7 +1764,7 @@ void ReflectionPrimitiveTypeAdapter::Parse(
           {"bool", skir::reflection::PrimitiveType::kBool},
           {"int32", skir::reflection::PrimitiveType::kInt32},
           {"int64", skir::reflection::PrimitiveType::kInt64},
-          {"uint64", skir::reflection::PrimitiveType::kUint64},
+          {"hash64", skir::reflection::PrimitiveType::kHash64},
           {"float32", skir::reflection::PrimitiveType::kFloat32},
           {"float64", skir::reflection::PrimitiveType::kFloat64},
           {"timestamp", skir::reflection::PrimitiveType::kTimestamp},
@@ -2098,7 +2098,7 @@ void UnrecognizedValues::ParseFrom(JsonTokenizer& tokenizer) {
         break;
       }
       case JsonTokenType::kUnsignedInteger: {
-        Uint64Adapter::Append(tokenizer.state().uint_value, bytes_);
+        Hash64Adapter::Append(tokenizer.state().uint_value, bytes_);
         tokenizer.Next();
         break;
       }
@@ -2252,8 +2252,8 @@ void UnrecognizedValues::AppendTo(DenseJson& out) const {
     const uint8_t byte = *source.pos;
     if (byte <= 234) {
       uint64_t number = 0;
-      Uint64Adapter::Parse(source, number);
-      Uint64Adapter::Append(number, out);
+      Hash64Adapter::Parse(source, number);
+      Hash64Adapter::Append(number, out);
     } else {
       switch (static_cast<uint8_t>(byte - 235)) {
         case 0:

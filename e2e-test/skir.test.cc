@@ -675,7 +675,7 @@ TEST(SkirlibTest, ReserializeUint64) {
                   .ExpectBytes("00")
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
-                      "\"value\": \"uint64\"\n  },\n  \"records\": []\n}")
+                      "\"value\": \"hash64\"\n  },\n  \"records\": []\n}")
                   .Check(),
               IsOk());
   EXPECT_THAT(MakeReserializer<uint64_t>(10)

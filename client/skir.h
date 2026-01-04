@@ -432,7 +432,7 @@ class keyed_items {
     kUint8,
     kUint16,
     kUint32,
-    kUint64,
+    kHash64,
   };
   SlotType slot_type_ = SlotType::kUint8;
   bool being_mutated_ = false;
@@ -477,7 +477,7 @@ class keyed_items {
       case SlotType::kUint32:
         PutSlot<uint32_t>(key_hash, next_index);
         break;
-      case SlotType::kUint64:
+      case SlotType::kHash64:
         PutSlot<uint64_t>(key_hash, next_index);
         break;
     }
@@ -573,7 +573,7 @@ class keyed_items {
     } else if (capacity <= std::numeric_limits<uint32_t>::max()) {
       return SlotType::kUint32;
     } else {
-      return SlotType::kUint64;
+      return SlotType::kHash64;
     }
   }
 
@@ -765,7 +765,7 @@ enum class PrimitiveType {
   kBool,
   kInt32,
   kInt64,
-  kUint64,
+  kHash64,
   kFloat32,
   kFloat64,
   kTimestamp,
@@ -1406,7 +1406,7 @@ struct Int64Adapter {
   static constexpr bool IsEnum() { return false; }
 };
 
-struct Uint64Adapter {
+struct Hash64Adapter {
   static bool IsDefault(uint64_t input) { return !input; }
 
   template <typename Out>
@@ -1429,7 +1429,7 @@ struct Uint64Adapter {
   static void Parse(ByteSource& source, uint64_t& out);
 
   static skir::reflection::Type GetType(skir_type<uint64_t>) {
-    return skir::reflection::PrimitiveType::kUint64;
+    return skir::reflection::PrimitiveType::kHash64;
   }
 
   static void RegisterRecords(skir_type<uint64_t>,
@@ -1603,7 +1603,7 @@ void GetAdapter(skir_type<T>) {
 inline BoolAdapter GetAdapter(skir_type<bool>);
 inline Int32Adapter GetAdapter(skir_type<int32_t>);
 inline Int64Adapter GetAdapter(skir_type<int64_t>);
-inline Uint64Adapter GetAdapter(skir_type<uint64_t>);
+inline Hash64Adapter GetAdapter(skir_type<uint64_t>);
 inline Float32Adapter GetAdapter(skir_type<float>);
 inline Float64Adapter GetAdapter(skir_type<double>);
 inline TimestampAdapter GetAdapter(skir_type<absl::Time>);
