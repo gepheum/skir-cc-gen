@@ -13,10 +13,22 @@ if(NOT TARGET absl::base)
   find_package(absl REQUIRED)
 endif()
 
-# GoogleTest - check if already provided by parent project
-if(NOT TARGET GTest::gtest)
-  find_package(GTest REQUIRED)
+# GoogleTest - optional, only needed for testing library
+if(NOT DEFINED SKIR_ENABLE_TESTING)
+  # Default: enable testing if GTest is available
+  if(TARGET GTest::gtest)
+    set(SKIR_ENABLE_TESTING ON)
+  else()
+    find_package(GTest QUIET)
+    if(GTest_FOUND)
+      set(SKIR_ENABLE_TESTING ON)
+    else()
+      set(SKIR_ENABLE_TESTING OFF)
+    endif()
+  endif()
 endif()
+
+message(STATUS "Skir testing library: ${SKIR_ENABLE_TESTING}")
 
 # ============================================================================
 # Main skir library
@@ -48,24 +60,31 @@ target_link_libraries(skir PUBLIC
 
 # ============================================================================
 # Testing library (interface library with header-only implementation)
+# Only built if GTest is available
 # ============================================================================
 
-add_library(skir_testing INTERFACE)
+if(SKIR_ENABLE_TESTING)
+  add_library(skir_testing INTERFACE)
 
-target_sources(skir_testing INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/skir.testing.h>
-  $<INSTALL_INTERFACE:include/skir.testing.h>
-)
+  target_sources(skir_testing INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/skir.testing.h>
+    $<INSTALL_INTERFACE:include/skir.testing.h>
+  )
 
-target_include_directories(skir_testing INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:include>
-)
+  target_include_directories(skir_testing INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+  )
 
-target_link_libraries(skir_testing INTERFACE
-  skir
-  absl::base
-  absl::die_if_null
-  GTest::gtest
-  GTest::gmock
-)
+  target_link_libraries(skir_testing INTERFACE
+    skir
+    absl::base
+    absl::die_if_null
+    GTest::gtest
+    GTest::gmock
+  )
+
+  message(STATUS "Skir testing library target created")
+else()
+  message(STATUS "Skir testing library disabled (GTest not available)")
+endif()
