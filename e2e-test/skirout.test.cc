@@ -669,17 +669,14 @@ class FakeServiceImplWithMeta {
 
   ::skirout_enums::JsonValue operator()(
       skirout_methods::MyProcedure, ::skirout_structs::Point request,
-      const ::skir::service::HttpHeaders& request_headers,
-      skir::service::HttpHeaders& response_headers) {
-    response_headers = request_headers;
+      const ::skir::service::HttpHeaders& request_headers) {
     return ::skirout_enums::JsonValue::wrap_number(request.x);
   }
 
   absl::StatusOr<skirout_methods::ListUsersResponse> operator()(
       skirout_methods::ListUsers,
       const ::skirout_methods::ListUsersRequest& request,
-      const ::skir::service::HttpHeaders& request_headers,
-      skir::service::HttpHeaders& response_headers) {
+      const ::skir::service::HttpHeaders& request_headers) {
     return absl::UnknownError("unsupported");
   }
 };
@@ -692,15 +689,12 @@ TEST(SkirlibTest, SkirService) {
   {
     skir::service::HttpHeaders request_headers;
     request_headers.Insert("origin", "foo");
-    skir::service::HttpHeaders response_headers;
     const absl::StatusOr<::skirout_enums::JsonValue> result =
         ::skir::service::InvokeRemote(*client, skirout_methods::MyProcedure(),
                                       skirout_structs::Point{.x = 1, .y = 2},
-                                      request_headers, &response_headers);
+                                      request_headers);
     EXPECT_THAT(result,
                 IsOkAndHolds(::skirout_enums::JsonValue::wrap_number(1.0)));
-    EXPECT_THAT(response_headers.map(),
-                UnorderedElementsAre(Pair("origin", ElementsAre("foo"))));
   }
 }
 

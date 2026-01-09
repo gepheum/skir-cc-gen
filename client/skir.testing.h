@@ -252,10 +252,9 @@ class ClientForTesting : public ::skir::service::Client {
 
   absl::StatusOr<std::string> operator()(
       absl::string_view request_data,
-      const skir::service::HttpHeaders& request_headers,
-      skir::service::HttpHeaders& response_headers) const override {
+      const skir::service::HttpHeaders& request_headers) const override {
     return ::skir::service::HandleRequest(api_impl_, request_data,
-                                          request_headers, response_headers)
+                                          request_headers)
         .AsStatus();
   }
 

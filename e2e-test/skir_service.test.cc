@@ -20,6 +20,9 @@
 
 namespace {
 using ::absl_testing::IsOkAndHolds;
+using ::skir::service::Error;
+using ::skir::service::ErrorOr;
+using ::skir::service::HttpErrorCode;
 using ::skir::service::HttpHeaders;
 using ::skir::service::InstallServiceOnHttplibServer;
 using ::skir::service::InvokeRemote;
@@ -39,13 +42,10 @@ class ServiceImpl {
 
   absl::StatusOr<ListUsersResponse> operator()(
       ListUsers, ListUsersRequest request,
-      const skir::service::HttpHeaders& request_headers,
-      skir::service::HttpHeaders& response_headers) const {
+      const skir::service::HttpHeaders& request_headers) const {
     if (request.country.empty()) {
-      response_headers.Insert("X-foo", "bar");
       return absl::UnknownError("no country specified");
     }
-    response_headers = request_headers;
     ListUsersResponse response;
     auto it = country_to_users.find(request.country);
     if (it != country_to_users.end()) {
@@ -94,29 +94,21 @@ TEST(SkirServiceTest, TestServerAndClient) {
 
   HttpHeaders request_headers;
   request_headers.Insert("foo", "bar");
-  HttpHeaders response_headers;
-  response_headers.Insert("zoo", "rab");
   absl::StatusOr<ListUsersResponse> response =
       InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{.country = "AU"},
-                   request_headers, &response_headers);
+                   request_headers);
 
   EXPECT_THAT(response, IsOkAndHolds(StructIs<ListUsersResponse>{
                             .users = ElementsAre(StructIs<User>{
                                 .first_name = "Jane",
                             })}));
 
-  EXPECT_THAT(response_headers.map(),
-              Contains(Pair("foo", ElementsAre("bar"))));
-
   EXPECT_THAT(
       InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{},
-                   request_headers, &response_headers)
+                   request_headers)
           .status(),
       absl::UnknownError(
           "HTTP response status 500: server error: no country specified"));
-
-  EXPECT_THAT(response_headers.map(),
-              Contains(Pair("x-foo", ElementsAre("bar"))));
 
   EXPECT_THAT(
       InvokeRemote(*skir_client, skirout_methods::True(), "", {}).status(),
@@ -213,6 +205,104 @@ TEST(SkirServiceTest, NoMethod) {
   EXPECT_TRUE(result);
   EXPECT_EQ(result->status, 200);
   EXPECT_EQ(result->body, "{\n  \"methods\": []\n}");
+
+  server.stop();
+  server_thread.join();
+}
+
+class ServiceImplWithErrorOr {
+ public:
+  using methods = std::tuple<skirout_methods::ListUsers>;
+
+  ErrorOr<ListUsersResponse> operator()(
+      ListUsers, ListUsersRequest request,
+      const skir::service::HttpHeaders& request_headers) const {
+    if (request.country.empty()) {
+      return Error{HttpErrorCode::k400_BadRequest, "country is required"};
+    }
+    if (request.country == "FORBIDDEN") {
+      return Error{HttpErrorCode::k403_Forbidden, "access denied"};
+    }
+    if (request.country == "NOTFOUND") {
+      return Error{HttpErrorCode::k404_NotFound, "country not found"};
+    }
+    ListUsersResponse response;
+    auto it = country_to_users.find(request.country);
+    if (it != country_to_users.end()) {
+      for (const User& user : it->second) {
+        response.users.push_back(user);
+      }
+    }
+    return response;
+  }
+
+  void AddUser(User user) {
+    country_to_users[user.country].push_back(std::move(user));
+  }
+
+ private:
+  absl::flat_hash_map<std::string, std::vector<User>> country_to_users;
+};
+
+TEST(SkirServiceTest, ErrorOrReturnType) {
+  constexpr int kPort = 8788;
+
+  httplib::Server server;
+
+  auto service_impl = std::make_shared<ServiceImplWithErrorOr>();
+  InstallServiceOnHttplibServer(server, "/myapi", service_impl);
+
+  service_impl->AddUser({
+      .id = 103,
+      .first_name = "John",
+      .last_name = "Smith",
+      .country = "US",
+  });
+
+  std::thread server_thread([&server]() { server.listen("localhost", kPort); });
+
+  server.wait_until_ready();
+
+  httplib::Client client("localhost", kPort);
+  std::unique_ptr<skir::service::Client> skir_client =
+      MakeHttplibClient(&client, "/myapi");
+
+  // Test successful response
+  {
+    absl::StatusOr<ListUsersResponse> response = InvokeRemote(
+        *skir_client, ListUsers(), ListUsersRequest{.country = "US"}, {});
+    EXPECT_THAT(response, IsOkAndHolds(StructIs<ListUsersResponse>{
+                              .users = ElementsAre(StructIs<User>{
+                                  .first_name = "John",
+                              })}));
+  }
+
+  // Test 400 Bad Request error
+  {
+    absl::StatusOr<ListUsersResponse> response =
+        InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{}, {});
+    EXPECT_THAT(
+        response.status(),
+        absl::UnknownError("HTTP response status 400: country is required"));
+  }
+
+  // Test 403 Forbidden error
+  {
+    absl::StatusOr<ListUsersResponse> response =
+        InvokeRemote(*skir_client, ListUsers(),
+                     ListUsersRequest{.country = "FORBIDDEN"}, {});
+    EXPECT_THAT(response.status(),
+                absl::UnknownError("HTTP response status 403: access denied"));
+  }
+
+  // Test 404 Not Found error
+  {
+    absl::StatusOr<ListUsersResponse> response = InvokeRemote(
+        *skir_client, ListUsers(), ListUsersRequest{.country = "NOTFOUND"}, {});
+    EXPECT_THAT(
+        response.status(),
+        absl::UnknownError("HTTP response status 404: country not found"));
+  }
 
   server.stop();
   server_thread.join();

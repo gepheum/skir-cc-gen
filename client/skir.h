@@ -882,64 +882,120 @@ struct enum_wrapper_variant {
 
 namespace service {
 
-enum class ResponseType {
-  // The method invocation succeeded and the response data is in JSON format.
-  kOkJson,
-  // The method invocation succeeded and the response data is in HTML format.
-  kOkHtml,
-  // The method invocation failed because the request was malformed.
-  // The response data is "bad-request:" followed by an error message.
-  kBadRequest,
-  // The method invocation resulted in an error on the server side.
-  // The response data is "server-error:" followed by an error message.
-  kServerError,
+// HTTP status codes for errors.
+enum class HttpErrorCode {
+  k400_BadRequest = 400,
+  k401_Unauthorized = 401,
+  k402_PaymentRequired = 402,
+  k403_Forbidden = 403,
+  k404_NotFound = 404,
+  k405_MethodNotAllowed = 405,
+  k406_NotAcceptable = 406,
+  k407_ProxyAuthenticationRequired = 407,
+  k408_RequestTimeout = 408,
+  k409_Conflict = 409,
+  k410_Gone = 410,
+  k411_LengthRequired = 411,
+  k412_PreconditionFailed = 412,
+  k413_ContentTooLarge = 413,
+  k414_UriTooLong = 414,
+  k415_UnsupportedMediaType = 415,
+  k416_RangeNotSatisfiable = 416,
+  k417_ExpectationFailed = 417,
+  k418_ImATeapot = 418,
+  k421_MisdirectedRequest = 421,
+  k422_UnprocessableContent = 422,
+  k423_Locked = 423,
+  k424_FailedDependency = 424,
+  k425_TooEarly = 425,
+  k426_UpgradeRequired = 426,
+  k428_PreconditionRequired = 428,
+  k429_TooManyRequests = 429,
+  k431_RequestHeaderFieldsTooLarge = 431,
+  k451_UnavailableForLegalReasons = 451,
+  k500_InternalServerError = 500,
+  k501_NotImplemented = 501,
+  k502_BadGateway = 502,
+  k503_ServiceUnavailable = 503,
+  k504_GatewayTimeout = 504,
+  k505_HttpVersionNotSupported = 505,
+  k506_VariantAlsoNegotiates = 506,
+  k507_InsufficientStorage = 507,
+  k508_LoopDetected = 508,
+  k510_NotExtended = 510,
+  k511_NetworkAuthenticationRequired = 511,
+};
+
+// Represents an error with a specific HTTP status code.
+// Use this as a return type from service methods when you want to control the
+// HTTP error code sent to clients. For generic errors where the default 500
+// status code is acceptable, use absl::Status instead.
+struct Error {
+  HttpErrorCode code = HttpErrorCode::k500_InternalServerError;
+  std::string message;
+};
+
+// Represents either a successful Response or an Error with a specific HTTP
+// status code. Use this as the return type for service methods when you need
+// fine-grained control over HTTP error codes. For simple error handling where
+// generic HTTP status codes are sufficient, use absl::StatusOr<Response>
+// instead.
+template <typename Response>
+class ErrorOr {
+ public:
+  ErrorOr() = default;
+  ErrorOr(const ErrorOr&) = default;
+  ErrorOr(ErrorOr&&) = default;
+
+  ErrorOr(Response response) : variant_(std::move(response)) {}
+  ErrorOr(Error error) : variant_(std::move(error)) {}
+  ErrorOr(absl::StatusOr<Response> response_or_error) {
+    (*this) = std::move(response_or_error);
+  }
+
+  ErrorOr& operator=(const ErrorOr&) = default;
+  ErrorOr& operator=(ErrorOr&&) = default;
+
+  ErrorOr& operator=(Response response) {
+    variant_ = std::move(response);
+    return *this;
+  }
+  ErrorOr& operator=(Error error) {
+    variant_ = std::move(error);
+    return *this;
+  }
+  ErrorOr& operator=(absl::StatusOr<Response> response_or_error) {
+    if (response_or_error.ok()) {
+      variant_ = *std::move(response_or_error);
+    } else {
+      variant_ = Error{
+          HttpErrorCode::k500_InternalServerError,
+          absl::StrCat("server error: ", response_or_error.status().message())};
+    }
+    return *this;
+  }
+
+  bool ok() const { return std::holds_alternative<Response>(variant_); }
+
+  const std::variant<Response, Error>& variant() const { return variant_; }
+  std::variant<Response, Error>& variant() { return variant_; }
+
+ private:
+  using variant_type = std::variant<Response, Error>;
+  variant_type variant_;
 };
 
 // Raw response returned by the server.
 struct RawResponse {
-  // The meaning of this string depends on the response type.
   std::string data;
-  ResponseType type{};
-
-  int status_code() const {
-    switch (type) {
-      case ResponseType::kOkJson:
-      case ResponseType::kOkHtml:
-        return 200;
-      case ResponseType::kBadRequest:
-        return 400;
-      case ResponseType::kServerError:
-        return 500;
-    }
-  }
-
-  absl::string_view content_type() const {
-    switch (type) {
-      case ResponseType::kOkJson: {
-        static const char kApplicationJson[] = "application/json";
-        return kApplicationJson;
-      }
-      case ResponseType::kOkHtml: {
-        static const char kTextHtml[] = "text/html";
-        return kTextHtml;
-      }
-      case ResponseType::kBadRequest:
-      case ResponseType::kServerError: {
-        static const char kTextPlain[] = "text/plain; charset=utf-8";
-        return kTextPlain;
-      }
-    }
-  }
+  int status_code{};
+  std::string content_type;
 
   absl::StatusOr<std::string> AsStatus() && {
-    switch (type) {
-      case ResponseType::kOkJson:
-      case ResponseType::kOkHtml:
-        return std::move(data);
-      case ResponseType::kBadRequest:
-      case ResponseType::kServerError:
-        return absl::UnknownError(std::move(data));
+    if (status_code >= 200 && status_code < 300) {
+      return std::move(data);
     }
+    return absl::UnknownError(std::move(data));
   }
 };
 
@@ -981,14 +1037,20 @@ class Client {
   virtual ~Client() = default;
 
   virtual absl::StatusOr<std::string> operator()(
-      absl::string_view request_data, const HttpHeaders& request_headers,
-      HttpHeaders& response_headers) const = 0;
+      absl::string_view request_data,
+      const HttpHeaders& request_headers) const = 0;
 };
 
 }  // namespace service
 }  // namespace skir
 
 namespace skir_internal {
+
+skir::service::RawResponse MakeOkJsonResponse(std::string data);
+skir::service::RawResponse MakeOkHtmlResponse(std::string data);
+skir::service::RawResponse MakeBadRequestResponse(std::string data);
+skir::service::RawResponse MakeServerErrorResponse(std::string data,
+                                                   int status_code);
 
 template <typename T>
 T& get(T& input) {
@@ -2607,19 +2669,17 @@ constexpr absl::string_view kRestudioHtml = R"html(<!DOCTYPE html>
 </html>
 )html";
 
-template <typename ServiceImpl, typename RequestMeta, typename ResponseMeta>
+template <typename ServiceImpl, typename RequestMeta>
 class HandleRequestOp {
  public:
   HandleRequestOp(ServiceImpl* absl_nonnull service_impl,
                   absl::string_view request_body,
                   skir::UnrecognizedValuesPolicy unrecognized_values,
-                  const RequestMeta* absl_nonnull request_meta,
-                  ResponseMeta* absl_nonnull response_meta)
+                  const RequestMeta* absl_nonnull request_meta)
       : service_impl_(*service_impl),
         request_body_(request_body),
         unrecognized_values_(unrecognized_values),
-        request_meta_(*request_meta),
-        response_meta_(*response_meta) {}
+        request_meta_(*request_meta) {}
 
   skir::service::RawResponse Run() {
     if (request_body_ == "" || request_body_ == "list") {
@@ -2631,20 +2691,15 @@ class HandleRequestOp {
           typename ServiceImpl::methods());
       ReadableJson json;
       MethodListAdapter::Append(method_list, json);
-      return {
-          json.out,
-          skir::service::ResponseType::kOkJson,
-      };
+      return skir_internal::MakeOkJsonResponse(json.out);
     } else if (request_body_ == "debug" || request_body_ == "restudio") {
-      return {std::string(kRestudioHtml), skir::service::ResponseType::kOkHtml};
+      return skir_internal::MakeOkHtmlResponse(std::string(kRestudioHtml));
     }
 
     if (const absl::Status status = request_body_parsed_.Parse(request_body_);
         !status.ok()) {
-      return {
-          absl::StrCat("bad request: ", status.message()),
-          skir::service::ResponseType::kBadRequest,
-      };
+      return skir_internal::MakeBadRequestResponse(
+          absl::StrCat("bad request: ", status.message()));
     }
 
     std::apply(
@@ -2655,11 +2710,9 @@ class HandleRequestOp {
     if (raw_response_.has_value()) {
       return std::move(*raw_response_);
     }
-    return {
-        absl::StrCat(
-            "bad request: method not found: ", request_body_parsed_.method_name,
-            "; number: ", request_body_parsed_.method_number.value_or(-1)),
-        skir::service::ResponseType::kBadRequest};
+    return skir_internal::MakeBadRequestResponse(absl::StrCat(
+        "bad request: method not found: ", request_body_parsed_.method_name,
+        "; number: ", request_body_parsed_.method_number.value_or(-1)));
   }
 
  private:
@@ -2667,7 +2720,6 @@ class HandleRequestOp {
   const absl::string_view request_body_;
   const skir::UnrecognizedValuesPolicy unrecognized_values_;
   const RequestMeta& request_meta_;
-  ResponseMeta& response_meta_;
 
   RequestBody request_body_parsed_;
 
@@ -2689,29 +2741,28 @@ class HandleRequestOp {
       // an error in this case.
       return;
     }
-    raw_response_.emplace();
     absl::StatusOr<RequestType> request = skir::Parse<RequestType>(
         request_body_parsed_.request_data, unrecognized_values_);
     if (!request.ok()) {
-      raw_response_->data =
-          absl::StrCat("bad request: ", request.status().message());
-      raw_response_->type = skir::service::ResponseType::kBadRequest;
+      raw_response_ = skir_internal::MakeBadRequestResponse(
+          absl::StrCat("bad request: ", request.status().message()));
       return;
     }
-    absl::StatusOr<ResponseType> output = service_impl_(
-        method, std::move(*request), request_meta_, response_meta_);
-    if (!output.ok()) {
-      raw_response_->data =
-          absl::StrCat("server error: ", output.status().message());
-      raw_response_->type = skir::service::ResponseType::kServerError;
+    skir::service::ErrorOr<ResponseType> response_or_error =
+        service_impl_(method, std::move(*request), request_meta_);
+    if (!response_or_error.ok()) {
+      auto& error = std::get<skir::service::Error>(response_or_error.variant());
+      raw_response_ = skir_internal::MakeServerErrorResponse(
+          std::move(error.message), int(error.code));
       return;
     }
+    const auto& response = std::get<ResponseType>(response_or_error.variant());
     if (request_body_parsed_.readable) {
-      raw_response_->data = skir::ToReadableJson(*output);
-      raw_response_->type = skir::service::ResponseType::kOkJson;
+      raw_response_ =
+          skir_internal::MakeOkJsonResponse(skir::ToReadableJson(response));
     } else {
-      raw_response_->data = skir::ToDenseJson(*output);
-      raw_response_->type = skir::service::ResponseType::kOkJson;
+      raw_response_ =
+          skir_internal::MakeOkJsonResponse(skir::ToDenseJson(response));
     }
   }
 };
@@ -2724,8 +2775,7 @@ class HttplibClient : public skir::service::Client {
 
   absl::StatusOr<std::string> operator()(
       absl::string_view request_data,
-      const skir::service::HttpHeaders& request_headers,
-      skir::service::HttpHeaders& response_headers) const {
+      const skir::service::HttpHeaders& request_headers) const {
     auto headers =
         decltype(std::declval<HttplibClientPtr>()->Get("")->headers)();
     SkirToHttplibHeaders(request_headers, headers);
@@ -2733,7 +2783,6 @@ class HttplibClient : public skir::service::Client {
         client_->Post(query_path_, headers, request_data.data(),
                       request_data.length(), "text/plain; charset=utf-8");
     if (result) {
-      response_headers = HttplibToSkirHeaders(result->headers);
       const int status_code = result->status;
       if (200 <= status_code && status_code <= 299) {
         // OK status.
@@ -2751,7 +2800,6 @@ class HttplibClient : public skir::service::Client {
       }
     } else {
       // HTTP error.
-      response_headers = {};
       std::stringstream ss;
       ss << "HTTP error: " << result.error();
       return {absl::UnknownError(ss.str())};
@@ -2775,11 +2823,15 @@ namespace service {
 //   1. It must have a public `methods` type alias which resolves to a tuple of
 // //     method types.
 //   2. For each method, it must have a member function with this signature:
+//
 //        absl::StatusOr<typename Method::response_type> operator()(
 //            Method method,
 //            typename Method::request_type request,
-//            const HttpHeaders& request_headers,
-//            HttpHeaders& response_headers);
+//            const HttpHeaders& request_headers);
+//
+//      Or, if you want to specify a specific HTTP status code other than 500
+//      in case of an error, use ErrorOr<typename Method::response_type>
+//      instead of absl::StatusOr<typename Method::response_type>.
 //
 // For example:
 //
@@ -2792,16 +2844,14 @@ namespace service {
 //     absl::StatusOr<skirout_methods::ListUsersResponse> operator()(
 //         skirout_methods::ListUsers,
 //         skirout_methods::ListUsersRequest request,
-//         const HttpHeaders& request_headers,
-//         HttpHeaders& response_headers) const {
+//         const HttpHeaders& request_headers) const {
 //       ...
 //     }
 //
 //     absl::StatusOr<skirout_methods::GetUserResponse> operator()(
 //         skirout_methods::GetUser,
 //         skirout_methods::GetUserRequest request,
-//         const HttpHeaders& request_headers,
-//         HttpHeaders& response_headers) const {
+//         const HttpHeaders& request_headers) const {
 //       ...
 //     }
 //   };
@@ -2822,13 +2872,11 @@ template <typename ServiceImpl>
 RawResponse HandleRequest(ServiceImpl& service_impl,
                           absl::string_view request_body,
                           const HttpHeaders& request_headers,
-                          HttpHeaders& response_headers,
                           UnrecognizedValuesPolicy unrecognized_values =
                               UnrecognizedValuesPolicy::kDrop) {
   skir_internal::assert_unique_method_numbers<typename ServiceImpl::methods>();
   return skir_internal::HandleRequestOp(&service_impl, request_body,
-                                        unrecognized_values, &request_headers,
-                                        &response_headers)
+                                        unrecognized_values, &request_headers)
       .Run();
 }
 
@@ -2858,7 +2906,6 @@ void InstallServiceOnHttplibServer(
       [service_impl, unrecognized_values](const auto& req, auto& resp) {
         const HttpHeaders request_headers =
             skir_internal::HttplibToSkirHeaders(req.headers);
-        HttpHeaders response_headers;
         absl::string_view request_body;
         std::string decoded_query_string;
         if (!req.body.empty()) {
@@ -2874,14 +2921,12 @@ void InstallServiceOnHttplibServer(
               DecodeUrlQueryString(query_string).value_or("");
           request_body = decoded_query_string;
         }
-        RawResponse raw_response =
-            HandleRequest(*service_impl, request_body, request_headers,
-                          response_headers, unrecognized_values);
-        skir_internal::SkirToHttplibHeaders(response_headers, resp.headers);
+        RawResponse raw_response = HandleRequest(
+            *service_impl, request_body, request_headers, unrecognized_values);
 
         resp.set_content(std::move(raw_response.data),
-                         std::string(raw_response.content_type()));
-        resp.status = raw_response.status_code();
+                         std::string(raw_response.content_type));
+        resp.status = raw_response.status_code;
       };
   server.Get(std::string(query_path), handler);
   server.Post(std::string(query_path), handler);
@@ -2894,16 +2939,11 @@ template <typename Method>
 absl::StatusOr<typename Method::response_type> InvokeRemote(
     const Client& client, Method method,
     const typename Method::request_type& request,
-    const HttpHeaders& request_headers = {},
-    HttpHeaders* absl_nonnull response_headers = nullptr) {
+    const HttpHeaders& request_headers = {}) {
   const std::string request_data = absl::StrCat(
       Method::kMethodName, ":", Method::kNumber, "::", ToDenseJson(request));
-  HttpHeaders response_headers_tmp;
   absl::StatusOr<std::string> response_data =
-      client(request_data, request_headers, response_headers_tmp);
-  if (response_headers != nullptr) {
-    *response_headers = std::move(response_headers_tmp);
-  }
+      client(request_data, request_headers);
   if (!response_data.ok()) {
     return std::move(response_data).status();
   }

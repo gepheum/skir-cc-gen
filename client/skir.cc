@@ -996,6 +996,39 @@ void ParseFieldOrVariant(JsonTokenizer& tokenizer, FieldOrVariant& out) {
 }
 }  // namespace
 
+skir::service::RawResponse MakeOkJsonResponse(std::string data) {
+  return {
+      .data = std::move(data),
+      .status_code = 200,
+      .content_type = "application/json",
+  };
+}
+
+skir::service::RawResponse MakeOkHtmlResponse(std::string data) {
+  return {
+      .data = std::move(data),
+      .status_code = 200,
+      .content_type = "text/html; charset=utf-8",
+  };
+}
+
+skir::service::RawResponse MakeBadRequestResponse(std::string data) {
+  return {
+      .data = std::move(data),
+      .status_code = 400,
+      .content_type = "text/plain; charset=utf-8",
+  };
+}
+
+skir::service::RawResponse MakeServerErrorResponse(std::string data,
+                                                   int status_code) {
+  return {
+      .data = std::move(data),
+      .status_code = status_code,
+      .content_type = "text/plain; charset=utf-8",
+  };
+}
+
 JsonTokenType JsonTokenizer::Next() {
   if (!state_.status.ok()) return JsonTokenType::kError;
   return state_.token_type = NextImpl(state_);
