@@ -1031,6 +1031,14 @@ class HttpHeaders {
   absl::flat_hash_map<std::string, std::vector<std::string>> map_;
 };
 
+// Options for handling service requests.
+struct ServiceOptions {
+  UnrecognizedValuesPolicy unrecognized_values =
+      UnrecognizedValuesPolicy::kDrop;
+  std::string studio_app_js_url =
+      "https://cdn.jsdelivr.net/npm/skir-studio/dist/skir-studio-standalone.js";
+};
+
 // Sends RPCs to a skir service.
 class Client {
  public:
@@ -2655,30 +2663,18 @@ struct MethodListAdapter {
 inline MethodDescriptorAdapter GetAdapter(skir_type<MethodDescriptor>);
 inline MethodListAdapter GetAdapter(skir_type<MethodList>);
 
-constexpr absl::string_view kRestudioHtml = R"html(<!DOCTYPE html>
-
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>RESTudio</title>
-    <script src="https://cdn.jsdelivr.net/npm/restudio/dist/restudio-standalone.js"></script>
-  </head>
-  <body style="margin: 0; padding: 0;">
-    <restudio-app></restudio-app>
-  </body>
-</html>
-)html";
+std::string GetStudioHtml(absl::string_view studio_app_js_url);
 
 template <typename ServiceImpl, typename RequestMeta>
 class HandleRequestOp {
  public:
   HandleRequestOp(ServiceImpl* absl_nonnull service_impl,
                   absl::string_view request_body,
-                  skir::UnrecognizedValuesPolicy unrecognized_values,
+                  const skir::service::ServiceOptions* absl_nonnull options,
                   const RequestMeta* absl_nonnull request_meta)
       : service_impl_(*service_impl),
         request_body_(request_body),
-        unrecognized_values_(unrecognized_values),
+        options_(*options),
         request_meta_(*request_meta) {}
 
   skir::service::RawResponse Run() {
@@ -2692,8 +2688,9 @@ class HandleRequestOp {
       ReadableJson json;
       MethodListAdapter::Append(method_list, json);
       return skir_internal::MakeOkJsonResponse(json.out);
-    } else if (request_body_ == "debug" || request_body_ == "restudio") {
-      return skir_internal::MakeOkHtmlResponse(std::string(kRestudioHtml));
+    } else if (request_body_ == "studio") {
+      return skir_internal::MakeOkHtmlResponse(
+          GetStudioHtml(options_.studio_app_js_url));
     }
 
     if (const absl::Status status = request_body_parsed_.Parse(request_body_);
@@ -2718,7 +2715,7 @@ class HandleRequestOp {
  private:
   ServiceImpl& service_impl_;
   const absl::string_view request_body_;
-  const skir::UnrecognizedValuesPolicy unrecognized_values_;
+  const skir::service::ServiceOptions& options_;
   const RequestMeta& request_meta_;
 
   RequestBody request_body_parsed_;
@@ -2742,7 +2739,7 @@ class HandleRequestOp {
       return;
     }
     absl::StatusOr<RequestType> request = skir::Parse<RequestType>(
-        request_body_parsed_.request_data, unrecognized_values_);
+        request_body_parsed_.request_data, options_.unrecognized_values);
     if (!request.ok()) {
       raw_response_ = skir_internal::MakeBadRequestResponse(
           absl::StrCat("bad request: ", request.status().message()));
@@ -2865,18 +2862,14 @@ namespace service {
 // If the request is a GET request, pass in the decoded query string as the
 // request's body. The query string is the part of the URL after '?', and it can
 // be decoded with DecodeUrlQueryString.
-//
-// Pass in UnrecognizedValuesPolicy::kKeep if the request is guaranteed to come
-// from a trusted user.
 template <typename ServiceImpl>
 RawResponse HandleRequest(ServiceImpl& service_impl,
                           absl::string_view request_body,
                           const HttpHeaders& request_headers,
-                          UnrecognizedValuesPolicy unrecognized_values =
-                              UnrecognizedValuesPolicy::kDrop) {
+                          const ServiceOptions& options = {}) {
   skir_internal::assert_unique_method_numbers<typename ServiceImpl::methods>();
-  return skir_internal::HandleRequestOp(&service_impl, request_body,
-                                        unrecognized_values, &request_headers)
+  return skir_internal::HandleRequestOp(&service_impl, request_body, &options,
+                                        &request_headers)
       .Run();
 }
 
@@ -2892,18 +2885,14 @@ absl::StatusOr<std::string> DecodeUrlQueryString(
 //
 // ServiceImpl must satisfy the requirements outlined in the documentation for
 // HandleRequest.
-//
-// Pass in UnrecognizedValuesPolicy::kKeep if the request is guaranteed to come
-// from a trusted user.
 template <typename HttplibServer, typename ServiceImpl>
-void InstallServiceOnHttplibServer(
-    HttplibServer& server, absl::string_view query_path,
-    std::shared_ptr<ServiceImpl> service_impl,
-    UnrecognizedValuesPolicy unrecognized_values =
-        UnrecognizedValuesPolicy::kDrop) {
+void InstallServiceOnHttplibServer(HttplibServer& server,
+                                   absl::string_view query_path,
+                                   std::shared_ptr<ServiceImpl> service_impl,
+                                   const ServiceOptions& options = {}) {
   ABSL_CHECK_NE(service_impl, nullptr);
   const typename HttplibServer::Handler handler =  //
-      [service_impl, unrecognized_values](const auto& req, auto& resp) {
+      [service_impl, options](const auto& req, auto& resp) {
         const HttpHeaders request_headers =
             skir_internal::HttplibToSkirHeaders(req.headers);
         absl::string_view request_body;
@@ -2921,8 +2910,8 @@ void InstallServiceOnHttplibServer(
               DecodeUrlQueryString(query_string).value_or("");
           request_body = decoded_query_string;
         }
-        RawResponse raw_response = HandleRequest(
-            *service_impl, request_body, request_headers, unrecognized_values);
+        RawResponse raw_response = HandleRequest(*service_impl, request_body,
+                                                 request_headers, options);
 
         resp.set_content(std::move(raw_response.data),
                          std::string(raw_response.content_type));

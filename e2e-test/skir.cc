@@ -1012,6 +1012,23 @@ skir::service::RawResponse MakeOkHtmlResponse(std::string data) {
   };
 }
 
+std::string GetStudioHtml(absl::string_view studio_app_js_url) {
+  return absl::StrCat(R"html(<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Skir Studio</title>
+    <script src=")html",
+                      studio_app_js_url, R"html("></script>
+  </head>
+  <body style="margin: 0; padding: 0;">
+    <skir-studio-app></skir-studio-app>
+  </body>
+</html>
+)html");
+}
+
 skir::service::RawResponse MakeBadRequestResponse(std::string data) {
   return {
       .data = std::move(data),
