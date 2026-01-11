@@ -1013,6 +1013,12 @@ skir::service::RawResponse MakeOkHtmlResponse(std::string data) {
 }
 
 std::string GetStudioHtml(absl::string_view studio_app_js_url) {
+  const std::string escaped_url =
+      absl::StrReplaceAll(studio_app_js_url, {{"&", "&amp;"},
+                                              {"<", "&lt;"},
+                                              {">", "&gt;"},
+                                              {"\"", "&quot;"},
+                                              {"'", "&#39;"}});
   return absl::StrCat(R"html(<!DOCTYPE html>
 
 <html>
@@ -1020,7 +1026,8 @@ std::string GetStudioHtml(absl::string_view studio_app_js_url) {
     <meta charset="utf-8" />
     <title>Skir Studio</title>
     <script src=")html",
-                      studio_app_js_url, R"html("></script>
+                      escaped_url,
+                      R"html("></script>
   </head>
   <body style="margin: 0; padding: 0;">
     <skir-studio-app></skir-studio-app>
