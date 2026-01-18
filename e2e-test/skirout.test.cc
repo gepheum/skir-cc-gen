@@ -312,7 +312,7 @@ TEST(skiroutTest, ReserializeEnum) {
       MakeReserializer(StatusEnum())
           .IsDefault()
           .ExpectDenseJson("0")
-          .ExpectReadableJson("\"?\"")
+          .ExpectReadableJson("\"UNKNOWN\"")
           .ExpectDebugString("skirout::kUnknown")
           .ExpectBytes("00")
           .ExpectTypeDescriptorJson(
@@ -612,7 +612,8 @@ TEST(skiroutTest, IsRecord) {
 TEST(skiroutTest, ForEachVariantOfEnum) {
   FieldNameCollector collector;
   skir::reflection::ForEachVariant<StatusEnum>(collector);
-  EXPECT_THAT(collector.field_names, UnorderedElementsAre("?", "OK", "error"));
+  EXPECT_THAT(collector.field_names,
+              UnorderedElementsAre("UNKNOWN", "OK", "error"));
 
   // Just to make sure we can pass an rvalue.
   skir::reflection::ForEachVariant<StatusEnum>(FieldNameCollector());

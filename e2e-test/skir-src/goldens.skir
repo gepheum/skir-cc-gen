@@ -1307,13 +1307,13 @@ const UNIT_TESTS: [UnitTest] = [
       value: {|
         value: {
           kind: "my_enum",
-          value: "?",
+          value: "UNKNOWN",
         },
         expected_dense_json: [
           "0",
         ],
         expected_readable_json: [
-          '"?"',
+          '"UNKNOWN"',
         ],
         expected_bytes: [
           "hex:736b697200",

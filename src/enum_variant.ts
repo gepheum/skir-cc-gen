@@ -50,7 +50,7 @@ export function getEnumVariants(
 
 function makeUnknownVariant(): MutableEnumVariant {
   return {
-    variantName: "?",
+    variantName: "UNKNOWN",
     valueType: "",
     valueTypeWithNamespace: "",
     variantNumber: 0,
