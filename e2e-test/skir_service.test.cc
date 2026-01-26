@@ -253,10 +253,10 @@ TEST(SkirServiceTest, ErrorOrReturnType) {
   InstallServiceOnHttplibServer(server, "/myapi", service_impl);
 
   service_impl->AddUser({
+      .country = "US",
       .id = 103,
       .first_name = "John",
       .last_name = "Smith",
-      .country = "US",
   });
 
   std::thread server_thread([&server]() { server.listen("localhost", kPort); });
