@@ -78,10 +78,10 @@ TEST(SkirServiceTest, TestServerAndClient) {
   InstallServiceOnHttplibServer(server, "/myapi", service_impl);
 
   service_impl->AddUser({
+      .country = "AU",
       .id = 102,
       .first_name = "Jane",
       .last_name = "Doe",
-      .country = "AU",
   });
 
   std::thread server_thread([&server]() { server.listen("localhost", kPort); });
