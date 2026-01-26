@@ -8,16 +8,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Dependencies - Use existing targets if available, otherwise fetch them
 # ============================================================================
 
-# Abseil - always use FetchContent for consistency
+# Abseil - use existing installation if available, otherwise fetch
 include(FetchContent)
 
-FetchContent_Declare(
-  absl
-  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG 20250814.1
-)
-set(ABSL_PROPAGATE_CXX_STD ON)
-FetchContent_MakeAvailable(absl)
+if(NOT TARGET absl::base)
+  FetchContent_Declare(
+    absl
+    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+    GIT_TAG 20250814.1
+  )
+  set(ABSL_PROPAGATE_CXX_STD ON)
+  FetchContent_MakeAvailable(absl)
+endif()
 
 # GoogleTest - optional, only needed for testing library
 if(NOT DEFINED SKIR_ENABLE_TESTING)
