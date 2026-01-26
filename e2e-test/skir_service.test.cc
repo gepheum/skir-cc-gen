@@ -79,8 +79,8 @@ TEST(SkirServiceTest, TestServerAndClient) {
 
   service_impl->AddUser({
       .country = "AU",
-      .id = 102,
       .first_name = "Jane",
+      .id = 102,
       .last_name = "Doe",
   });
 
@@ -254,8 +254,8 @@ TEST(SkirServiceTest, ErrorOrReturnType) {
 
   service_impl->AddUser({
       .country = "US",
-      .id = 103,
       .first_name = "John",
+      .id = 103,
       .last_name = "Smith",
   });
 
