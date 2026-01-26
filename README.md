@@ -21,35 +21,10 @@ In your `skir.yml` file, add the following snippet under `generators`:
 
 The generated C++ code depends on the [skir client library](https://github.com/gepheum/skir-cc-gen/tree/main/client), [absl](https://abseil.io/) and optionally [GoogleTest](https://github.com/google/googletest).
 
-### If you use CMake
-
 Add this to your `CMakeLists.txt`:
 
 ```cmake
 include(FetchContent)
-
-# Should be ON if writeGoogleTestHeaders is true 
-option(BUILD_TESTING "Build tests" OFF)
-
-# Abseil (required, version 20250814.0+)
-FetchContent_Declare(
-  absl
-  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG        20250814.1  # Use 20250814.0 or later
-)
-set(ABSL_PROPAGATE_CXX_STD ON)
-FetchContent_MakeAvailable(absl)
-
-if(BUILD_TESTING)
-  # GoogleTest (optional - only if you use writeGoogleTestHeaders)
-  FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        v1.15.2  # Pick the latest tag
-  )
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(googletest)
-endif()
 
 # skir-client
 FetchContent_Declare(
@@ -62,10 +37,6 @@ FetchContent_MakeAvailable(skir-client)
 ```
 
 See this [example](https://github.com/gepheum/skir-cc-example/blob/main/CMakeLists.txt).
-
-### If you use Bazel
-
-Refer to this example [BUILD.bazel](https://github.com/gepheum/skir-cc-example/blob/main/BUILD.bazel) file.
 
 ## C++ generated code guide
 
