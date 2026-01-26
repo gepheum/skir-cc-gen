@@ -1,10 +1,10 @@
 .DS_Store
 .cache
-MODULE.bazel.lock
 /client/build
-bazel-*
+/e2e-test/build
 dist
 e2e-test/external
 node_modules
 skirout
+skir-external
 tsconfig.tsbuildinfo

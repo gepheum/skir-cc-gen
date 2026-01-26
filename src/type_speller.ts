@@ -92,7 +92,13 @@ export class TypeSpeller {
 }
 
 export function modulePathToNamespace(path: string): string {
-  return "skirout_" + path.replace(/\.skir$/, "").replace("/", "_");
+  return (
+    "skirout_" +
+    path
+      .replace(/^@/, "external/")
+      .replace(/\.skir$/, "")
+      .replace(/[/-]/g, "_")
+  );
 }
 
 export function getClassName(record: RecordLocation): string {

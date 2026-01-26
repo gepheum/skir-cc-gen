@@ -5,13 +5,19 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ============================================================================
-# Dependencies - Use existing targets if available, otherwise find them
+# Dependencies - Use existing targets if available, otherwise fetch them
 # ============================================================================
 
-# Abseil - check if already provided by parent project
-if(NOT TARGET absl::base)
-  find_package(absl REQUIRED)
-endif()
+# Abseil - always use FetchContent for consistency
+include(FetchContent)
+
+FetchContent_Declare(
+  absl
+  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+  GIT_TAG 20250814.1
+)
+set(ABSL_PROPAGATE_CXX_STD ON)
+FetchContent_MakeAvailable(absl)
 
 # GoogleTest - optional, only needed for testing library
 if(NOT DEFINED SKIR_ENABLE_TESTING)
@@ -23,7 +29,20 @@ if(NOT DEFINED SKIR_ENABLE_TESTING)
     if(GTest_FOUND)
       set(SKIR_ENABLE_TESTING ON)
     else()
-      set(SKIR_ENABLE_TESTING OFF)
+      # Try to fetch GoogleTest
+      include(FetchContent)
+      FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.15.2
+      )
+      set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+      FetchContent_MakeAvailable(googletest)
+      if(TARGET GTest::gtest)
+        set(SKIR_ENABLE_TESTING ON)
+      else()
+        set(SKIR_ENABLE_TESTING OFF)
+      endif()
     endif()
   endif()
 endif()

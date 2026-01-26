@@ -3,3 +3,6 @@ generators:
     outDir: ./skirout
     config:
       writeGoogleTestHeaders: true
+
+dependencies:
+  "@gepheum/fantasy-game-skir-example": v1.0.0
