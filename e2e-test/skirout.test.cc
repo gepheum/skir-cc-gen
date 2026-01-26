@@ -4,7 +4,6 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
-#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
@@ -23,8 +22,6 @@
 #include "skirout/structs.testing.h"
 
 namespace {
-using ::absl_testing::IsOk;
-using ::absl_testing::IsOkAndHolds;
 using ::skir_testing_internal::MakeReserializer;
 using ::skirout_enums::EmptyEnum;
 using ::skirout_enums::JsonValue;
@@ -40,6 +37,8 @@ using ::skirout_structs::Rec;
 using ::skirout_user::User;
 using ::skirout_vehicles_car::Car;
 using ::testing::ElementsAre;
+using ::testing::IsFalse;
+using ::testing::IsTrue;
 using ::testing::Not;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
@@ -115,8 +114,9 @@ TEST(skiroutTest, ReserializeStruct) {
               "]\n}")
           .AddAlternativeBytes("00")
           .AddAlternativeJson("0")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(
       MakeReserializer(FullName{
                            .first_name = "Osi",
@@ -128,8 +128,9 @@ TEST(skiroutTest, ReserializeStruct) {
           .ExpectBytes("fa0500f3034f73690000f3044461726f")
           .ExpectDebugString(
               "{\n  .first_name: \"Osi\",\n  .last_name: \"Daro\",\n}")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(MakeReserializer(FullName{
                                    .first_name = "Osi",
                                })
@@ -137,8 +138,9 @@ TEST(skiroutTest, ReserializeStruct) {
                   .ExpectReadableJson("{\n  \"first_name\": \"Osi\"\n}")
                   .ExpectBytes("f800f3034f7369")
                   .ExpectDebugString("{\n  .first_name: \"Osi\",\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(FullName{
                                    .last_name = "Daro",
                                })
@@ -146,8 +148,9 @@ TEST(skiroutTest, ReserializeStruct) {
                   .ExpectReadableJson("{\n  \"last_name\": \"Daro\"\n}")
                   .ExpectBytes("fa0500f20000f3044461726f")
                   .ExpectDebugString("{\n  .last_name: \"Daro\",\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(
       MakeReserializer(CarOwner{
                            .car =
@@ -176,8 +179,9 @@ TEST(skiroutTest, ReserializeStruct) {
               "},\n  .owner: {\n    .first_name: \"Osi\",\n    .last_name: "
               "\"Daro\",\n  },\n}")
           .AddCompatibleSchema<Empty>("Empty")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(
       MakeReserializer(Bundle{
                            .f250 = true,
@@ -202,14 +206,15 @@ TEST(skiroutTest, ReserializeStruct) {
               "00000000000000000000000000000000000000000000000000000000000001")
           .AddCompatibleSchema<Empty>("Empty")
           .AddCompatibleSchema<EmptyWithRm1>("EmptyWithRm1")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
 }
 
 TEST(skiroutTest, ParseStructFromInvalidJson) {
-  EXPECT_THAT(skir::Parse<FullName>("{ \"first_name\": 1 }"), Not(IsOk()));
-  EXPECT_THAT(skir::Parse<FullName>("{ \"first_name\": [ }"), Not(IsOk()));
-  EXPECT_THAT(skir::Parse<FullName>("{ first_name: 0 "), Not(IsOk()));
+  EXPECT_THAT(skir::Parse<FullName>("{ \"first_name\": 1 }").ok(), IsFalse());
+  EXPECT_THAT(skir::Parse<FullName>("{ \"first_name\": [ }").ok(), IsFalse());
+  EXPECT_THAT(skir::Parse<FullName>("{ first_name: 0 ").ok(), IsFalse());
 }
 
 TEST(skiroutTest, StatusEnumSimpleOps) {
@@ -327,16 +332,18 @@ TEST(skiroutTest, ReserializeEnum) {
               "\"primitive\",\n            \"value\": \"string\"\n          "
               "}\n        }\n      ]\n    }\n  ]\n}")
           .AddCompatibleSchema<EmptyEnum>("EmptyEnum")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(MakeReserializer(StatusEnum(StatusEnum::kOk))
                   .ExpectDenseJson("1")
                   .ExpectReadableJson("\"OK\"")
                   .ExpectDebugString("skirout::kOk")
                   .ExpectBytes("01")
                   .AddCompatibleSchema<EmptyEnum>("EmptyEnum")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(
       MakeReserializer(StatusEnum::wrap_error("E"))
           .ExpectDenseJson("[2,\"E\"]")
@@ -346,15 +353,19 @@ TEST(skiroutTest, ReserializeEnum) {
           .ExpectBytes("fcf30145")
           .AddAlternativeJson("{\"foo\":1,\"value\":\"E\",\"kind\":\"error\"}")
           .AddCompatibleSchema<EmptyEnum>("EmptyEnum")
-          .Check(),
-      IsOk());
-  EXPECT_THAT(MakeReserializer(Weekday(Weekday::kUnknown)).IsDefault().Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer(Weekday(Weekday::kMonday)).Check(), IsOk());
-  EXPECT_THAT(MakeReserializer(JsonValue::wrap_boolean(true)).Check(), IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(
-      MakeReserializer(EmptyEnum(EmptyEnum::kUnknown)).IsDefault().Check(),
-      IsOk());
+      MakeReserializer(Weekday(Weekday::kUnknown)).IsDefault().Check().ok(),
+      IsTrue());
+  EXPECT_THAT(MakeReserializer(Weekday(Weekday::kMonday)).Check().ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer(JsonValue::wrap_boolean(true)).Check().ok(),
+              IsTrue());
+  EXPECT_THAT(
+      MakeReserializer(EmptyEnum(EmptyEnum::kUnknown)).IsDefault().Check().ok(),
+      IsTrue());
 }
 
 TEST(skiroutTest, KeyedItems) {
@@ -492,8 +503,9 @@ TEST(skiroutTest, KeyedItems) {
               "\"number\": 6\n        },\n        {\n          \"name\": "
               "\"SUNDAY\",\n          \"number\": 7\n        }\n      ]\n    "
               "}\n  ]\n}")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
 }
 
 TEST(skiroutTest, Constants) {
@@ -694,8 +706,8 @@ TEST(SkirlibTest, SkirService) {
         ::skir::service::InvokeRemote(*client, skirout_methods::MyProcedure(),
                                       skirout_structs::Point{.x = 1, .y = 2},
                                       request_headers);
-    EXPECT_THAT(result,
-                IsOkAndHolds(::skirout_enums::JsonValue::wrap_number(1.0)));
+    ASSERT_THAT(result.ok(), IsTrue());
+    EXPECT_THAT(*result, ::skirout_enums::JsonValue::wrap_number(1.0));
   }
 }
 

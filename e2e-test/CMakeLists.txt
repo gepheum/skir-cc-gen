@@ -34,28 +34,12 @@ if(NOT TARGET absl::base)
   FetchContent_Declare(
     absl
     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-    GIT_TAG 20250814.1
+    GIT_TAG 20260107.0
   )
   set(ABSL_PROPAGATE_CXX_STD ON)
   set(ABSL_USE_EXTERNAL_GOOGLETEST ON CACHE BOOL "" FORCE)
   set(ABSL_FIND_GOOGLETEST OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(absl)
-  
-  # Manually build status_matchers since it's marked TESTONLY and won't be built otherwise
-  add_library(absl_status_matchers
-    ${absl_SOURCE_DIR}/absl/status/internal/status_matchers.h
-    ${absl_SOURCE_DIR}/absl/status/internal/status_matchers.cc
-  )
-  target_include_directories(absl_status_matchers PUBLIC ${absl_SOURCE_DIR})
-  target_link_libraries(absl_status_matchers PUBLIC
-    absl::base
-    absl::status
-    absl::statusor
-    absl::strings
-    GTest::gmock
-    GTest::gtest
-  )
-  add_library(absl::status_matchers ALIAS absl_status_matchers)
 endif()
 
 # Find or fetch cpp-httplib
@@ -156,11 +140,11 @@ target_link_libraries(skir_test PRIVATE
   reserializer_testing
   absl::flat_hash_set
   absl::status
-  absl::status_matchers
   absl::statusor
   absl::strings
   GTest::gtest
   GTest::gtest_main
+  GTest::gmock
 )
 gtest_discover_tests(skir_test)
 
@@ -171,12 +155,12 @@ target_link_libraries(skir_service_test PRIVATE
   skir_testing
   skirout
   absl::flat_hash_map
-  absl::status_matchers
   absl::statusor
   absl::strings
   httplib::httplib
   GTest::gtest
   GTest::gtest_main
+  GTest::gmock
 )
 gtest_discover_tests(skir_service_test)
 
@@ -189,11 +173,11 @@ target_link_libraries(skirout_test PRIVATE
   skirout
   absl::flat_hash_set
   absl::status
-  absl::status_matchers
   absl::statusor
   absl::strings
   GTest::gtest
   GTest::gtest_main
+  GTest::gmock
 )
 gtest_discover_tests(skirout_test)
 

@@ -9,7 +9,6 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
-#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "gmock/gmock.h"
@@ -19,7 +18,6 @@
 #include "skirout/methods.testing.h"
 
 namespace {
-using ::absl_testing::IsOkAndHolds;
 using ::skir::service::Error;
 using ::skir::service::ErrorOr;
 using ::skir::service::HttpErrorCode;
@@ -33,6 +31,7 @@ using ::skirout_methods::ListUsersResponse;
 using ::skirout_methods::User;
 using ::testing::Contains;
 using ::testing::ElementsAre;
+using ::testing::IsTrue;
 using ::testing::Pair;
 using ::testing::skirout::StructIs;
 
@@ -98,10 +97,11 @@ TEST(SkirServiceTest, TestServerAndClient) {
       InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{.country = "AU"},
                    request_headers);
 
-  EXPECT_THAT(response, IsOkAndHolds(StructIs<ListUsersResponse>{
-                            .users = ElementsAre(StructIs<User>{
-                                .first_name = "Jane",
-                            })}));
+  ASSERT_THAT(response.ok(), IsTrue());
+  EXPECT_THAT(*response,
+              StructIs<ListUsersResponse>{.users = ElementsAre(StructIs<User>{
+                                              .first_name = "Jane",
+                                          })});
 
   EXPECT_THAT(
       InvokeRemote(*skir_client, ListUsers(), ListUsersRequest{},
@@ -271,10 +271,11 @@ TEST(SkirServiceTest, ErrorOrReturnType) {
   {
     absl::StatusOr<ListUsersResponse> response = InvokeRemote(
         *skir_client, ListUsers(), ListUsersRequest{.country = "US"}, {});
-    EXPECT_THAT(response, IsOkAndHolds(StructIs<ListUsersResponse>{
-                              .users = ElementsAre(StructIs<User>{
-                                  .first_name = "John",
-                              })}));
+    ASSERT_THAT(response.ok(), IsTrue());
+    EXPECT_THAT(*response,
+                StructIs<ListUsersResponse>{.users = ElementsAre(StructIs<User>{
+                                                .first_name = "John",
+                                            })});
   }
 
   // Test 400 Bad Request error

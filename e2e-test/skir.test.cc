@@ -10,7 +10,6 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
-#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
@@ -18,12 +17,11 @@
 #include "reserializer.testing.h"
 
 namespace {
-using ::absl_testing::IsOk;
-using ::absl_testing::IsOkAndHolds;
 using ::skir_testing_internal::HexToBytes;
 using ::skir_testing_internal::MakeReserializer;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
+using ::testing::IsTrue;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
@@ -527,8 +525,9 @@ TEST(SkirlibTest, ReserializeBool) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"bool\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(true)
                   .ExpectReadableJson("true")
                   .ExpectDenseJson("1")
@@ -536,8 +535,9 @@ TEST(SkirlibTest, ReserializeBool) {
                   .ExpectDebugString("true")
                   .AddAlternativeJson("1")
                   .AddAlternativeJson("0.5")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeInt32) {
@@ -550,40 +550,47 @@ TEST(SkirlibTest, ReserializeInt32) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"int32\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int32_t>(10)
                   .ExpectReadableJson("10")
                   .ExpectDenseJson("10")
                   .ExpectDebugString("10")
                   .ExpectBytes("0a")
                   .AddAlternativeBytes("e90a000000")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int32_t>(231).ExpectBytes("e7").Check(), IsOk());
-  EXPECT_THAT(MakeReserializer<int32_t>(232).ExpectBytes("e8e800").Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int32_t>(231).ExpectBytes("e7").Check().ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int32_t>(232).ExpectBytes("e8e800").Check().ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int32_t>(-1)
                   .ExpectReadableJson("-1")
                   .ExpectDenseJson("-1")
                   .ExpectDebugString("-1")
                   .ExpectBytes("ebff")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int32_t>(-256).ExpectBytes("eb00").Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int32_t>(-257).ExpectBytes("ecfffe").Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int32_t>(-65536).ExpectBytes("ec0000").Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int32_t>(-256).ExpectBytes("eb00").Check().ok(),
+              IsTrue());
   EXPECT_THAT(
-      MakeReserializer<int32_t>(-65537).ExpectBytes("edfffffeff").Check(),
-      IsOk());
-  EXPECT_THAT(MakeReserializer<int32_t>(65535).ExpectBytes("e8ffff").Check(),
-              IsOk());
+      MakeReserializer<int32_t>(-257).ExpectBytes("ecfffe").Check().ok(),
+      IsTrue());
   EXPECT_THAT(
-      MakeReserializer<int32_t>(65536).ExpectBytes("e900000100").Check(),
-      IsOk());
+      MakeReserializer<int32_t>(-65536).ExpectBytes("ec0000").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(
+      MakeReserializer<int32_t>(-65537).ExpectBytes("edfffffeff").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(
+      MakeReserializer<int32_t>(65535).ExpectBytes("e8ffff").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(
+      MakeReserializer<int32_t>(65536).ExpectBytes("e900000100").Check().ok(),
+      IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeInt64) {
@@ -596,74 +603,91 @@ TEST(SkirlibTest, ReserializeInt64) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"int64\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(10)
                   .ExpectReadableJson("10")
                   .ExpectDenseJson("10")
                   .ExpectDebugString("10")
                   .ExpectBytes("0a")
                   .AddAlternativeBytes("e90a000000")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int64_t>(231).ExpectBytes("e7").Check(), IsOk());
-  EXPECT_THAT(MakeReserializer<int64_t>(232).ExpectBytes("e8e800").Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int64_t>(231).ExpectBytes("e7").Check().ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int64_t>(232).ExpectBytes("e8e800").Check().ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(-1)
                   .ExpectReadableJson("-1")
                   .ExpectDenseJson("-1")
                   .ExpectDebugString("-1")
                   .ExpectBytes("ebff")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int64_t>(-256).ExpectBytes("eb00").Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int64_t>(-257).ExpectBytes("ecfffe").Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<int64_t>(-65536).ExpectBytes("ec0000").Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int64_t>(-256).ExpectBytes("eb00").Check().ok(),
+              IsTrue());
   EXPECT_THAT(
-      MakeReserializer<int64_t>(-65537).ExpectBytes("edfffffeff").Check(),
-      IsOk());
-  EXPECT_THAT(MakeReserializer<int64_t>(65535).ExpectBytes("e8ffff").Check(),
-              IsOk());
+      MakeReserializer<int64_t>(-257).ExpectBytes("ecfffe").Check().ok(),
+      IsTrue());
   EXPECT_THAT(
-      MakeReserializer<int64_t>(65536).ExpectBytes("e900000100").Check(),
-      IsOk());
+      MakeReserializer<int64_t>(-65536).ExpectBytes("ec0000").Check().ok(),
+      IsTrue());
   EXPECT_THAT(
-      MakeReserializer<int64_t>(-2147483648).ExpectBytes("ed00000080").Check(),
-      IsOk());
+      MakeReserializer<int64_t>(-65537).ExpectBytes("edfffffeff").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(
+      MakeReserializer<int64_t>(65535).ExpectBytes("e8ffff").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(
+      MakeReserializer<int64_t>(65536).ExpectBytes("e900000100").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(MakeReserializer<int64_t>(-2147483648)
+                  .ExpectBytes("ed00000080")
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(-2147483649)
                   .ExpectBytes("eeffffff7fffffffff")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(
-      MakeReserializer<int64_t>(4294967295).ExpectBytes("e9ffffffff").Check(),
-      IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<int64_t>(4294967295)
+                  .ExpectBytes("e9ffffffff")
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(4294967296)
                   .ExpectBytes("ee0000000001000000")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(-9007199254740991)
                   .ExpectDenseJson("-9007199254740991")
                   .ExpectReadableJson("-9007199254740991")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(-9007199254740992)
                   .ExpectDenseJson("\"-9007199254740992\"")
                   .ExpectReadableJson("\"-9007199254740992\"")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(9007199254740991)
                   .ExpectDenseJson("9007199254740991")
                   .ExpectReadableJson("9007199254740991")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<int64_t>(9007199254740992)
                   .ExpectDenseJson("\"9007199254740992\"")
                   .ExpectReadableJson("\"9007199254740992\"")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeUint64) {
@@ -676,42 +700,51 @@ TEST(SkirlibTest, ReserializeUint64) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"hash64\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<uint64_t>(10)
                   .ExpectReadableJson("10")
                   .ExpectDenseJson("10")
                   .ExpectDebugString("10")
                   .ExpectBytes("0a")
                   .AddAlternativeBytes("e90a000000")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<uint64_t>(231).ExpectBytes("e7").Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<uint64_t>(232).ExpectBytes("e8e800").Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer<uint64_t>(65535).ExpectBytes("e8ffff").Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer<uint64_t>(231).ExpectBytes("e7").Check().ok(),
+              IsTrue());
   EXPECT_THAT(
-      MakeReserializer<uint64_t>(65536).ExpectBytes("e900000100").Check(),
-      IsOk());
+      MakeReserializer<uint64_t>(232).ExpectBytes("e8e800").Check().ok(),
+      IsTrue());
   EXPECT_THAT(
-      MakeReserializer<uint64_t>(4294967295).ExpectBytes("e9ffffffff").Check(),
-      IsOk());
+      MakeReserializer<uint64_t>(65535).ExpectBytes("e8ffff").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(
+      MakeReserializer<uint64_t>(65536).ExpectBytes("e900000100").Check().ok(),
+      IsTrue());
+  EXPECT_THAT(MakeReserializer<uint64_t>(4294967295)
+                  .ExpectBytes("e9ffffffff")
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<uint64_t>(4294967296)
                   .ExpectBytes("ea0000000001000000")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<uint64_t>(9007199254740991)
                   .ExpectDenseJson("9007199254740991")
                   .ExpectReadableJson("9007199254740991")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<uint64_t>(9007199254740992)
                   .ExpectDenseJson("\"9007199254740992\"")
                   .ExpectReadableJson("\"9007199254740992\"")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeFloat32) {
@@ -724,30 +757,34 @@ TEST(SkirlibTest, ReserializeFloat32) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"float32\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<float>(-0.0)
                   .IsDefault()
                   .ExpectReadableJson("-0")
                   .ExpectDenseJson("-0")
                   .ExpectDebugString("-0")
                   .ExpectBytes("00")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<float>(1.0)
                   .ExpectReadableJson("1")
                   .ExpectDenseJson("1")
                   .ExpectDebugString("1")
                   .ExpectBytes("f00000803f")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<float>(3.14)
                   .ExpectReadableJson("3.14")
                   .ExpectDenseJson("3.14")
                   .ExpectDebugString("3.14")
                   .ExpectBytes("f0c3f54840")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::numeric_limits<float>::max())
                   .ExpectReadableJson("3.40282e+38")
                   .ExpectDenseJson("3.40282e+38")
@@ -757,30 +794,34 @@ TEST(SkirlibTest, ReserializeFloat32) {
                     return absl::StrCat(input) ==
                            absl::StrCat(std::numeric_limits<float>::max());
                   })
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::numeric_limits<float>::infinity())
                   .ExpectReadableJson("\"Infinity\"")
                   .ExpectDenseJson("\"Infinity\"")
                   .ExpectDebugString("std::numeric_limits<float>::infinity()")
                   .ExpectBytes("f00000807f")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(-std::numeric_limits<float>::infinity())
                   .ExpectReadableJson("\"-Infinity\"")
                   .ExpectDenseJson("\"-Infinity\"")
                   .ExpectDebugString("-std::numeric_limits<float>::infinity()")
                   .ExpectBytes("f0000080ff")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::numeric_limits<float>::quiet_NaN())
                   .ExpectReadableJson("\"NaN\"")
                   .ExpectDenseJson("\"NaN\"")
                   .ExpectDebugString("std::numeric_limits<float>::quiet_NaN()")
                   .ExpectBytes("f00000c07f")
                   .WithIdentity([](float input) { return input != input; })
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeFloat64) {
@@ -793,30 +834,34 @@ TEST(SkirlibTest, ReserializeFloat64) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"float64\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<double>(-0.0)
                   .IsDefault()
                   .ExpectReadableJson("-0")
                   .ExpectDenseJson("-0")
                   .ExpectDebugString("-0")
                   .ExpectBytes("00")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<double>(1.0)
                   .ExpectReadableJson("1")
                   .ExpectDenseJson("1")
                   .ExpectDebugString("1")
                   .ExpectBytes("f1000000000000f03f")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer<double>(3.14)
                   .ExpectReadableJson("3.14")
                   .ExpectDenseJson("3.14")
                   .ExpectDebugString("3.14")
                   .ExpectBytes("f11f85eb51b81e0940")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::numeric_limits<double>::max())
                   .ExpectReadableJson("1.79769e+308")
                   .ExpectDenseJson("1.79769e+308")
@@ -826,30 +871,34 @@ TEST(SkirlibTest, ReserializeFloat64) {
                     return absl::StrCat(input) ==
                            absl::StrCat(std::numeric_limits<double>::max());
                   })
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::numeric_limits<double>::infinity())
                   .ExpectReadableJson("\"Infinity\"")
                   .ExpectDenseJson("\"Infinity\"")
                   .ExpectDebugString("std::numeric_limits<double>::infinity()")
                   .ExpectBytes("f1000000000000f07f")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(-std::numeric_limits<double>::infinity())
                   .ExpectReadableJson("\"-Infinity\"")
                   .ExpectDenseJson("\"-Infinity\"")
                   .ExpectDebugString("-std::numeric_limits<double>::infinity()")
                   .ExpectBytes("f1000000000000f0ff")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::numeric_limits<double>::quiet_NaN())
                   .ExpectReadableJson("\"NaN\"")
                   .ExpectDenseJson("\"NaN\"")
                   .ExpectDebugString("std::numeric_limits<double>::quiet_NaN()")
                   .ExpectBytes("f1000000000000f87f")
                   .WithIdentity([](float input) { return input != input; })
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeTimestamp) {
@@ -865,8 +914,9 @@ TEST(SkirlibTest, ReserializeTimestamp) {
           .ExpectTypeDescriptorJson(
               "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": "
               "\"timestamp\"\n  },\n  \"records\": []\n}")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(MakeReserializer(absl::FromUnixMillis(1738619881001))
                   .ExpectReadableJson(
                       "{\n  \"unix_millis\": 1738619881001,\n  \"formatted\": "
@@ -875,8 +925,9 @@ TEST(SkirlibTest, ReserializeTimestamp) {
                   .ExpectDebugString("absl::FromUnixMillis(1738619881001 /* "
                                      "2025-02-03T21:58:01.001Z */)")
                   .ExpectBytes("ef2906d2cd94010000")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(
       MakeReserializer(absl::FromUnixMillis(-8640000000000000))
           .ExpectReadableJson(
@@ -890,12 +941,14 @@ TEST(SkirlibTest, ReserializeTimestamp) {
           .AddAlternativeJson("{\n  \"unix_millis\": -8640000000000001}")
           .AddAlternativeJson(
               "{\"foo\": true, \"unix_millis\": -8640000000000001}")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(MakeReserializer(skir::kMinEncodedTimestamp)
                   .ExpectDenseJson("-8640000000000000")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(absl::FromUnixMillis(8640000000000000))
                   .ExpectReadableJson(
                       "{\n  \"unix_millis\": 8640000000000000,\n  "
@@ -910,12 +963,14 @@ TEST(SkirlibTest, ReserializeTimestamp) {
                       "{\"foo\": true, \"unix_millis\": 8640000000000001}")
                   .AddAlternativeBytes("ee0000dcc208b21e00")
                   .AddAlternativeBytes("ee0000dcc208b21e01")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(skir::kMaxEncodedTimestamp)
                   .ExpectDenseJson("8640000000000000")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeString) {
@@ -930,27 +985,30 @@ TEST(SkirlibTest, ReserializeString) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"string\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::string("pokémon"))
                   .ExpectReadableJson("\"pokémon\"")
                   .ExpectDenseJson("\"pokémon\"")
                   .ExpectDebugString("\"pokémon\"")
                   .ExpectBytes("f308706f6bc3a96d6f6e")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::string("\"\n"))
                   .ExpectReadableJson("\"\\\"\\n\"")
                   .ExpectDenseJson("\"\\\"\\n\"")
                   .ExpectDebugString("\"\\\"\\n\"")
                   .ExpectBytes("f302220a")
-                  .Check(),
-              IsOk());
-  EXPECT_THAT(MakeReserializer(std::string("é")).Check(), IsOk());
-  EXPECT_THAT(MakeReserializer(RepeatStr("a", 77)).Check(), IsOk());
-  EXPECT_THAT(MakeReserializer(RepeatStr("a", 78)).Check(), IsOk());
-  EXPECT_THAT(MakeReserializer(RepeatStr("a", 21845)).Check(), IsOk());
-  EXPECT_THAT(MakeReserializer(RepeatStr("a", 21846)).Check(), IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
+  EXPECT_THAT(MakeReserializer(std::string("é")).Check().ok(), IsTrue());
+  EXPECT_THAT(MakeReserializer(RepeatStr("a", 77)).Check().ok(), IsTrue());
+  EXPECT_THAT(MakeReserializer(RepeatStr("a", 78)).Check().ok(), IsTrue());
+  EXPECT_THAT(MakeReserializer(RepeatStr("a", 21845)).Check().ok(), IsTrue());
+  EXPECT_THAT(MakeReserializer(RepeatStr("a", 21846)).Check().ok(), IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeBytes) {
@@ -965,15 +1023,17 @@ TEST(SkirlibTest, ReserializeBytes) {
                   .ExpectTypeDescriptorJson(
                       "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    "
                       "\"value\": \"bytes\"\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(skir::ByteString({0, 0x08, 0xFF}))
                   .ExpectReadableJson("\"hex:0008ff\"")
                   .ExpectDenseJson("\"AAj/\"")
                   .ExpectDebugString("skir::ByteString({0x00, 0x08, 0xFF})")
                   .ExpectBytes("f5030008ff")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeArray) {
@@ -990,41 +1050,47 @@ TEST(SkirlibTest, ReserializeArray) {
               "{\n  \"type\": {\n    \"kind\": \"array\",\n    \"value\": {\n  "
               "    \"item\": {\n        \"kind\": \"primitive\",\n        "
               "\"value\": \"bool\"\n      }\n    }\n  },\n  \"records\": []\n}")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(MakeReserializer(std::vector<bool>{true})
                   .ExpectReadableJson("[\n  true\n]")
                   .ExpectDenseJson("[1]")
                   .ExpectDebugString("{\n  true,\n}")
                   .ExpectBytes("f701")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::vector<bool>{true, false})
                   .ExpectReadableJson("[\n  true,\n  false\n]")
                   .ExpectDenseJson("[1,0]")
                   .ExpectDebugString("{\n  true,\n  false,\n}")
                   .ExpectBytes("f80100")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::vector<bool>{true, false, false})
                   .ExpectReadableJson("[\n  true,\n  false,\n  false\n]")
                   .ExpectDenseJson("[1,0,0]")
                   .ExpectDebugString("{\n  true,\n  false,\n  false,\n}")
                   .ExpectBytes("f9010000")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(
       MakeReserializer(std::vector<bool>{true, false, false, true})
           .ExpectReadableJson("[\n  true,\n  false,\n  false,\n  true\n]")
           .ExpectDenseJson("[1,0,0,1]")
           .ExpectDebugString("{\n  true,\n  false,\n  false,\n  true,\n}")
           .ExpectBytes("fa0401000001")
-          .Check(),
-      IsOk());
+          .Check()
+          .ok(),
+      IsTrue());
   EXPECT_THAT(MakeReserializer(RepeatVec(10, 300))
                   .ExpectBytes(absl::StrCat("fae82c01", RepeatStr("0a", 300)))
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(std::vector<std::vector<std::vector<bool>>>{
                                    {{true}, {true, false}, {}},
                                    {},
@@ -1037,8 +1103,9 @@ TEST(SkirlibTest, ReserializeArray) {
                       "{\n  {\n    {\n      true,\n    },\n    {\n      "
                       "true,\n      false,\n    },\n    {},\n  },\n  {},\n}")
                   .ExpectBytes("f8f9f701f80100f6f6")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, ReserializeOptional) {
@@ -1052,22 +1119,25 @@ TEST(SkirlibTest, ReserializeOptional) {
                       "{\n  \"type\": {\n    \"kind\": \"optional\",\n    "
                       "\"value\": {\n      \"kind\": \"primitive\",\n      "
                       "\"value\": \"bool\"\n    }\n  },\n  \"records\": []\n}")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(absl::make_optional(false))
                   .ExpectReadableJson("false")
                   .ExpectDenseJson("0")
                   .ExpectDebugString("absl::make_optional(false)")
                   .ExpectBytes("00")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
   EXPECT_THAT(MakeReserializer(absl::make_optional(true))
                   .ExpectReadableJson("true")
                   .ExpectDenseJson("1")
                   .ExpectDebugString("absl::make_optional(true)")
                   .ExpectBytes("01")
-                  .Check(),
-              IsOk());
+                  .Check()
+                  .ok(),
+              IsTrue());
 }
 
 TEST(SkirlibTest, JsonStringEscapingAndUtf8Validation) {
@@ -1233,9 +1303,10 @@ TEST(SkirlibTest, HttpHeaders) {
 }
 
 TEST(Skirlib, DecodeUrlQueryString) {
-  EXPECT_THAT(
-      skir::service::DecodeUrlQueryString("%D1%88%D0%B5%D0%BB%D0%BB%D1%8B +"),
-      IsOkAndHolds("шеллы  "));
+  const auto decoded_url =
+      skir::service::DecodeUrlQueryString("%D1%88%D0%B5%D0%BB%D0%BB%D1%8B +");
+  ASSERT_THAT(decoded_url.ok(), IsTrue());
+  EXPECT_THAT(*decoded_url, "шеллы  ");
   EXPECT_THAT(skir::service::DecodeUrlQueryString("%3"),
               absl::InvalidArgumentError("Invalid escape sequence"));
   EXPECT_THAT(skir::service::DecodeUrlQueryString("%4z"),

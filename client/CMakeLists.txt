@@ -15,9 +15,11 @@ if(NOT TARGET absl::base)
   FetchContent_Declare(
     absl
     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-    GIT_TAG 20250814.1
+    GIT_TAG 20260107.0
   )
   set(ABSL_PROPAGATE_CXX_STD ON)
+  set(ABSL_USE_EXTERNAL_GOOGLETEST ON CACHE BOOL "" FORCE)
+  set(ABSL_FIND_GOOGLETEST OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(absl)
 endif()
 
