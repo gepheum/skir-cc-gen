@@ -12,14 +12,14 @@
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "skir.h"
-#include "skirout/goldens.h"
+#include "skirout/@gepheum/skir-golden-tests/goldens.h"
 
 namespace {
 
-using ::skirout_goldens::Assertion;
-using ::skirout_goldens::BytesExpression;
-using ::skirout_goldens::StringExpression;
-using ::skirout_goldens::UnitTest;
+using ::skirout_external_gepheum_skir_golden_tests_goldens::Assertion;
+using ::skirout_external_gepheum_skir_golden_tests_goldens::BytesExpression;
+using ::skirout_external_gepheum_skir_golden_tests_goldens::StringExpression;
+using ::skirout_external_gepheum_skir_golden_tests_goldens::UnitTest;
 
 class TypedValue {
  public:
@@ -103,55 +103,80 @@ absl::StatusOr<skir::ByteString> EvalBytesExpression(
     const BytesExpression& expr);
 
 absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
-    const skirout_goldens::TypedValue& typed_value) {
+    const skirout_external_gepheum_skir_golden_tests_goldens::TypedValue&
+        typed_value) {
   switch (typed_value.kind()) {
-    case skirout_goldens::TypedValue::kind_type::kBoolWrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kBoolWrapper:
       return std::make_unique<TypedValueImpl<bool>>(typed_value.as_bool());
-    case skirout_goldens::TypedValue::kind_type::kInt32Wrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kInt32Wrapper:
       return std::make_unique<TypedValueImpl<int32_t>>(typed_value.as_int32());
-    case skirout_goldens::TypedValue::kind_type::kInt64Wrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kInt64Wrapper:
       return std::make_unique<TypedValueImpl<int64_t>>(typed_value.as_int64());
-    case skirout_goldens::TypedValue::kind_type::kHash64Wrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kHash64Wrapper:
       return std::make_unique<TypedValueImpl<uint64_t>>(
           typed_value.as_hash64());
-    case skirout_goldens::TypedValue::kind_type::kFloat32Wrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kFloat32Wrapper:
       return std::make_unique<TypedValueImpl<float>>(typed_value.as_float32());
-    case skirout_goldens::TypedValue::kind_type::kFloat64Wrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kFloat64Wrapper:
       return std::make_unique<TypedValueImpl<double>>(typed_value.as_float64());
-    case skirout_goldens::TypedValue::kind_type::kTimestampWrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kTimestampWrapper:
       return std::make_unique<TypedValueImpl<absl::Time>>(
           typed_value.as_timestamp());
-    case skirout_goldens::TypedValue::kind_type::kStringWrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kStringWrapper:
       return std::make_unique<TypedValueImpl<std::string>>(
           typed_value.as_string());
-    case skirout_goldens::TypedValue::kind_type::kBytesWrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kBytesWrapper:
       return std::make_unique<TypedValueImpl<skir::ByteString>>(
           skir::ByteString(typed_value.as_bytes()));
-    case skirout_goldens::TypedValue::kind_type::kBoolOptionalWrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kBoolOptionalWrapper:
       return std::make_unique<TypedValueImpl<absl::optional<bool>>>(
           typed_value.as_bool_optional());
-    case skirout_goldens::TypedValue::kind_type::kIntsWrapper:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kIntsWrapper:
       return std::make_unique<TypedValueImpl<std::vector<int32_t>>>(
           typed_value.as_ints());
-    case skirout_goldens::TypedValue::kind_type::kPointWrapper:
-      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kPointWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>>(
           typed_value.as_point());
-    case skirout_goldens::TypedValue::kind_type::kColorWrapper:
-      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kColorWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>>(
           typed_value.as_color());
-    case skirout_goldens::TypedValue::kind_type::kMyEnumWrapper:
-      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kMyEnumWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>>(
           typed_value.as_my_enum());
-    case skirout_goldens::TypedValue::kind_type::kKeyedArraysWrapper:
-      return std::make_unique<TypedValueImpl<skirout_goldens::KeyedArrays>>(
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kKeyedArraysWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::KeyedArrays>>(
           typed_value.as_keyed_arrays());
-    case skirout_goldens::TypedValue::kind_type::kRecStructWrapper:
-      return std::make_unique<TypedValueImpl<skirout_goldens::RecStruct>>(
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kRecStructWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::RecStruct>>(
           typed_value.as_rec_struct());
-    case skirout_goldens::TypedValue::kind_type::kRecEnumWrapper:
-      return std::make_unique<TypedValueImpl<skirout_goldens::RecEnum>>(
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kRecEnumWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::RecEnum>>(
           typed_value.as_rec_enum());
-    case skirout_goldens::TypedValue::kind_type::kRoundTripDenseJsonWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kRoundTripDenseJsonWrapper: {
       const absl::StatusOr<std::unique_ptr<TypedValue>> other =
           EvalTypedValue(typed_value.as_round_trip_dense_json());
       if (!other.ok()) {
@@ -159,8 +184,8 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       return (*other)->RoundTripDenseJson();
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kRoundTripReadableJsonWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kRoundTripReadableJsonWrapper: {
       const absl::StatusOr<std::unique_ptr<TypedValue>> other =
           EvalTypedValue(typed_value.as_round_trip_readable_json());
       if (!other.ok()) {
@@ -168,7 +193,8 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       return (*other)->RoundTripReadableJson();
     }
-    case skirout_goldens::TypedValue::kind_type::kRoundTripBytesWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kRoundTripBytesWrapper: {
       const absl::StatusOr<std::unique_ptr<TypedValue>> other =
           EvalTypedValue(typed_value.as_round_trip_bytes());
       if (!other.ok()) {
@@ -176,209 +202,246 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
       }
       return (*other)->RoundTripBytes();
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kPointFromJsonKeepUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kPointFromJsonKeepUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
               typed_value.as_point_from_json_keep_unrecognized());
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Point> point =
-          skir::Parse<skirout_goldens::Point>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>
+          point = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Point>(
               *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>>(*point);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kPointFromJsonDropUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kPointFromJsonDropUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
               typed_value.as_point_from_json_drop_unrecognized());
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Point> point =
-          skir::Parse<skirout_goldens::Point>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>
+          point = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Point>(
               *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>>(*point);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kPointFromBytesKeepUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kPointFromBytesKeepUnrecognizedWrapper: {
       const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_point_from_bytes_keep_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Point> point =
-          skir::Parse<skirout_goldens::Point>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>
+          point = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Point>(
               bytes_expression->as_string(),
               skir::UnrecognizedValuesPolicy::kKeep);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>>(*point);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kPointFromBytesDropUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kPointFromBytesDropUnrecognizedWrapper: {
       const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_point_from_bytes_drop_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Point> point =
-          skir::Parse<skirout_goldens::Point>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>
+          point = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Point>(
               bytes_expression->as_string(),
               skir::UnrecognizedValuesPolicy::kDrop);
       if (!point.ok()) {
         return point.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Point>>(*point);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Point>>(*point);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kColorFromJsonKeepUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kColorFromJsonKeepUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
               typed_value.as_color_from_json_keep_unrecognized());
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Color> color =
-          skir::Parse<skirout_goldens::Color>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>
+          color = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Color>(
               *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>>(*color);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kColorFromJsonDropUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kColorFromJsonDropUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
               typed_value.as_color_from_json_drop_unrecognized());
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Color> color =
-          skir::Parse<skirout_goldens::Color>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>
+          color = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Color>(
               *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>>(*color);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kColorFromBytesKeepUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kColorFromBytesKeepUnrecognizedWrapper: {
       const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_color_from_bytes_keep_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Color> color =
-          skir::Parse<skirout_goldens::Color>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>
+          color = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Color>(
               bytes_expression->as_string(),
               skir::UnrecognizedValuesPolicy::kKeep);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>>(*color);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kColorFromBytesDropUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kColorFromBytesDropUnrecognizedWrapper: {
       const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_color_from_bytes_drop_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::Color> color =
-          skir::Parse<skirout_goldens::Color>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>
+          color = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::Color>(
               bytes_expression->as_string(),
               skir::UnrecognizedValuesPolicy::kDrop);
       if (!color.ok()) {
         return color.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::Color>>(*color);
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::Color>>(*color);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kMyEnumFromJsonKeepUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kMyEnumFromJsonKeepUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
               typed_value.as_my_enum_from_json_keep_unrecognized());
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
-          skir::Parse<skirout_goldens::MyEnum>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>
+          my_enum = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>(
               *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>>(
           *my_enum);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kMyEnumFromJsonDropUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kMyEnumFromJsonDropUnrecognizedWrapper: {
       const absl::StatusOr<std::string> string_expression =
           EvalStringExpression(
               typed_value.as_my_enum_from_json_drop_unrecognized());
       if (!string_expression.ok()) {
         return string_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
-          skir::Parse<skirout_goldens::MyEnum>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>
+          my_enum = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>(
               *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>>(
           *my_enum);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kMyEnumFromBytesKeepUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kMyEnumFromBytesKeepUnrecognizedWrapper: {
       const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_my_enum_from_bytes_keep_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
-          skir::Parse<skirout_goldens::MyEnum>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>
+          my_enum = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>(
               bytes_expression->as_string(),
               skir::UnrecognizedValuesPolicy::kKeep);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>>(
           *my_enum);
     }
-    case skirout_goldens::TypedValue::kind_type::
-        kMyEnumFromBytesDropUnrecognizedWrapper: {
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kMyEnumFromBytesDropUnrecognizedWrapper: {
       const absl::StatusOr<skir::ByteString> bytes_expression =
           EvalBytesExpression(
               typed_value.as_my_enum_from_bytes_drop_unrecognized());
       if (!bytes_expression.ok()) {
         return bytes_expression.status();
       }
-      const absl::StatusOr<skirout_goldens::MyEnum> my_enum =
-          skir::Parse<skirout_goldens::MyEnum>(
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>
+          my_enum = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>(
               bytes_expression->as_string(),
               skir::UnrecognizedValuesPolicy::kDrop);
       if (!my_enum.ok()) {
         return my_enum.status();
       }
-      return std::make_unique<TypedValueImpl<skirout_goldens::MyEnum>>(
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>>(
           *my_enum);
     }
-    case skirout_goldens::TypedValue::kind_type::kUnknown:
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kUnknown:
       return absl::InvalidArgumentError("Unknown TypedValue kind");
   }
 }
@@ -518,8 +581,11 @@ void ExecuteReserializeValue(const Assertion::ReserializeValue& assertion) {
   for (const auto& expected_bytes : assertion.expected_bytes) {
     const skir::ByteString bytes = skir::ByteString(
         absl::StrCat("skir\xF8", expected_bytes.as_string().substr(4), "\x01"));
-    const absl::StatusOr<skirout_goldens::Point> point =
-        skir::Parse<skirout_goldens::Point>(bytes.as_string());
+    const absl::StatusOr<
+        skirout_external_gepheum_skir_golden_tests_goldens::Point>
+        point = skir::Parse<
+            skirout_external_gepheum_skir_golden_tests_goldens::Point>(
+            bytes.as_string());
     EXPECT_EQ(point.status(), absl::OkStatus());
     if (point.ok()) {
       EXPECT_EQ(point->x, 1)
@@ -649,7 +715,8 @@ void ExecuteStringIn(const Assertion::StringIn& assertion) {
 
 // Main test that runs all unit tests
 TEST(SkirGoldensTest, AllTests) {
-  const std::vector<UnitTest>& unit_tests = skirout_goldens::k_unit_tests();
+  const std::vector<UnitTest>& unit_tests =
+      skirout_external_gepheum_skir_golden_tests_goldens::k_unit_tests();
 
   for (const UnitTest& test : unit_tests) {
     SCOPED_TRACE(absl::StrCat("Test number: ", test.test_number));
