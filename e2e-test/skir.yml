@@ -5,5 +5,5 @@ generators:
       writeGoogleTestHeaders: true
 
 dependencies:
-  "@gepheum/fantasy-game-skir-example": v1.0.0
+  "@gepheum/skir-fantasy-game-example": v1.0.0
   "@gepheum/skir-golden-tests": v1.0.0
