@@ -240,6 +240,12 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("");
     header.mainMiddle.push(`    operator ${className}() &&;`);
     header.mainMiddle.push(`    operator ${className}() & = delete;`);
+    header.mainMiddle.push(
+      `    // Usage: auto val = *${className}::whole{...};`,
+    );
+    header.mainMiddle.push(
+      `    // Use this to avoid repeating '${className}' on both sides of =`,
+    );
     header.mainMiddle.push(`    ${className} operator*() &&;`);
     header.mainMiddle.push(`    ${className} operator*() & = delete;`);
     header.mainMiddle.push("  };");
