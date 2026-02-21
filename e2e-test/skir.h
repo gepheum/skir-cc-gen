@@ -2678,7 +2678,7 @@ class HandleRequestOp {
         request_meta_(*request_meta) {}
 
   skir::service::RawResponse Run() {
-    if (request_body_ == "" || request_body_ == "list") {
+    if (request_body_ == "list") {
       MethodList method_list;
       std::apply(
           [&](auto... method) {
@@ -2688,7 +2688,7 @@ class HandleRequestOp {
       ReadableJson json;
       MethodListAdapter::Append(method_list, json);
       return skir_internal::MakeOkJsonResponse(json.out);
-    } else if (request_body_ == "studio") {
+    } else if (request_body_ == "" || request_body_ == "studio") {
       return skir_internal::MakeOkHtmlResponse(
           GetStudioHtml(options_.studio_app_js_url));
     }
