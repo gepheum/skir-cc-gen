@@ -1,6 +1,6 @@
 {
   "name": "skir-cc-gen",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "",
   "keywords": [],
   "repository": {
@@ -39,7 +39,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
-    "skir-internal": "^0.1.0",
+    "skir-internal": "^0.1.1",
     "zod": "^4.2.1"
   },
   "devDependencies": {
