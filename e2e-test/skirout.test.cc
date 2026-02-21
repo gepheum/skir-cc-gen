@@ -88,6 +88,33 @@ TEST(skiroutTest, CreateWhole) {
                       }}));
 }
 
+TEST(skiroutTest, CreateWholeAndUseStarOperator) {
+  const auto car_owner = *CarOwner::whole{
+      .car =
+          Car::whole{
+              .model = "Toyota",
+              .owner = User{},
+              .purchase_time = absl::FromUnixMillis(1000),
+              .second_owner = absl::nullopt,
+          },
+      .owner =
+          FullName::whole{
+              .first_name = "Osi",
+              .last_name = "Daro",
+          },
+  };
+  EXPECT_EQ(car_owner,
+            (CarOwner{.car =
+                          {
+                              .model = "Toyota",
+                              .purchase_time = absl::FromUnixMillis(1000),
+                          },
+                      .owner = {
+                          .first_name = "Osi",
+                          .last_name = "Daro",
+                      }}));
+}
+
 TEST(skiroutTest, ReserializeStruct) {
   EXPECT_THAT(
       MakeReserializer(FullName{})

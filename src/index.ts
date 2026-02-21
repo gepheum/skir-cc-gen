@@ -238,7 +238,10 @@ class CcLibFilesGenerator {
       header.mainMiddle.push(`    ::skir::must_init<${ccType}> ${fieldName};`);
     }
     header.mainMiddle.push("");
-    header.mainMiddle.push(`    operator ${className}();`);
+    header.mainMiddle.push(`    operator ${className}() &&;`);
+    header.mainMiddle.push(`    operator ${className}() & = delete;`);
+    header.mainMiddle.push(`    ${className} operator*() &&;`);
+    header.mainMiddle.push(`    ${className} operator*() & = delete;`);
     header.mainMiddle.push("  };");
     header.mainMiddle.push("");
     for (const nestedRecord of nestedRecords) {
@@ -720,13 +723,21 @@ class CcLibFilesGenerator {
 
     {
       // Whole -> Struct
-      source.mainBottom.push(`${className}::whole::operator ${className}() {`);
+      source.mainBottom.push(
+        `${className}::whole::operator ${className}() && {`,
+      );
       source.mainBottom.push(`  return ${className}{`);
       for (const field of fieldsByName) {
         const fieldName = maybeEscapeLowerCaseName(field.name.text);
         source.mainBottom.push(`      *std::move(${fieldName}),`);
       }
       source.mainBottom.push("  };");
+      source.mainBottom.push("}");
+      source.mainBottom.push("");
+      source.mainBottom.push(
+        `${className} ${className}::whole::operator*() && {`,
+      );
+      source.mainBottom.push("  return std::move(*this);");
       source.mainBottom.push("}");
       source.mainBottom.push("");
     }
