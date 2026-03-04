@@ -1,5 +1,5 @@
-import JsonValue from "./enums.skir";
-import Point from "./structs.skir";
+import { JsonValue } from "./enums.skir";
+import { Point } from "./structs.skir";
 
 /// My procedure
 method MyProcedure(Point): JsonValue = 674706602;

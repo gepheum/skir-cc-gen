@@ -1,4 +1,4 @@
-import JsonValue from "./enums.skir";
+import { JsonValue } from "./enums.skir";
 
 /// One constant
 const ONE_CONSTANT: JsonValue = {

@@ -1,6 +1,6 @@
-import JsonValue from "./enums.skir";
-import Weekday from "enums.skir";
-import FullName from "full_name.skir";
+import { JsonValue } from "./enums.skir";
+import { Weekday } from "enums.skir";
+import { FullName } from "full_name.skir";
 import * as car from "vehicles/car.skir";
 
 struct Point {
