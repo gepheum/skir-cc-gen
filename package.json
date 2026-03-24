@@ -1,6 +1,6 @@
 {
   "name": "skir-cc-gen",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "keywords": [],
   "repository": {
@@ -39,7 +39,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
-    "skir-internal": "^0.1.1",
+    "skir-internal": "^0.2.19",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -53,7 +53,7 @@
     "mocha": "^11.7.5",
     "prettier": "^3.2.4",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "skir": "^1.1.10",
+    "skir": "^1.1.22",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.2.2",

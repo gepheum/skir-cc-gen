@@ -14,7 +14,7 @@ import {
 import { z } from "zod";
 import { EnumVariant, getEnumVariants } from "./enum_variant.js";
 import { CC_KEYWORDS } from "./keywords.js";
-import { RecursvityResolver } from "./recursivity_resolver.js";
+import { reorderRecords } from "./recursivity_resolver.js";
 import {
   TypeSpeller,
   getClassName,
@@ -67,7 +67,7 @@ class CcLibFilesGenerator {
     private readonly recordMap: ReadonlyMap<RecordKey, RecordLocation>,
   ) {
     this.typeSpeller = new TypeSpeller(recordMap, inModule, this.includes);
-    this.recursivityResolver = RecursvityResolver.resolve(recordMap, inModule);
+    this.reorderedRecords = reorderRecords(inModule, recordMap);
     this.includes.add('"skir.h"');
     this.namespace = modulePathToNamespace(inModule.path);
     this.generate();
@@ -88,7 +88,7 @@ class CcLibFilesGenerator {
     this.header.namespace = this.namespace;
     this.source.namespace = this.namespace;
     this.testingHeader.namespace = this.namespace;
-    for (const record of this.recursivityResolver.reorderedRecords) {
+    for (const record of this.reorderedRecords) {
       this.writeCodeForRecord(record);
     }
     for (const method of this.inModule.methods) {
@@ -166,7 +166,8 @@ class CcLibFilesGenerator {
     // https://abseil.io/tips/172
     for (const field of fieldsByName) {
       const type = field.type!;
-      const fieldIsRecursive = this.recursivityResolver.isRecursive(field);
+      const fieldIsRecursive =
+        field.isRecursive === "hard" || field.isRecursive === "via-optional";
       const ccType = typeSpeller.getCcType(type, {
         fieldIsRecursive: fieldIsRecursive,
       });
@@ -227,7 +228,8 @@ class CcLibFilesGenerator {
     header.mainMiddle.push("  struct whole {");
     for (const field of fieldsByName) {
       const type = field.type!;
-      const fieldIsRecursive = this.recursivityResolver.isRecursive(field);
+      const fieldIsRecursive =
+        field.isRecursive === "hard" || field.isRecursive === "via-optional";
       const ccType = typeSpeller.getCcType(type, {
         fieldIsRecursive: fieldIsRecursive,
       });
@@ -292,7 +294,8 @@ class CcLibFilesGenerator {
     // https://abseil.io/tips/172
     for (const field of fieldsByName) {
       const type = field.type!;
-      const fieldIsRecursive = this.recursivityResolver.isRecursive(field);
+      const fieldIsRecursive =
+        field.isRecursive === "hard" || field.isRecursive === "via-optional";
       const fieldName = maybeEscapeLowerCaseName(field.name.text);
       if (type.kind === "record") {
         // Do not pass fieldIsRecursive.
@@ -323,7 +326,8 @@ class CcLibFilesGenerator {
       );
       for (const field of fieldsByName) {
         const type = field.type!;
-        const fieldIsRecursive = this.recursivityResolver.isRecursive(field);
+        const fieldIsRecursive =
+          field.isRecursive === "hard" || field.isRecursive === "via-optional";
         const fieldName = field.name.text;
         let matcherExpr = maybeEscapeLowerCaseName(fieldName);
         if (type.kind === "record") {
@@ -1921,7 +1925,7 @@ class CcLibFilesGenerator {
 
   private readonly includes = new Set<string>();
   private readonly typeSpeller: TypeSpeller;
-  private readonly recursivityResolver: RecursvityResolver;
+  private readonly reorderedRecords: readonly RecordLocation[];
   private readonly namespace: string;
   private readonly seenskiroutSymbols = new Set<string>();
 
