@@ -2881,7 +2881,7 @@ absl::StatusOr<std::string> DecodeUrlQueryString(
 
 // Installs a SkirRPC service on the given httplib::Server at the given query
 // path. The httplib::Server type is referred to as a template parameter so as
-// not to make cpp-httplib a dependency of SkirRPC.
+// not to make cpp-httplib a dependency of skir.
 //
 // ServiceImpl must satisfy the requirements outlined in the documentation for
 // HandleRequest.
@@ -2954,7 +2954,7 @@ std::unique_ptr<Client> MakeHttplibClient(HttplibClient* absl_nonnull client,
       client, std::string(query_path));
 };
 
-// Returns a client for sending RPCs to a skir service via the given
+// Returns a client for sending RPCs to a SkirRPC service via the given
 // httplib::Client.
 // The httplib::Client type is referred to as a template parameter so as not to
 // make cpp-httplib a dependency of skir.
