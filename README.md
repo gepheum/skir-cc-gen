@@ -301,13 +301,13 @@ const User& tarzan = skirout_user::k_tarzan();
 assert(tarzan.name == "Tarzan");
 ```
 
-### Skir services
+### SkirRPC services
 
-#### Starting a skir service on an HTTP server
+#### Starting a SkirRPC service on an HTTP server
 
 Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc).
 
-#### Sending RPCs to a skir service
+#### Sending RPCs to a service
 
 Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc).
 

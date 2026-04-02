@@ -1039,7 +1039,7 @@ struct ServiceOptions {
       "https://cdn.jsdelivr.net/npm/skir-studio/dist/skir-studio-standalone.js";
 };
 
-// Sends RPCs to a skir service.
+// Sends RPCs to a SkirRPC service.
 class Client {
  public:
   virtual ~Client() = default;
@@ -2856,7 +2856,7 @@ namespace service {
 // If you are using cpp-httplib (https://github.com/yhirose/cpp-httplib) as
 // your server library, you don't need to call HandleRequest, you can simply
 // call InstallServiceOnHttplibServer. If you are using another server library,
-// call HandleRequest in the logic for installing a skir service on your
+// call HandleRequest in the logic for installing a SkirRPC service on your
 // server.
 //
 // If the request is a GET request, pass in the decoded query string as the
@@ -2879,9 +2879,9 @@ RawResponse HandleRequest(ServiceImpl& service_impl,
 absl::StatusOr<std::string> DecodeUrlQueryString(
     absl::string_view encoded_query_string);
 
-// Installs a skir service on the given httplib::Server at the given query
+// Installs a SkirRPC service on the given httplib::Server at the given query
 // path. The httplib::Server type is referred to as a template parameter so as
-// not to make cpp-httplib a dependency of skir.
+// not to make cpp-httplib a dependency of SkirRPC.
 //
 // ServiceImpl must satisfy the requirements outlined in the documentation for
 // HandleRequest.
@@ -2940,7 +2940,7 @@ absl::StatusOr<typename Method::response_type> InvokeRemote(
                                                UnrecognizedValuesPolicy::kKeep);
 }
 
-// Returns a client for sending RPCs to a skir service via the given
+// Returns a client for sending RPCs to a SkirRPC service via the given
 // httplib::Client.
 // The httplib::Client type is referred to as a template parameter so as not to
 // make cpp-httplib a dependency of skir.

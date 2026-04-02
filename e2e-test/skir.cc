@@ -1025,7 +1025,7 @@ std::string GetStudioHtml(absl::string_view studio_app_js_url) {
   <head>
     <meta charset="utf-8" />
     <title>RPC Studio</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐙</text></svg>">
     <script src=")html",
                       escaped_url,
                       R"html("></script>
