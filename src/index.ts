@@ -809,13 +809,10 @@ class CcLibFilesGenerator {
       header.mainMiddle.push(
         `  ${className}(::skirout::${structType}${assignment});`,
       );
-      const body = isUnknownVariant
-        ? "{\n  value_._unrecognized = nullptr;\n}"
-        : "{}";
       source.mainMiddle.push(
         `${className}::${className}(::skirout::${
           structType
-        }) : kind_(kind_type::${kindEnumerator}) ${body}`,
+        }) : kind_(kind_type::${kindEnumerator}) {\n  value_._unrecognized = nullptr;\n}`,
       );
     }
     source.mainMiddle.push("");
@@ -1013,9 +1010,7 @@ class CcLibFilesGenerator {
       );
       source.mainMiddle.push("  free_value();");
       source.mainMiddle.push(`  kind_ = kind_type::${kindEnumerator};`);
-      if (isUnknownVariant) {
-        source.mainMiddle.push("  value_._unrecognized = nullptr;");
-      }
+      source.mainMiddle.push("  value_._unrecognized = nullptr;");
       source.mainMiddle.push("  return *this;");
       source.mainMiddle.push("}");
       source.mainMiddle.push("");
@@ -1113,15 +1108,6 @@ class CcLibFilesGenerator {
     );
     source.mainMiddle.push("  kind_ = other.kind_;");
     source.mainMiddle.push("  switch (other.kind_) {");
-    source.mainMiddle.push("    case kind_type::kUnknown: {");
-    source.mainMiddle.push(
-      "      const unrecognized_variant* u = other.value_._unrecognized;",
-    );
-    source.mainMiddle.push(
-      "      value_._unrecognized = u != nullptr ? new unrecognized_variant(*u) : nullptr;",
-    );
-    source.mainMiddle.push("      break;");
-    source.mainMiddle.push("    }");
     for (const variant of wrapperVariants) {
       const { variantName, kindEnumerator, typeAlias, usePointer } = variant;
       source.mainMiddle.push(`    case kind_type::${kindEnumerator}:`);
@@ -1135,8 +1121,15 @@ class CcLibFilesGenerator {
       }
       source.mainMiddle.push("      break;");
     }
-    source.mainMiddle.push("    default:");
+    source.mainMiddle.push("    default: {");
+    source.mainMiddle.push(
+      "      const unrecognized_variant* u = other.value_._unrecognized;",
+    );
+    source.mainMiddle.push(
+      "      value_._unrecognized = u != nullptr ? new unrecognized_variant(*u) : nullptr;",
+    );
     source.mainMiddle.push("      break;");
+    source.mainMiddle.push("    }");
     source.mainMiddle.push("  }");
     source.mainMiddle.push("}");
     source.mainMiddle.push("");
@@ -1144,20 +1137,20 @@ class CcLibFilesGenerator {
 
     source.mainMiddle.push(`void ${className}::free_value() const {`);
     source.mainMiddle.push("  switch (kind_) {");
-    source.mainMiddle.push("    case kind_type::kUnknown:");
-    source.mainMiddle.push(
-      "      ::std::unique_ptr<unrecognized_variant>(value_._unrecognized);",
-    );
-    source.mainMiddle.push("      break;");
-    for (const variant of pointerVariants) {
-      const { variantName, kindEnumerator, typeAlias } = variant;
+    for (const variant of wrapperVariants) {
+      const { variantName, kindEnumerator, typeAlias, usePointer } = variant;
       source.mainMiddle.push(`    case kind_type::${kindEnumerator}:`);
-      source.mainMiddle.push(
-        `      ::std::unique_ptr<${typeAlias}>(value_.${variantName}_);`,
-      );
+      if (usePointer) {
+        source.mainMiddle.push(
+          `      ::std::unique_ptr<${typeAlias}>(value_.${variantName}_);`,
+        );
+      }
       source.mainMiddle.push("      break;");
     }
     source.mainMiddle.push("    default:");
+    source.mainMiddle.push(
+      "      ::std::unique_ptr<unrecognized_variant>(value_._unrecognized);",
+    );
     source.mainMiddle.push("      break;");
     source.mainMiddle.push("  }");
     source.mainMiddle.push("}");
@@ -1290,8 +1283,16 @@ class CcLibFilesGenerator {
           );
         } else {
           source.internalMain.push(
-            `      out.out += {${numberToCharLiterals(variantNumber)}};`,
+            "      if (input.value_._unrecognized != nullptr && input.value_._unrecognized->format == ::skir_internal::UnrecognizedFormat::kDenseJson) {",
           );
+          source.internalMain.push(
+            "        AppendUnrecognizedVariant(input.value_._unrecognized, out);",
+          );
+          source.internalMain.push("      } else {");
+          source.internalMain.push(
+            `        out.out += {${numberToCharLiterals(variantNumber)}};`,
+          );
+          source.internalMain.push("      }");
         }
         source.internalMain.push("      break;");
         source.internalMain.push("    }");
@@ -1412,10 +1413,18 @@ class CcLibFilesGenerator {
             "      AppendUnrecognizedVariant(input.value_._unrecognized, out);",
           );
         } else {
+          source.internalMain.push(
+            "      if (input.value_._unrecognized != nullptr && input.value_._unrecognized->format == ::skir_internal::UnrecognizedFormat::kBytes) {",
+          );
+          source.internalMain.push(
+            "        AppendUnrecognizedVariant(input.value_._unrecognized, out);",
+          );
+          source.internalMain.push("      } else {");
           const intLiterals = bytesToIntLiterals([
             ...encodeInt32(variantNumber),
           ]);
-          source.internalMain.push(`      out.Push(${intLiterals});`);
+          source.internalMain.push(`        out.Push(${intLiterals});`);
+          source.internalMain.push("      }");
         }
         source.internalMain.push("      break;");
         source.internalMain.push("    }");
@@ -1451,6 +1460,22 @@ class CcLibFilesGenerator {
       source.internalMain.push(
         `void ${adapterName}::Parse(JsonTokenizer& tokenizer, type& out) {`,
       );
+      if (wrapperVariants.length > 0) {
+        source.internalMain.push(
+          "  const auto set_wrapper_default = [&](auto* wrapper) -> bool {",
+        );
+        source.internalMain.push(
+          "    using Value = std::remove_reference_t<decltype(wrapper->value)>;",
+        );
+        source.internalMain.push(
+          '    const absl::StatusOr<Value> parsed = ::skir::Parse<Value>("0");',
+        );
+        source.internalMain.push("    if (!parsed.ok()) return false;");
+        source.internalMain.push("    wrapper->value = *parsed;");
+        source.internalMain.push("    out = std::move(*wrapper);");
+        source.internalMain.push("    return true;");
+        source.internalMain.push("  };");
+      }
       source.internalMain.push("  switch (tokenizer.state().token_type) {");
       source.internalMain.push("    case JsonTokenType::kZero:");
       source.internalMain.push("      tokenizer.Next();");
@@ -1466,6 +1491,16 @@ class CcLibFilesGenerator {
         source.internalMain.push(`        case ${variantNumber}:`);
         source.internalMain.push(`          out = ::skirout::${identifier};`);
         source.internalMain.push("          break;");
+      }
+      for (const variant of wrapperVariants) {
+        const { variantNumber, typeAlias } = variant;
+        source.internalMain.push(`        case ${variantNumber}: {`);
+        source.internalMain.push(`          type::${typeAlias} wrapper;`);
+        source.internalMain.push(
+          "          if (!set_wrapper_default(&wrapper)) break;",
+        );
+        source.internalMain.push("          break;");
+        source.internalMain.push("        }");
       }
       source.internalMain.push("        default:");
       source.internalMain.push(
@@ -1497,15 +1532,57 @@ class CcLibFilesGenerator {
       source.internalMain.push(
         "      const auto it = kMap->find(tokenizer.state().string_value);",
       );
-      source.internalMain.push("      if (it == kMap->cend()) break;");
-      source.internalMain.push("      out = it->second;");
-      source.internalMain.push("      tokenizer.Next();");
+      source.internalMain.push("      if (it != kMap->cend()) {");
+      source.internalMain.push("        out = it->second;");
+      source.internalMain.push("        tokenizer.Next();");
+      source.internalMain.push("        break;");
+      source.internalMain.push("      }");
+      for (const variant of wrapperVariants) {
+        const { variantName, typeAlias } = variant;
+        source.internalMain.push(
+          `      if (tokenizer.state().string_value == ${toCStringLiteral(
+            variantName,
+          )}) {`,
+        );
+        source.internalMain.push(`        type::${typeAlias} wrapper;`);
+        source.internalMain.push(
+          "        if (set_wrapper_default(&wrapper)) {",
+        );
+        source.internalMain.push("          tokenizer.Next();");
+        source.internalMain.push("          break;");
+        source.internalMain.push("        }");
+        source.internalMain.push("      }");
+      }
       source.internalMain.push("      break;");
       source.internalMain.push("    }");
       source.internalMain.push("    case JsonTokenType::kLeftSquareBracket: {");
       source.internalMain.push("      EnumJsonArrayParser parser(&tokenizer);");
       source.internalMain.push("      const int number = parser.ReadNumber();");
       source.internalMain.push("      switch (number) {");
+      for (const variant of constVariants) {
+        const { variantNumber, identifier } = variant;
+        if (variant.variantNumber <= 0) continue;
+        source.internalMain.push(`        case ${variantNumber}: {`);
+        source.internalMain.push(
+          "          if (tokenizer.keep_unrecognized_values()) {",
+        );
+        source.internalMain.push(
+          "            UnrecognizedVariant unrecognized{::skir_internal::UnrecognizedFormat::kDenseJson, number};",
+        );
+        source.internalMain.push(
+          "            unrecognized.emplace_value().ParseFrom(tokenizer);",
+        );
+        source.internalMain.push(`            out = ::skirout::${identifier};`);
+        source.internalMain.push(
+          "            out.value_._unrecognized = new type::unrecognized_variant(std::move(unrecognized));",
+        );
+        source.internalMain.push("          } else {");
+        source.internalMain.push("            SkipValue(tokenizer);");
+        source.internalMain.push(`            out = ::skirout::${identifier};`);
+        source.internalMain.push("          }");
+        source.internalMain.push("          break;");
+        source.internalMain.push("        }");
+      }
       for (const variant of wrapperVariants) {
         const { variantNumber, typeAlias } = variant;
         source.internalMain.push(`        case ${variantNumber}: {`);
@@ -1568,11 +1645,64 @@ class CcLibFilesGenerator {
       source.internalMain.push(
         `void ${adapterName}::Parse(ByteSource& source, type& out) {`,
       );
+      if (wrapperVariants.length > 0) {
+        source.internalMain.push(
+          "  const auto set_wrapper_default = [&](auto* wrapper) -> bool {",
+        );
+        source.internalMain.push(
+          "    using Value = std::remove_reference_t<decltype(wrapper->value)>;",
+        );
+        source.internalMain.push(
+          '    const absl::StatusOr<Value> parsed = ::skir::Parse<Value>("0");',
+        );
+        source.internalMain.push("    if (!parsed.ok()) return false;");
+        source.internalMain.push("    wrapper->value = *parsed;");
+        source.internalMain.push("    out = std::move(*wrapper);");
+        source.internalMain.push("    return true;");
+        source.internalMain.push("  };");
+      }
       source.internalMain.push(
         "  const auto [has_value, number] = ParseEnumPrefix(source);",
       );
       source.internalMain.push("  if (has_value) {");
       source.internalMain.push("    switch (number) {");
+      for (const variant of constVariants) {
+        const { variantNumber, identifier } = variant;
+        if (variant.variantNumber <= 0) continue;
+        source.internalMain.push(`      case ${variantNumber}: {`);
+        source.internalMain.push(
+          "        if (source.keep_unrecognized_values) {",
+        );
+        source.internalMain.push(
+          "          const uint8_t* value_start = source.pos;",
+        );
+        source.internalMain.push("          SkipValue(source);");
+        source.internalMain.push(
+          "          const size_t value_len = source.pos - value_start;",
+        );
+        source.internalMain.push(
+          "          UnrecognizedVariant unrecognized{::skir_internal::UnrecognizedFormat::kBytes, number};",
+        );
+        source.internalMain.push(
+          "          auto& unrecognized_value = unrecognized.emplace_value();",
+        );
+        source.internalMain.push(
+          "          ::skir_internal::ByteSource value_source(value_start, value_len);",
+        );
+        source.internalMain.push(
+          "          unrecognized_value.ParseFrom(value_source);",
+        );
+        source.internalMain.push(`          out = ::skirout::${identifier};`);
+        source.internalMain.push(
+          "          out.value_._unrecognized = new type::unrecognized_variant(std::move(unrecognized));",
+        );
+        source.internalMain.push("        } else {");
+        source.internalMain.push("          SkipValue(source);");
+        source.internalMain.push(`          out = ::skirout::${identifier};`);
+        source.internalMain.push("        }");
+        source.internalMain.push("        break;");
+        source.internalMain.push("      }");
+      }
       for (const variant of wrapperVariants) {
         const { variantNumber, typeAlias } = variant;
         source.internalMain.push(`      case ${variantNumber}: {`);
@@ -1612,6 +1742,16 @@ class CcLibFilesGenerator {
         source.internalMain.push(`      case ${variantNumber}:`);
         source.internalMain.push(`        out = ::skirout::${identifier};`);
         source.internalMain.push("        break;");
+      }
+      for (const variant of wrapperVariants) {
+        const { variantNumber, typeAlias } = variant;
+        source.internalMain.push(`      case ${variantNumber}: {`);
+        source.internalMain.push(`        type::${typeAlias} wrapper;`);
+        source.internalMain.push(
+          "        if (!set_wrapper_default(&wrapper)) break;",
+        );
+        source.internalMain.push("        break;");
+        source.internalMain.push("      }");
       }
       source.internalMain.push("      default: {");
       source.internalMain.push(

@@ -161,6 +161,16 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
           skirout_external_gepheum_skir_golden_tests_goldens::MyEnum>>(
           typed_value.as_my_enum());
     case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumAWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>>(
+          typed_value.as_enum_a());
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumBWrapper:
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>>(
+          typed_value.as_enum_b());
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
         kind_type::kKeyedArraysWrapper:
       return std::make_unique<TypedValueImpl<
           skirout_external_gepheum_skir_golden_tests_goldens::KeyedArrays>>(
@@ -441,9 +451,167 @@ absl::StatusOr<std::unique_ptr<TypedValue>> EvalTypedValue(
           *my_enum);
     }
     case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumAFromJsonKeepUnrecognizedWrapper: {
+      const absl::StatusOr<std::string> string_expression =
+          EvalStringExpression(
+              typed_value.as_enum_a_from_json_keep_unrecognized());
+      if (!string_expression.ok()) {
+        return string_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>
+          enum_a = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumA>(
+              *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
+      if (!enum_a.ok()) {
+        return enum_a.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>>(*enum_a);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumAFromJsonDropUnrecognizedWrapper: {
+      const absl::StatusOr<std::string> string_expression =
+          EvalStringExpression(
+              typed_value.as_enum_a_from_json_drop_unrecognized());
+      if (!string_expression.ok()) {
+        return string_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>
+          enum_a = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumA>(
+              *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
+      if (!enum_a.ok()) {
+        return enum_a.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>>(*enum_a);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumAFromBytesKeepUnrecognizedWrapper: {
+      const absl::StatusOr<skir::ByteString> bytes_expression =
+          EvalBytesExpression(
+              typed_value.as_enum_a_from_bytes_keep_unrecognized());
+      if (!bytes_expression.ok()) {
+        return bytes_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>
+          enum_a = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumA>(
+              bytes_expression->as_string(),
+              skir::UnrecognizedValuesPolicy::kKeep);
+      if (!enum_a.ok()) {
+        return enum_a.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>>(*enum_a);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumAFromBytesDropUnrecognizedWrapper: {
+      const absl::StatusOr<skir::ByteString> bytes_expression =
+          EvalBytesExpression(
+              typed_value.as_enum_a_from_bytes_drop_unrecognized());
+      if (!bytes_expression.ok()) {
+        return bytes_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>
+          enum_a = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumA>(
+              bytes_expression->as_string(),
+              skir::UnrecognizedValuesPolicy::kDrop);
+      if (!enum_a.ok()) {
+        return enum_a.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>>(*enum_a);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumBFromJsonKeepUnrecognizedWrapper: {
+      const absl::StatusOr<std::string> string_expression =
+          EvalStringExpression(
+              typed_value.as_enum_b_from_json_keep_unrecognized());
+      if (!string_expression.ok()) {
+        return string_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>
+          enum_b = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumB>(
+              *string_expression, skir::UnrecognizedValuesPolicy::kKeep);
+      if (!enum_b.ok()) {
+        return enum_b.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>>(*enum_b);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumBFromJsonDropUnrecognizedWrapper: {
+      const absl::StatusOr<std::string> string_expression =
+          EvalStringExpression(
+              typed_value.as_enum_b_from_json_drop_unrecognized());
+      if (!string_expression.ok()) {
+        return string_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>
+          enum_b = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumB>(
+              *string_expression, skir::UnrecognizedValuesPolicy::kDrop);
+      if (!enum_b.ok()) {
+        return enum_b.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>>(*enum_b);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumBFromBytesKeepUnrecognizedWrapper: {
+      const absl::StatusOr<skir::ByteString> bytes_expression =
+          EvalBytesExpression(
+              typed_value.as_enum_b_from_bytes_keep_unrecognized());
+      if (!bytes_expression.ok()) {
+        return bytes_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>
+          enum_b = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumB>(
+              bytes_expression->as_string(),
+              skir::UnrecognizedValuesPolicy::kKeep);
+      if (!enum_b.ok()) {
+        return enum_b.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>>(*enum_b);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
+        kind_type::kEnumBFromBytesDropUnrecognizedWrapper: {
+      const absl::StatusOr<skir::ByteString> bytes_expression =
+          EvalBytesExpression(
+              typed_value.as_enum_b_from_bytes_drop_unrecognized());
+      if (!bytes_expression.ok()) {
+        return bytes_expression.status();
+      }
+      const absl::StatusOr<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>
+          enum_b = skir::Parse<
+              skirout_external_gepheum_skir_golden_tests_goldens::EnumB>(
+              bytes_expression->as_string(),
+              skir::UnrecognizedValuesPolicy::kDrop);
+      if (!enum_b.ok()) {
+        return enum_b.status();
+      }
+      return std::make_unique<TypedValueImpl<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>>(*enum_b);
+    }
+    case skirout_external_gepheum_skir_golden_tests_goldens::TypedValue::
         kind_type::kUnknown:
       return absl::InvalidArgumentError("Unknown TypedValue kind");
   }
+
+  return absl::InvalidArgumentError("Unhandled TypedValue kind");
 }
 
 absl::StatusOr<std::string> EvalStringExpression(const StringExpression& expr) {
@@ -713,6 +881,106 @@ void ExecuteStringIn(const Assertion::StringIn& assertion) {
   EXPECT_TRUE(found) << "String not in expected set";
 }
 
+void ExecuteEnumAFromJsonIsConstant(
+    const Assertion::EnumAFromJsonIsConstant& assertion) {
+  const absl::StatusOr<std::string> actual =
+      EvalStringExpression(assertion.actual);
+  EXPECT_EQ(actual.status(), absl::OkStatus());
+  if (!actual.ok()) {
+    return;
+  }
+  const auto policy = assertion.keep_unrecognized
+                          ? skir::UnrecognizedValuesPolicy::kKeep
+                          : skir::UnrecognizedValuesPolicy::kDrop;
+  const absl::StatusOr<
+      skirout_external_gepheum_skir_golden_tests_goldens::EnumA>
+      enum_a = skir::Parse<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>(*actual,
+                                                                     policy);
+  EXPECT_EQ(enum_a.status(), absl::OkStatus());
+  if (!enum_a.ok()) {
+    return;
+  }
+  EXPECT_EQ(enum_a->kind(), skirout_external_gepheum_skir_golden_tests_goldens::
+                                EnumA::kind_type::kAConst);
+}
+
+void ExecuteEnumAFromBytesIsConstant(
+    const Assertion::EnumAFromBytesIsConstant& assertion) {
+  const absl::StatusOr<skir::ByteString> actual =
+      EvalBytesExpression(assertion.actual);
+  EXPECT_EQ(actual.status(), absl::OkStatus());
+  if (!actual.ok()) {
+    return;
+  }
+  const auto policy = assertion.keep_unrecognized
+                          ? skir::UnrecognizedValuesPolicy::kKeep
+                          : skir::UnrecognizedValuesPolicy::kDrop;
+  const absl::StatusOr<
+      skirout_external_gepheum_skir_golden_tests_goldens::EnumA>
+      enum_a = skir::Parse<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumA>(
+          actual->as_string(), policy);
+  EXPECT_EQ(enum_a.status(), absl::OkStatus());
+  if (!enum_a.ok()) {
+    return;
+  }
+  EXPECT_EQ(enum_a->kind(), skirout_external_gepheum_skir_golden_tests_goldens::
+                                EnumA::kind_type::kAConst);
+}
+
+void ExecuteEnumBFromJsonIsWrapperB(
+    const Assertion::EnumBFromJsonIsWrapperB& assertion) {
+  const absl::StatusOr<std::string> actual =
+      EvalStringExpression(assertion.actual);
+  EXPECT_EQ(actual.status(), absl::OkStatus());
+  if (!actual.ok()) {
+    return;
+  }
+  const auto policy = assertion.keep_unrecognized
+                          ? skir::UnrecognizedValuesPolicy::kKeep
+                          : skir::UnrecognizedValuesPolicy::kDrop;
+  const absl::StatusOr<
+      skirout_external_gepheum_skir_golden_tests_goldens::EnumB>
+      enum_b = skir::Parse<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>(*actual,
+                                                                     policy);
+  EXPECT_EQ(enum_b.status(), absl::OkStatus());
+  if (!enum_b.ok()) {
+    return;
+  }
+  EXPECT_TRUE(enum_b->is_b());
+  if (enum_b->is_b()) {
+    EXPECT_EQ(enum_b->as_b(), assertion.expected);
+  }
+}
+
+void ExecuteEnumBFromBytesIsWrapperB(
+    const Assertion::EnumBFromBytesIsWrapperB& assertion) {
+  const absl::StatusOr<skir::ByteString> actual =
+      EvalBytesExpression(assertion.actual);
+  EXPECT_EQ(actual.status(), absl::OkStatus());
+  if (!actual.ok()) {
+    return;
+  }
+  const auto policy = assertion.keep_unrecognized
+                          ? skir::UnrecognizedValuesPolicy::kKeep
+                          : skir::UnrecognizedValuesPolicy::kDrop;
+  const absl::StatusOr<
+      skirout_external_gepheum_skir_golden_tests_goldens::EnumB>
+      enum_b = skir::Parse<
+          skirout_external_gepheum_skir_golden_tests_goldens::EnumB>(
+          actual->as_string(), policy);
+  EXPECT_EQ(enum_b.status(), absl::OkStatus());
+  if (!enum_b.ok()) {
+    return;
+  }
+  EXPECT_TRUE(enum_b->is_b());
+  if (enum_b->is_b()) {
+    EXPECT_EQ(enum_b->as_b(), assertion.expected);
+  }
+}
+
 // Main test that runs all unit tests
 TEST(SkirGoldensTest, AllTests) {
   const std::vector<UnitTest>& unit_tests =
@@ -750,6 +1018,26 @@ TEST(SkirGoldensTest, AllTests) {
 
       case Assertion::kind_type::kStringInWrapper:
         ExecuteStringIn(assertion.as_string_in());
+        break;
+
+      case Assertion::kind_type::kEnumAFromJsonIsConstantWrapper:
+        ExecuteEnumAFromJsonIsConstant(
+            assertion.as_enum_a_from_json_is_constant());
+        break;
+
+      case Assertion::kind_type::kEnumAFromBytesIsConstantWrapper:
+        ExecuteEnumAFromBytesIsConstant(
+            assertion.as_enum_a_from_bytes_is_constant());
+        break;
+
+      case Assertion::kind_type::kEnumBFromJsonIsWrapperBWrapper:
+        ExecuteEnumBFromJsonIsWrapperB(
+            assertion.as_enum_b_from_json_is_wrapper_b());
+        break;
+
+      case Assertion::kind_type::kEnumBFromBytesIsWrapperBWrapper:
+        ExecuteEnumBFromBytesIsWrapperB(
+            assertion.as_enum_b_from_bytes_is_wrapper_b());
         break;
 
       case Assertion::kind_type::kUnknown:
