@@ -1282,16 +1282,8 @@ class CcLibFilesGenerator {
           );
         } else {
           source.internalMain.push(
-            "      if (input.value_._unrecognized != nullptr && input.value_._unrecognized->format == ::skir_internal::UnrecognizedFormat::kDenseJson) {",
+            `      out.out += {${numberToCharLiterals(variantNumber)}};`,
           );
-          source.internalMain.push(
-            "        AppendUnrecognizedVariant(input.value_._unrecognized, out);",
-          );
-          source.internalMain.push("      } else {");
-          source.internalMain.push(
-            `        out.out += {${numberToCharLiterals(variantNumber)}};`,
-          );
-          source.internalMain.push("      }");
         }
         source.internalMain.push("      break;");
         source.internalMain.push("    }");
@@ -1412,18 +1404,10 @@ class CcLibFilesGenerator {
             "      AppendUnrecognizedVariant(input.value_._unrecognized, out);",
           );
         } else {
-          source.internalMain.push(
-            "      if (input.value_._unrecognized != nullptr && input.value_._unrecognized->format == ::skir_internal::UnrecognizedFormat::kBytes) {",
-          );
-          source.internalMain.push(
-            "        AppendUnrecognizedVariant(input.value_._unrecognized, out);",
-          );
-          source.internalMain.push("      } else {");
           const intLiterals = bytesToIntLiterals([
             ...encodeInt32(variantNumber),
           ]);
-          source.internalMain.push(`        out.Push(${intLiterals});`);
-          source.internalMain.push("      }");
+          source.internalMain.push(`      out.Push(${intLiterals});`);
         }
         source.internalMain.push("      break;");
         source.internalMain.push("    }");
@@ -1544,12 +1528,9 @@ class CcLibFilesGenerator {
           )}) {`,
         );
         source.internalMain.push(`        type::${typeAlias} wrapper;`);
-        source.internalMain.push(
-          "        if (set_wrapper_default(&wrapper)) {",
-        );
-        source.internalMain.push("          tokenizer.Next();");
-        source.internalMain.push("          break;");
-        source.internalMain.push("        }");
+        source.internalMain.push("        out = std::move(wrapper);");
+        source.internalMain.push("        tokenizer.Next();");
+        source.internalMain.push("        break;");
         source.internalMain.push("      }");
       }
       source.internalMain.push("      break;");
@@ -1562,23 +1543,8 @@ class CcLibFilesGenerator {
         const { variantNumber, identifier } = variant;
         if (variant.variantNumber === 0) continue;
         source.internalMain.push(`        case ${variantNumber}: {`);
-        source.internalMain.push(
-          "          if (tokenizer.keep_unrecognized_values()) {",
-        );
-        source.internalMain.push(
-          "            UnrecognizedVariant unrecognized{::skir_internal::UnrecognizedFormat::kDenseJson, number};",
-        );
-        source.internalMain.push(
-          "            unrecognized.emplace_value().ParseFrom(tokenizer);",
-        );
-        source.internalMain.push(`            out = ::skirout::${identifier};`);
-        source.internalMain.push(
-          "            out.value_._unrecognized = new type::unrecognized_variant(std::move(unrecognized));",
-        );
-        source.internalMain.push("          } else {");
-        source.internalMain.push("            SkipValue(tokenizer);");
-        source.internalMain.push(`            out = ::skirout::${identifier};`);
-        source.internalMain.push("          }");
+        source.internalMain.push("          SkipValue(tokenizer);");
+        source.internalMain.push(`          out = ::skirout::${identifier};`);
         source.internalMain.push("          break;");
         source.internalMain.push("        }");
       }
@@ -1668,36 +1634,8 @@ class CcLibFilesGenerator {
         const { variantNumber, identifier } = variant;
         if (variant.variantNumber === 0) continue;
         source.internalMain.push(`      case ${variantNumber}: {`);
-        source.internalMain.push(
-          "        if (source.keep_unrecognized_values) {",
-        );
-        source.internalMain.push(
-          "          const uint8_t* value_start = source.pos;",
-        );
-        source.internalMain.push("          SkipValue(source);");
-        source.internalMain.push(
-          "          const size_t value_len = source.pos - value_start;",
-        );
-        source.internalMain.push(
-          "          UnrecognizedVariant unrecognized{::skir_internal::UnrecognizedFormat::kBytes, number};",
-        );
-        source.internalMain.push(
-          "          auto& unrecognized_value = unrecognized.emplace_value();",
-        );
-        source.internalMain.push(
-          "          ::skir_internal::ByteSource value_source(value_start, value_len);",
-        );
-        source.internalMain.push(
-          "          unrecognized_value.ParseFrom(value_source);",
-        );
-        source.internalMain.push(`          out = ::skirout::${identifier};`);
-        source.internalMain.push(
-          "          out.value_._unrecognized = new type::unrecognized_variant(std::move(unrecognized));",
-        );
-        source.internalMain.push("        } else {");
-        source.internalMain.push("          SkipValue(source);");
-        source.internalMain.push(`          out = ::skirout::${identifier};`);
-        source.internalMain.push("        }");
+        source.internalMain.push("        SkipValue(source);");
+        source.internalMain.push(`        out = ::skirout::${identifier};`);
         source.internalMain.push("        break;");
         source.internalMain.push("      }");
       }
