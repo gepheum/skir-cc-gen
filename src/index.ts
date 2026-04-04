@@ -760,7 +760,6 @@ class CcLibFilesGenerator {
     const variants = getEnumVariants(record.record.fields, typeSpeller);
     const constVariants = variants.filter((f) => !f.valueType);
     const wrapperVariants = variants.filter((f) => f.valueType);
-    const pointerVariants = wrapperVariants.filter((f) => f.usePointer);
 
     for (const variant of constVariants) {
       this.writeCodeForConstantVariant(variant);
@@ -1001,7 +1000,7 @@ class CcLibFilesGenerator {
     source.mainMiddle.push("");
     header.mainMiddle.push("");
     for (const variant of constVariants) {
-      const { isUnknownVariant, kindEnumerator, structType } = variant;
+      const { kindEnumerator, structType } = variant;
       header.mainMiddle.push(
         `  ${className}& operator=(::skirout::${structType});`,
       );
@@ -1487,7 +1486,7 @@ class CcLibFilesGenerator {
       source.internalMain.push("      switch (i) {");
       for (const variant of constVariants) {
         const { variantNumber, identifier } = variant;
-        if (variant.variantNumber <= 0) continue;
+        if (variant.variantNumber === 0) continue;
         source.internalMain.push(`        case ${variantNumber}:`);
         source.internalMain.push(`          out = ::skirout::${identifier};`);
         source.internalMain.push("          break;");
@@ -1497,7 +1496,7 @@ class CcLibFilesGenerator {
         source.internalMain.push(`        case ${variantNumber}: {`);
         source.internalMain.push(`          type::${typeAlias} wrapper;`);
         source.internalMain.push(
-          "          if (!set_wrapper_default(&wrapper)) break;",
+          "          (void)set_wrapper_default(&wrapper);",
         );
         source.internalMain.push("          break;");
         source.internalMain.push("        }");
@@ -1561,7 +1560,7 @@ class CcLibFilesGenerator {
       source.internalMain.push("      switch (number) {");
       for (const variant of constVariants) {
         const { variantNumber, identifier } = variant;
-        if (variant.variantNumber <= 0) continue;
+        if (variant.variantNumber === 0) continue;
         source.internalMain.push(`        case ${variantNumber}: {`);
         source.internalMain.push(
           "          if (tokenizer.keep_unrecognized_values()) {",
@@ -1647,7 +1646,7 @@ class CcLibFilesGenerator {
       );
       if (wrapperVariants.length > 0) {
         source.internalMain.push(
-          "  const auto set_wrapper_default = [&](auto* wrapper) -> bool {",
+          "  const auto set_wrapper_default = [&](auto* wrapper) -> void {",
         );
         source.internalMain.push(
           "    using Value = std::remove_reference_t<decltype(wrapper->value)>;",
@@ -1655,10 +1654,9 @@ class CcLibFilesGenerator {
         source.internalMain.push(
           '    const absl::StatusOr<Value> parsed = ::skir::Parse<Value>("0");',
         );
-        source.internalMain.push("    if (!parsed.ok()) return false;");
+        source.internalMain.push("    if (!parsed.ok()) return;");
         source.internalMain.push("    wrapper->value = *parsed;");
         source.internalMain.push("    out = std::move(*wrapper);");
-        source.internalMain.push("    return true;");
         source.internalMain.push("  };");
       }
       source.internalMain.push(
@@ -1668,7 +1666,7 @@ class CcLibFilesGenerator {
       source.internalMain.push("    switch (number) {");
       for (const variant of constVariants) {
         const { variantNumber, identifier } = variant;
-        if (variant.variantNumber <= 0) continue;
+        if (variant.variantNumber === 0) continue;
         source.internalMain.push(`      case ${variantNumber}: {`);
         source.internalMain.push(
           "        if (source.keep_unrecognized_values) {",
@@ -1747,9 +1745,7 @@ class CcLibFilesGenerator {
         const { variantNumber, typeAlias } = variant;
         source.internalMain.push(`      case ${variantNumber}: {`);
         source.internalMain.push(`        type::${typeAlias} wrapper;`);
-        source.internalMain.push(
-          "        if (!set_wrapper_default(&wrapper)) break;",
-        );
+        source.internalMain.push("        set_wrapper_default(&wrapper);");
         source.internalMain.push("        break;");
         source.internalMain.push("      }");
       }
